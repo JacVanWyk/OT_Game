@@ -1,0 +1,4283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#3b7d4f">
+<title>Orchard Toss (prototype)</title>
+<style>
+  html, body { margin: 0; padding: 0; overflow: hidden; background: #3b7d4f; height: 100%; overscroll-behavior: none; }
+  body { position: fixed; inset: 0; }
+  canvas {
+    display: block;
+    touch-action: none;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+</style>
+</head>
+<body>
+<canvas id="ot-canvas"></canvas>
+<script>window.OT=window.OT||{};OT.AM_DATA={"Fredoka-Bold":"data:font/woff2;base64,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"};</script>
+<script>
+/* Orchard Toss — js/config.js
+ * OT.CONFIG: every tunable for the prototype lives here (see ARCHITECTURE.md, "js/config.js").
+ * Plain script, ES2015 max, works in the browser (window.OT) and in Node (module.exports).
+ *
+ * Level ramp decisions (tunables, all in this file):
+ *   Zone bands   : Spring 1-10, Summer 11-22, Autumn 23-36, Winter 37-52.
+ *   Fruit unlocks: cumulative across zones. A new zone's fruits are introduced one at a time
+ *                  at indexInZone thresholds FRUIT_INTRO (Spring starts with two types so a
+ *                  level-1 board is never single-typed).
+ *   fill         : linear per zone, FILL_RAMP[zone] = [first level, last level].
+ *   timeLimit    : linear per zone, TIME_RAMP[zone] = [first level, last level] (seconds, integer).
+ *   obstacles    : per zone via OBSTACLE_RAMP[zone](indexInZone, levels).
+ */
+(function () {
+  var root = (typeof window !== 'undefined') ? window : (typeof globalThis !== 'undefined' ? globalThis : this);
+  root.OT = root.OT || {};
+  var OT = root.OT;
+
+  var ZONES = [
+    { id: 'spring', name: 'Spring', levels: 10, fruits: ['cherry', 'strawberry', 'apple'] },
+    { id: 'summer', name: 'Summer', levels: 12, fruits: ['watermelon', 'grape', 'banana'] },
+    { id: 'autumn', name: 'Autumn', levels: 14, fruits: ['pomegranate', 'pineapple'] },
+    { id: 'winter', name: 'Winter', levels: 16, fruits: ['orange', 'lemon'] }
+  ];
+
+  // indexInZone at which each of the zone's fruits is unlocked (parallel to ZONES[i].fruits)
+  var FRUIT_INTRO = {
+    spring: [0, 0, 2],
+    summer: [0, 2, 4],
+    autumn: [0, 2],
+    winter: [0, 2]
+  };
+
+  // board fill fraction over the zone, [first level, last level]
+  var FILL_RAMP = {
+    spring: [0.50, 0.60],
+    summer: [0.58, 0.66],
+    autumn: [0.62, 0.70],
+    winter: [0.66, 0.75]
+  };
+
+  // time limit in seconds over the zone, [first level, last level]
+  var TIME_RAMP = {
+    spring: [60, 50],
+    summer: [55, 45],
+    autumn: [55, 45],
+    winter: [55, 45]
+  };
+
+  // obstacle counts per zone as a function of indexInZone (0-based) and zone length
+  var OBSTACLE_RAMP = {
+    spring: function () { return { walls: 0, trellis: 0, pipes: 0, coconuts: 0 }; },
+    summer: function (i, len) { return { walls: (i < len / 2) ? 1 : 2, trellis: 0, pipes: 0, coconuts: 0 }; },
+    autumn: function (i, len) { return { walls: 2, trellis: 1, pipes: 0, coconuts: (i < len / 2) ? 1 : 2 }; },
+    winter: function (i, len) {
+      var late = i >= len / 2;
+      return { walls: late ? 3 : 2, trellis: late ? 2 : 1, pipes: late ? 2 : 1, coconuts: 2 };
+    }
+  };
+
+  function lerp(a, b, t) { return a + (b - a) * t; }
+
+  function levelDef(n) {
+    n = Math.floor(Number(n));
+    if (!(n >= 1 && n <= 52)) throw new Error('levelDef: n must be 1..52, got ' + n);
+    var zoneIndex = 0, start = 1;
+    while (n >= start + ZONES[zoneIndex].levels) { start += ZONES[zoneIndex].levels; zoneIndex++; }
+    var zone = ZONES[zoneIndex];
+    var indexInZone = n - start;
+    var t = zone.levels > 1 ? indexInZone / (zone.levels - 1) : 0;
+
+    var fruits = [];
+    for (var z = 0; z <= zoneIndex; z++) {
+      var zf = ZONES[z].fruits, intro = FRUIT_INTRO[ZONES[z].id];
+      for (var k = 0; k < zf.length; k++) {
+        if (z < zoneIndex || indexInZone >= intro[k]) fruits.push(zf[k]);
+      }
+    }
+
+    var fillRamp = FILL_RAMP[zone.id], timeRamp = TIME_RAMP[zone.id];
+    return {
+      n: n,
+      zone: zone.id,
+      zoneName: zone.name,
+      zoneIndex: zoneIndex,
+      indexInZone: indexInZone,
+      zoneLevels: zone.levels,
+      rows: 8,
+      cols: 5,
+      fill: Math.round(lerp(fillRamp[0], fillRamp[1], t) * 1000) / 1000,
+      timeLimit: Math.round(lerp(timeRamp[0], timeRamp[1], t)),
+      fruits: fruits,
+      obstacles: OBSTACLE_RAMP[zone.id](indexInZone, zone.levels)
+    };
+  }
+
+  OT.CONFIG = {
+    W: 480, H: 854, COLS: 5, ROWS: 8, CELL: 76, BOARD_X: 50, BOARD_Y: 126, LAUNCH_Y: 800,
+    FRUITS: ['cherry', 'strawberry', 'apple', 'watermelon', 'grape', 'banana', 'pomegranate', 'pineapple', 'orange', 'lemon'],
+    ZONES: ZONES,
+    TOTAL_LEVELS: 52,
+    HEARTS_MAX: 5, HEART_REFILL_MS: 30 * 60 * 1000,
+    LOCKOUT_S: 0.6, FLIGHT_SPEED: 1100 /* px/s */, STAR_FRACTIONS: [0.5, 0.25] /* >=50% time left = 3 stars, >=25% = 2, else 1 */,
+    FRUIT_INTRO: FRUIT_INTRO, FILL_RAMP: FILL_RAMP, TIME_RAMP: TIME_RAMP, OBSTACLE_RAMP: OBSTACLE_RAMP,
+    levelDef: levelDef
+  };
+
+  if (typeof module !== 'undefined' && module.exports) module.exports = OT.CONFIG;
+})();
+
+</script>
+<script>
+/* Orchard Toss — js/board.js
+ * OT.Board: pure game logic (no DOM, no canvas), deterministic via a seeded RNG (mulberry32).
+ * Plain script, ES2015 max. Works in the browser (window.OT) and in Node (module.exports).
+ * Contract: ARCHITECTURE.md, "Gameplay model" and "js/board.js".
+ *
+ * Grid: cells[row][col], row 0 = TOP (canopy). Launched fruit enters at row rows-1 and travels UP.
+ * Cell values: null | {kind:'fruit', type} | {kind:'coconut'} | {kind:'wall', lean:-1|1} | {kind:'trellis'} | {kind:'pipe'}
+ *
+ * ADDITIONS beyond the contract (no contract signature changed):
+ *   OT.Board.trace(board, col)      -> {path, deflections, impact}  non-mutating launch path (aiming hints)
+ *   OT.Board.parse(text, opts)      -> board   inverse of snapshot(): builds a fixture board from grid text
+ *   OT.Board.recount(board)         -> board   recompute initialFruit/remaining/target from cells (after editing cells)
+ *   OT.Board.reachableTypes(board)  -> {type: count}  the weights used for the queue draw
+ *   OT.Board.TUNING                 -> scores / time bonus / generator caps (tunable without touching logic)
+ *   board.warnings                  -> [] of strings (generator gave up after TUNING.GEN_TRIES)
+ *
+ * INTERPRETATIONS (documented decisions):
+ *   - isWinnable: launch reachability is computed as a fixed point over column segments (a segment is a
+ *     maximal run of non-obstacle cells in a column). Plain launches (any type, power-ups ignored) clear every
+ *     fruit they can reach; coconuts are never cleared and keep blocking their lane. "Sealed" = every tile the
+ *     simulation cannot clear (unreachable fruit + all coconuts). Winnable <=> sealed <= target-1 AND at least
+ *     one fruit is directly reachable. The generator caps coconuts + wall-sealed tiles at target-1 accordingly.
+ *   - Cherry pair: after the run clears, the scan continues UP the same column skipping empty cells and
+ *     passing through pipes; a wall/trellis stops it. If the next tile is a cherry, that run clears too
+ *     (reported in result.powerup.cells, effect {kind:'burst'}) and the launch scores x2.
+ *   - Pineapple breaks the first 4-adjacent obstacle in the order up, left, right, down. A broken coconut
+ *     is a tile: it appears in BOTH result.broken and result.cleared (and decrements remaining).
+ *   - Grape: result.run stays the vertical line; the rest of the 4-connected cluster is result.powerup.cells.
+ *   - HAND RESCUE (TUNING.HAND_RESCUE, default on): a mismatch never changes the hand, so a held type with no lane
+ *     target is a soft-lock. Measured without it: 23% of fresh hands were dead and 96% of boards locked within ~4
+ *     hands (queue entries are drawn 3 launches ahead and power-ups reshuffle every lane). After a match, if the new
+ *     held type is not the impact tile of any lane, it is swapped with the first queue entry that is (or redrawn if
+ *     none is); reported as result.handRescue = null | {kind:'swap', queueIndex} | {kind:'redraw'}. Queue entries
+ *     whose type has no tiles left on the board are redrawn too (result.queueRedrawn = [indices]).
+ */
+(function () {
+  var root = (typeof window !== 'undefined') ? window : (typeof globalThis !== 'undefined' ? globalThis : this);
+  root.OT = root.OT || {};
+  var OT = root.OT;
+  if (typeof require !== 'undefined' && !OT.CONFIG) {
+    var cfg = require('./config.js');
+    if (!OT.CONFIG) OT.CONFIG = cfg;
+  }
+
+  var TUNING = {
+    SCORE_RUN: 10,            // per tile in the matched run
+    SCORE_POWER: 15,          // per tile cleared by a power-up or chain
+    CHERRY_MULT: 2,           // whole launch x2 on a cherry double
+    ORANGE_CHAIN_MULT: 0.5,   // score x (1 + 0.5 * chain)
+    ORANGE_ROUNDS: 4,         // max chain rounds
+    POMEGRANATE_COUNT: 5,     // random tiles cleared elsewhere
+    TIME_RUN: 0.5,            // seconds back per run tile
+    TIME_POWER: 1.0,          // seconds back per power-up/chain tile
+    TIME_CAP: 5,              // max seconds back per launch
+    TARGET_FRACTION: 0.10,    // target = max(TARGET_MIN, round(initialFruit * fraction))
+    TARGET_MIN: 2,
+    GEN_TRIES: 50,            // regeneration cap
+    UPPER_SEGMENT_CAP: 2,     // max tiles in a column segment sealed above a wall
+    MIN_TYPE_COUNT: 2,        // every present type appears at least this often
+    OPEN_SEGMENT_WEIGHT: 3,   // fill weighting of launch-open segments vs upper segments
+    WALL_HIGH_BIAS: 4,        // wall spot weight multiplies by this per row nearer the top (a wall seals the cells above it)
+    DRAW_LOWEST_WEIGHT: 3,    // queue draw: weight per lane whose impact tile is this type
+    DRAW_NEXT_WEIGHT: 1,      // queue draw: weight per lane where this type is the NEXT tile up (one clear away)
+    HAND_RESCUE: true         // after a match, if the new held type has no lane target, swap it with a queue entry that has one
+  };
+
+  // ---------------------------------------------------------------- RNG
+  function mulberry32(seed) {
+    var a = (seed >>> 0) || 0x9E3779B9;
+    return function () {
+      a = (a + 0x6D2B79F5) | 0;
+      var t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  function rint(rng, n) { return Math.floor(rng() * n); } // 0..n-1
+  function shuffle(rng, arr) {
+    for (var i = arr.length - 1; i > 0; i--) { var j = rint(rng, i + 1); var t = arr[i]; arr[i] = arr[j]; arr[j] = t; }
+    return arr;
+  }
+
+  // ---------------------------------------------------------------- cell helpers
+  function isTile(c) { return !!c && (c.kind === 'fruit' || c.kind === 'coconut'); }
+  function isObstacle(c) { return !!c && (c.kind === 'wall' || c.kind === 'trellis' || c.kind === 'pipe'); }
+  function inb(board, col, row) { return col >= 0 && col < board.cols && row >= 0 && row < board.rows; }
+  function cellAt(board, col, row) { return inb(board, col, row) ? board.cells[row][col] : undefined; }
+  function emptyGrid(rows, cols) {
+    var g = [];
+    for (var r = 0; r < rows; r++) { var line = []; for (var c = 0; c < cols; c++) line.push(null); g.push(line); }
+    return g;
+  }
+  function key(col, row) { return col + ',' + row; }
+
+  // Column segments: maximal runs of non-obstacle cells. {col, top, bottom, open, below}
+  function segments(board, col) {
+    var segs = [], r = 0;
+    while (r < board.rows) {
+      if (isObstacle(board.cells[r][col])) { r++; continue; }
+      var top = r;
+      while (r < board.rows && !isObstacle(board.cells[r][col])) r++;
+      var bottom = r - 1;
+      segs.push({ col: col, top: top, bottom: bottom, open: bottom === board.rows - 1,
+                  below: (r < board.rows) ? board.cells[r][col].kind : null });
+    }
+    return segs;
+  }
+  function segmentOf(board, col, row) {
+    var segs = segments(board, col);
+    for (var i = 0; i < segs.length; i++) if (row >= segs[i].top && row <= segs[i].bottom) return segs[i];
+    return null;
+  }
+
+  // ---------------------------------------------------------------- launch path
+  function trace(board, col) {
+    var path = [], deflections = [], impact = null;
+    var c = col, r = board.rows - 1, guard = 0;
+    while (r >= 0 && guard++ < 64) {
+      var cell = board.cells[r][c];
+      path.push({ col: c, row: r });
+      if (!cell || cell.kind === 'pipe') { r--; continue; }
+      if (isTile(cell)) { impact = { col: c, row: r }; break; }
+      if (cell.kind === 'trellis') break;
+      if (cell.kind === 'wall') {
+        deflections.push({ col: c, row: r, lean: cell.lean });
+        var moved = false, sides = [cell.lean, -cell.lean];
+        for (var s = 0; s < 2 && !moved; s++) {
+          var nc = c + sides[s];
+          if (nc < 0 || nc >= board.cols) continue;
+          var side = board.cells[r][nc];
+          if (isObstacle(side)) continue;                // wall / trellis / pipe: never entered sideways
+          path.push({ col: nc, row: r });
+          moved = true;
+          if (isTile(side)) { impact = { col: nc, row: r }; }
+          else { c = nc; r--; }
+        }
+        if (impact || !moved) break;
+        continue;
+      }
+      break; // unknown kind: stop
+    }
+    return { path: path, deflections: deflections, impact: impact };
+  }
+
+  function lowestTile(board, col) {
+    for (var r = board.rows - 1; r >= 0; r--) if (isTile(board.cells[r][col])) return { col: col, row: r };
+    return null;
+  }
+
+  // ---------------------------------------------------------------- bookkeeping
+  function countTiles(board) {
+    var n = 0;
+    for (var r = 0; r < board.rows; r++) for (var c = 0; c < board.cols; c++) if (isTile(board.cells[r][c])) n++;
+    return n;
+  }
+  function targetFor(initialFruit) {
+    return Math.max(TUNING.TARGET_MIN, Math.round(initialFruit * TUNING.TARGET_FRACTION));
+  }
+  function recount(board) {
+    board.initialFruit = countTiles(board);
+    board.remaining = board.initialFruit;
+    board.target = targetFor(board.initialFruit);
+    return board;
+  }
+
+  // Weights for the queue draw: types that are currently the impact target of some lane.
+  function reachableTypes(board) {
+    var w = {}, any = false;
+    for (var c = 0; c < board.cols; c++) {
+      var t = trace(board, c);
+      if (t.impact) {
+        var cell = board.cells[t.impact.row][t.impact.col];
+        if (cell.kind === 'fruit') { w[cell.type] = (w[cell.type] || 0) + 1; any = true; }
+      }
+    }
+    return any ? w : null;
+  }
+  function presentTypes(board) {
+    var w = {}, any = false;
+    for (var r = 0; r < board.rows; r++) for (var c = 0; c < board.cols; c++) {
+      var cell = board.cells[r][c];
+      if (cell && cell.kind === 'fruit') { w[cell.type] = (w[cell.type] || 0) + 1; any = true; }
+    }
+    return any ? w : null;
+  }
+  // Draw weights: lane impact tile type x DRAW_LOWEST_WEIGHT, plus the next different fruit up the segment x DRAW_NEXT_WEIGHT.
+  function laneWeights(board) {
+    var w = {}, any = false;
+    for (var c = 0; c < board.cols; c++) {
+      var t = trace(board, c);
+      if (!t.impact) continue;
+      var cell = board.cells[t.impact.row][t.impact.col];
+      if (cell.kind !== 'fruit') continue;
+      w[cell.type] = (w[cell.type] || 0) + TUNING.DRAW_LOWEST_WEIGHT; any = true;
+      for (var r = t.impact.row - 1; r >= 0; r--) {
+        var up = board.cells[r][t.impact.col];
+        if (!up || up.kind !== 'fruit') break;
+        if (up.type !== cell.type) { w[up.type] = (w[up.type] || 0) + TUNING.DRAW_NEXT_WEIGHT; break; }
+      }
+    }
+    return any ? w : null;
+  }
+  // laneOnly: the HELD fruit must be the impact tile of some lane; queue entries may use the one-clear lookahead
+  function drawType(board, laneOnly) {
+    var w = (laneOnly ? reachableTypes(board) : laneWeights(board)) || presentTypes(board);
+    if (!w) {
+      var fr = board.levelDef.fruits;
+      return fr[rint(board._rng, fr.length)];
+    }
+    var types = Object.keys(w).sort(), total = 0, i;
+    for (i = 0; i < types.length; i++) total += w[types[i]];
+    var x = board._rng() * total;
+    for (i = 0; i < types.length; i++) { x -= w[types[i]]; if (x < 0) return types[i]; }
+    return types[types.length - 1];
+  }
+  function refillHand(board) {
+    if (!board.held) board.held = drawType(board, true);
+    if (!board.queue) board.queue = [];
+    while (board.queue.length < 3) board.queue.push(drawType(board));
+  }
+
+  // ---------------------------------------------------------------- compaction
+  // Slide every tile to the top of its segment. Returns [{from,to}] for every tile that moved.
+  function compact(board) {
+    var moves = [];
+    for (var c = 0; c < board.cols; c++) {
+      var segs = segments(board, c);
+      for (var s = 0; s < segs.length; s++) {
+        var seg = segs[s], write = seg.top;
+        for (var r = seg.top; r <= seg.bottom; r++) {
+          var cell = board.cells[r][c];
+          if (!isTile(cell)) continue;
+          if (write !== r) {
+            board.cells[write][c] = cell;
+            board.cells[r][c] = null;
+            moves.push({ from: { col: c, row: r }, to: { col: c, row: write } });
+          }
+          write++;
+        }
+      }
+    }
+    return moves;
+  }
+
+  // ---------------------------------------------------------------- clusters
+  function cluster4(board, col, row, type) {
+    var out = [], seen = {}, stack = [{ col: col, row: row }];
+    seen[key(col, row)] = true;
+    while (stack.length) {
+      var p = stack.pop();
+      var cell = cellAt(board, p.col, p.row);
+      if (!cell || cell.kind !== 'fruit' || cell.type !== type) continue;
+      out.push({ col: p.col, row: p.row });
+      var nb = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+      for (var i = 0; i < 4; i++) {
+        var nc = p.col + nb[i][0], nr = p.row + nb[i][1], k = key(nc, nr);
+        if (!inb(board, nc, nr) || seen[k]) continue;
+        seen[k] = true;
+        stack.push({ col: nc, row: nr });
+      }
+    }
+    return out;
+  }
+
+  // ---------------------------------------------------------------- launch
+  function describe(board, col, row) {
+    var cell = board.cells[row][col];
+    var d = { col: col, row: row, kind: cell.kind };
+    if (cell.kind === 'fruit') d.type = cell.type;
+    if (cell.kind === 'wall') d.lean = cell.lean;
+    return d;
+  }
+
+  function launch(board, col) {
+    if (!(col >= 0 && col < board.cols)) throw new Error('launch: col out of range: ' + col);
+    var launched = board.held;
+    var t = trace(board, col);
+    board.moves++;
+    var result = {
+      col: col, launched: launched,
+      path: t.path, deflections: t.deflections, impact: t.impact,
+      matched: false, run: [], powerup: null, chain: 0, cherryDouble: false,
+      cleared: [], broken: [], effects: [], compaction: [],
+      scoreDelta: 0, timeBonus: 0,
+      remaining: board.remaining, target: board.target, levelCleared: board.remaining < board.target,
+      held: board.held, queue: board.queue.slice(),
+      handRescue: null, queueRedrawn: []
+    };
+    var hit = t.impact ? board.cells[t.impact.row][t.impact.col] : null;
+    if (!hit || hit.kind !== 'fruit' || hit.type !== launched) return result;
+
+    result.matched = true;
+    var ic = t.impact.col, ir = t.impact.row, type = launched;
+    var clearedSet = {}, cleared = [];
+    function mark(c, r) {
+      var k = key(c, r);
+      if (clearedSet[k]) return null;
+      var cell = board.cells[r][c];
+      if (!isTile(cell)) return null;
+      clearedSet[k] = true;
+      var d = describe(board, c, r);
+      cleared.push(d);
+      return d;
+    }
+
+    // 1. the run: contiguous same-type line going UP from the impact
+    var r;
+    for (r = ir; r >= 0; r--) {
+      var cell = board.cells[r][ic];
+      if (!cell || cell.kind !== 'fruit' || cell.type !== type) break;
+      var d = mark(ic, r);
+      result.run.push({ col: ic, row: r, type: type });
+    }
+    var runTop = r; // first row above the run (may be -1)
+
+    // 2. power-up of the LAUNCHED fruit
+    var pcells = [], eff = result.effects;
+    function addP(c, r) { if (inb(board, c, r)) { var d = mark(c, r); if (d) pcells.push(d); } }
+
+    switch (type) {
+      case 'cherry': {
+        // second cherry of the pair continues up the column: skip empties, pass pipes, stop at wall/trellis
+        var rr = runTop;
+        while (rr >= 0) {
+          var up = board.cells[rr][ic];
+          if (!up || up.kind === 'pipe') { rr--; continue; }
+          if (up.kind === 'fruit' && up.type === 'cherry') {
+            result.cherryDouble = true;
+            eff.push({ kind: 'burst', col: ic, row: rr });
+            while (rr >= 0) {
+              var cc = board.cells[rr][ic];
+              if (!cc || cc.kind !== 'fruit' || cc.type !== 'cherry') break;
+              addP(ic, rr); rr--;
+            }
+          }
+          break;
+        }
+        break;
+      }
+      case 'strawberry':
+        addP(ic, ir - 1); addP(ic - 1, ir); addP(ic + 1, ir); addP(ic, ir + 1);
+        eff.push({ kind: 'cross', col: ic, row: ir });
+        break;
+      case 'apple':
+        for (var c1 = 0; c1 < board.cols; c1++) addP(c1, ir);
+        eff.push({ kind: 'appleRow', row: ir });
+        break;
+      case 'banana':
+        for (var c2 = 0; c2 < board.cols; c2++) addP(c2, ir);
+        eff.push({ kind: 'monkey', row: ir });
+        break;
+      case 'watermelon':
+        for (var dc = -1; dc <= 1; dc++) for (var dr = -1; dr <= 1; dr++) if (dc || dr) addP(ic + dc, ir + dr);
+        eff.push({ kind: 'splash', col: ic, row: ir, type: type });
+        break;
+      case 'grape': {
+        var cl = cluster4(board, ic, ir, type);
+        for (var g = 0; g < cl.length; g++) addP(cl[g].col, cl[g].row);
+        eff.push({ kind: 'burst', col: ic, row: ir });
+        break;
+      }
+      case 'pomegranate': {
+        var pool = [];
+        for (var pr = 0; pr < board.rows; pr++) for (var pc = 0; pc < board.cols; pc++) {
+          if (isTile(board.cells[pr][pc]) && !clearedSet[key(pc, pr)]) pool.push({ col: pc, row: pr });
+        }
+        shuffle(board._rng, pool);
+        var picked = [];
+        for (var pi = 0; pi < pool.length && pi < TUNING.POMEGRANATE_COUNT; pi++) {
+          addP(pool[pi].col, pool[pi].row); picked.push(pool[pi]);
+        }
+        eff.push({ kind: 'seeds', cells: picked });
+        break;
+      }
+      case 'pineapple': {
+        var order = [[0, -1], [-1, 0], [1, 0], [0, 1]]; // up, left, right, down
+        for (var o = 0; o < 4; o++) {
+          var oc = ic + order[o][0], orow = ir + order[o][1];
+          var ob = cellAt(board, oc, orow);
+          if (ob && (isObstacle(ob) || ob.kind === 'coconut')) {
+            result.broken.push({ col: oc, row: orow, kind: ob.kind });
+            if (ob.kind === 'coconut') addP(oc, orow);
+            else board.cells[orow][oc] = null;
+            eff.push({ kind: 'burst', col: oc, row: orow });
+            break;
+          }
+        }
+        break;
+      }
+      case 'lemon':
+        for (var lr = 0; lr < board.rows; lr++) addP(ic, lr);
+        eff.push({ kind: 'lemonColumn', col: ic });
+        break;
+      case 'orange':
+        // chain handled below (needs the run removed first)
+        break;
+      default:
+        break;
+    }
+    if (pcells.length || type === 'pineapple') result.powerup = { type: type, cells: pcells };
+
+    // remove everything cleared so far from the grid
+    var i;
+    for (i = 0; i < cleared.length; i++) board.cells[cleared[i].row][cleared[i].col] = null;
+
+    // 3. chain (orange): same-type clusters (size >= 2) touching any cleared cell, up to N rounds
+    var chainCells = [];
+    if (type === 'orange') {
+      var frontier = cleared.slice();
+      for (var round = 1; round <= TUNING.ORANGE_ROUNDS && frontier.length; round++) {
+        var roundCells = [], seenStart = {};
+        for (i = 0; i < frontier.length; i++) {
+          var nb = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+          for (var n = 0; n < 4; n++) {
+            var nc = frontier[i].col + nb[n][0], nr = frontier[i].row + nb[n][1];
+            var ncell = cellAt(board, nc, nr);
+            if (!ncell || ncell.kind !== 'fruit' || seenStart[key(nc, nr)]) continue;
+            var cl2 = cluster4(board, nc, nr, ncell.type);
+            for (var q = 0; q < cl2.length; q++) seenStart[key(cl2[q].col, cl2[q].row)] = true;
+            if (cl2.length < 2) continue;
+            result.chain++;
+            for (q = 0; q < cl2.length; q++) { var dd = mark(cl2[q].col, cl2[q].row); if (dd) roundCells.push(dd); }
+          }
+        }
+        for (i = 0; i < roundCells.length; i++) board.cells[roundCells[i].row][roundCells[i].col] = null;
+        if (roundCells.length) eff.push({ kind: 'chain', round: round, cells: roundCells.slice() });
+        chainCells = chainCells.concat(roundCells);
+        frontier = roundCells;
+      }
+    }
+
+    // 4. bookkeeping
+    result.cleared = cleared;
+    var tilesCleared = cleared.length;
+    board.remaining -= tilesCleared;
+    var runN = result.run.length, powerN = pcells.length + chainCells.length;
+    var score = runN * TUNING.SCORE_RUN + powerN * TUNING.SCORE_POWER;
+    if (result.cherryDouble) score *= TUNING.CHERRY_MULT;
+    if (type === 'orange') score *= (1 + TUNING.ORANGE_CHAIN_MULT * result.chain);
+    score = Math.round(score);
+    board.score += score;
+    result.scoreDelta = score;
+    result.timeBonus = Math.min(TUNING.TIME_CAP, runN * TUNING.TIME_RUN + powerN * TUNING.TIME_POWER);
+
+    // 5. compaction, then the new hand
+    result.compaction = compact(board);
+    board.held = board.queue.shift();
+    board.queue.push(drawType(board));
+    refillHand(board);
+    // queue entries whose type has no tiles left can never match again: redraw them
+    var present = presentTypes(board) || {}, qi;
+    for (qi = 0; qi < board.queue.length; qi++) if (!present[board.queue[qi]]) { board.queue[qi] = drawType(board); result.queueRedrawn.push(qi); }
+    // hand rescue: the held type must have a lane target (see header)
+    if (TUNING.HAND_RESCUE) {
+      var reach = reachableTypes(board);
+      if (reach && !reach[board.held]) {
+        var swapAt = -1;
+        for (qi = 0; qi < board.queue.length; qi++) if (reach[board.queue[qi]]) { swapAt = qi; break; }
+        if (swapAt >= 0) { var tmp = board.held; board.held = board.queue[swapAt]; board.queue[swapAt] = tmp; result.handRescue = { kind: 'swap', queueIndex: swapAt }; }
+        else { board.held = drawType(board, true); result.handRescue = { kind: 'redraw' }; }
+      }
+    }
+
+    result.remaining = board.remaining;
+    result.target = board.target;
+    result.levelCleared = board.remaining < board.target;
+    result.held = board.held;
+    result.queue = board.queue.slice();
+    return result;
+  }
+
+  // ---------------------------------------------------------------- winnability
+  // Conservative fixed-point simulation: launches clear the fruit they can reach (any type, power-ups ignored),
+  // coconuts are never cleared and keep blocking their lane. Everything the simulation cannot clear is "sealed".
+  function analyse(board) {
+    var work = { rows: board.rows, cols: board.cols, cells: [] };
+    var r, c, direct = [];
+    for (r = 0; r < board.rows; r++) work.cells.push(board.cells[r].slice());
+    var changed = true, guard = 0;
+    while (changed && guard++ < 128) {
+      changed = false;
+      for (c = 0; c < board.cols; c++) {
+        var t = trace(work, c);
+        if (!t.impact) continue;
+        var ic = t.impact.col;
+        for (r = t.impact.row; r >= 0; r--) {
+          var cell = work.cells[r][ic];
+          if (!cell || cell.kind !== 'fruit') break;
+          work.cells[r][ic] = null;
+          direct.push({ col: ic, row: r });
+          changed = true;
+        }
+      }
+    }
+    var sealed = 0, coconuts = 0, unreachable = 0;
+    for (r = 0; r < board.rows; r++) for (c = 0; c < board.cols; c++) {
+      var left = work.cells[r][c];
+      if (!isTile(left)) continue;
+      sealed++;
+      if (left.kind === 'coconut') coconuts++; else unreachable++;
+    }
+    return { sealed: sealed, unreachable: unreachable, coconuts: coconuts, direct: direct };
+  }
+  function isWinnable(board) {
+    var a = analyse(board);
+    return a.direct.length > 0 && a.sealed <= board.target - 1;
+  }
+
+  // ---------------------------------------------------------------- generation
+  function placeObstacles(board, rng, def) {
+    var ob = def.obstacles || {}, cols = board.cols, rows = board.rows;
+    var perCol = []; for (var c = 0; c < cols; c++) perCol.push(0);
+    function canPlace(c, r) {
+      if (r < 1 || r > rows - 2) return false;
+      if (board.cells[r][c]) return false;
+      if (perCol[c] >= 2) return false;
+      if (r > 0 && isObstacle(board.cells[r - 1][c])) return false;
+      if (r < rows - 1 && isObstacle(board.cells[r + 1][c])) return false;
+      return true;
+    }
+    function place(kind, count, rowMin, rowMax) {
+      for (var n = 0; n < count; n++) {
+        var spots = [];
+        for (var c = 0; c < cols; c++) for (var r = rowMin; r <= rowMax; r++) if (canPlace(c, r)) spots.push({ c: c, r: r });
+        if (!spots.length) { board.warnings.push('could not place ' + kind + ' #' + (n + 1)); return; }
+        var p, cell = { kind: kind };
+        if (kind === 'wall') {
+          // a wall seals the column above it: weight spots toward high rows; the lean side must be enterable
+          var wspots = [], wtotal = 0;
+          for (var si = 0; si < spots.length; si++) {
+            var sp = spots[si], leans = [];
+            if (sp.c > 0 && !isObstacle(board.cells[sp.r][sp.c - 1])) leans.push(-1);
+            if (sp.c < cols - 1 && !isObstacle(board.cells[sp.r][sp.c + 1])) leans.push(1);
+            if (!leans.length) continue;
+            var wt = Math.pow(TUNING.WALL_HIGH_BIAS, (rows - 2) - sp.r);
+            wspots.push({ c: sp.c, r: sp.r, leans: leans, w: wt }); wtotal += wt;
+          }
+          if (!wspots.length) { board.warnings.push('could not place wall #' + (n + 1)); return; }
+          var x = rng() * wtotal; p = wspots[wspots.length - 1];
+          for (si = 0; si < wspots.length; si++) { x -= wspots[si].w; if (x < 0) { p = wspots[si]; break; } }
+          cell.lean = p.leans[rint(rng, p.leans.length)];
+        } else {
+          p = spots[rint(rng, spots.length)];
+        }
+        board.cells[p.r][p.c] = cell;
+        perCol[p.c]++;
+      }
+    }
+    place('trellis', ob.trellis || 0, 1, 2);
+    place('pipe', ob.pipes || 0, 3, rows - 2);
+    place('wall', ob.walls || 0, 2, rows - 2);
+  }
+
+  function fillTiles(board, rng, def) {
+    var cols = board.cols, rows = board.rows, c, s, i;
+    var freeCells = rows * cols;
+    for (var r = 0; r < rows; r++) for (c = 0; c < cols; c++) if (isObstacle(board.cells[r][c])) freeCells--;
+    var tileCount = Math.round(def.fill * freeCells);
+
+    // segment capacities
+    var segs = [];
+    for (c = 0; c < cols; c++) {
+      var cs = segments(board, c);
+      for (s = 0; s < cs.length; s++) {
+        var sg = cs[s], len = sg.bottom - sg.top + 1, cap;
+        if (sg.open) cap = len - 1;                                   // row rows-1 stays empty
+        else if (sg.below === 'pipe') cap = len;                      // reachable through the pipe
+        else if (sg.below === 'trellis') cap = 0;                     // ceiling: nothing above it
+        else cap = Math.min(len, TUNING.UPPER_SEGMENT_CAP);           // sealed above a wall
+        segs.push({ col: c, top: sg.top, bottom: sg.bottom, open: sg.open, cap: cap, n: 0, coconut: false,
+                    sealed: !sg.open && sg.below === 'wall' });
+      }
+    }
+    var totalCap = 0; for (i = 0; i < segs.length; i++) totalCap += segs[i].cap;
+    if (tileCount > totalCap) tileCount = totalCap;
+    // coconuts and tiles sealed above walls share ONE budget of target-1: the level must be clearable
+    // down to target-1 by plain launches alone (isWinnable ignores power-ups)
+    var sealedBudget = targetFor(tileCount) - 1;
+
+    // coconuts: top of an open segment, distinct columns, at least one fruit under each, capped by the budget;
+    // a coconut column gets no upper-segment tiles (they would sit sealed behind the coconut)
+    var coconuts = Math.min(def.obstacles && def.obstacles.coconuts ? def.obstacles.coconuts : 0, sealedBudget);
+    var openSegs = shuffle(rng, segs.filter(function (g) { return g.open && g.cap >= 2; }));
+    var placedCoco = 0;
+    for (i = 0; i < openSegs.length && placedCoco < coconuts && placedCoco < tileCount; i++) {
+      openSegs[i].coconut = true; openSegs[i].n++; placedCoco++; sealedBudget--;
+      for (var u = 0; u < segs.length; u++) if (segs[u].col === openSegs[i].col && !segs[u].open && !segs[u].sealed) segs[u].cap = 0;
+    }
+    // one fruit in every open segment first
+    var placed = placedCoco;
+    for (i = 0; i < segs.length && placed < tileCount; i++) {
+      if (segs[i].open && segs[i].n < segs[i].cap) { segs[i].n++; placed++; }
+    }
+    // then weighted random over remaining capacity
+    while (placed < tileCount) {
+      var total = 0, w = [];
+      for (i = 0; i < segs.length; i++) {
+        var free = segs[i].cap - segs[i].n;
+        if (segs[i].sealed && sealedBudget <= 0) free = 0;
+        var wt = free > 0 ? free * (segs[i].open ? TUNING.OPEN_SEGMENT_WEIGHT : 1) : 0;
+        w.push(wt); total += wt;
+      }
+      if (total <= 0) break;
+      var x = rng() * total, pick = -1;
+      for (i = 0; i < segs.length; i++) { x -= w[i]; if (x < 0 && w[i] > 0) { pick = i; break; } }
+      if (pick < 0) break;
+      segs[pick].n++; placed++;
+      if (segs[pick].sealed) sealedBudget--;
+    }
+
+    // write tiles compacted to the segment top; coconut at the very top
+    var fruits = def.fruits, fruitCells = [];
+    for (i = 0; i < segs.length; i++) {
+      var g = segs[i], row = g.top;
+      if (g.coconut) { board.cells[row][g.col] = { kind: 'coconut' }; row++; }
+      for (var k = (g.coconut ? 1 : 0); k < g.n; k++, row++) {
+        board.cells[row][g.col] = { kind: 'fruit', type: fruits[rint(rng, fruits.length)] };
+        fruitCells.push({ col: g.col, row: row });
+      }
+    }
+
+    // every present type appears at least MIN_TYPE_COUNT times
+    for (var pass = 0; pass < 20; pass++) {
+      var counts = {}, j;
+      for (j = 0; j < fruitCells.length; j++) { var ty = board.cells[fruitCells[j].row][fruitCells[j].col].type; counts[ty] = (counts[ty] || 0) + 1; }
+      var types = Object.keys(counts).sort(), rare = null, rich = null;
+      for (j = 0; j < types.length; j++) {
+        if (counts[types[j]] < TUNING.MIN_TYPE_COUNT && !rare) rare = types[j];
+        if (counts[types[j]] > TUNING.MIN_TYPE_COUNT && (!rich || counts[types[j]] > counts[rich])) rich = types[j];
+      }
+      if (!rare) break;
+      if (rich && fruitCells.length >= 2 * types.length) {
+        // convert one tile of the richest type into the rare type
+        var cand = shuffle(rng, fruitCells.filter(function (p) { return board.cells[p.row][p.col].type === rich; }));
+        board.cells[cand[0].row][cand[0].col].type = rare;
+      } else {
+        // not enough tiles to support this many types: fold the rare type into another present type
+        var other = null;
+        for (j = 0; j < types.length; j++) if (types[j] !== rare) { other = types[j]; break; }
+        if (!other) break;
+        for (j = 0; j < fruitCells.length; j++) if (board.cells[fruitCells[j].row][fruitCells[j].col].type === rare) board.cells[fruitCells[j].row][fruitCells[j].col].type = other;
+      }
+    }
+  }
+
+  function generateOnce(def, seed, tryIndex) {
+    var genSeed = (seed + Math.imul(tryIndex, 0x9E3779B9)) >>> 0;
+    var rng = mulberry32(genSeed);
+    var board = {
+      cols: def.cols || 5, rows: def.rows || 8, seed: seed, genSeed: genSeed, tries: tryIndex + 1,
+      levelDef: def, cells: null, initialFruit: 0, remaining: 0, target: 0,
+      held: null, queue: [], moves: 0, score: 0, warnings: [], _rng: rng
+    };
+    board.cells = emptyGrid(board.rows, board.cols);
+    placeObstacles(board, rng, def);
+    fillTiles(board, rng, def);
+    recount(board);
+    return board;
+  }
+
+  function acceptable(board) {
+    if (!isWinnable(board)) return false;
+    var reachableCols = 0;
+    for (var c = 0; c < board.cols; c++) {
+      var t = trace(board, c);
+      if (t.impact && board.cells[t.impact.row][t.impact.col].kind === 'fruit') reachableCols++;
+    }
+    return reachableCols === board.cols || reachableCols >= 3;
+  }
+
+  function create(levelDef, seed) {
+    if (typeof levelDef === 'number') levelDef = OT.CONFIG.levelDef(levelDef);
+    seed = (seed === undefined || seed === null) ? 1 : (seed >>> 0);
+    var board = null;
+    for (var i = 0; i < TUNING.GEN_TRIES; i++) {
+      board = generateOnce(levelDef, seed, i);
+      if (acceptable(board)) { refillHand(board); return board; }
+    }
+    board.warnings.push('generator gave up after ' + TUNING.GEN_TRIES + ' tries (level ' + levelDef.n + ', seed ' + seed + '); board may not be winnable');
+    refillHand(board);
+    return board;
+  }
+
+  // ---------------------------------------------------------------- text render / parse
+  var TOKEN = { cherry: 'C', strawberry: 'S', apple: 'A', watermelon: 'W', grape: 'G', banana: 'B',
+                pomegranate: 'M', pineapple: 'N', orange: 'O', lemon: 'L' };
+  var UNTOKEN = {}; Object.keys(TOKEN).forEach(function (k) { UNTOKEN[TOKEN[k]] = k; });
+
+  function tokenOf(cell) {
+    if (!cell) return '.';
+    if (cell.kind === 'fruit') return TOKEN[cell.type] || '?';
+    if (cell.kind === 'coconut') return 'K';
+    if (cell.kind === 'wall') return cell.lean < 0 ? 'w<' : 'w>';
+    if (cell.kind === 'trellis') return 'T';
+    if (cell.kind === 'pipe') return 'P';
+    return '?';
+  }
+  function snapshot(board) {
+    var lines = [];
+    var def = board.levelDef || {};
+    lines.push('L' + (def.n || '?') + ' ' + (def.zone || '') + ' seed=' + board.seed + ' tries=' + (board.tries || 1) +
+               ' tiles=' + board.remaining + '/' + board.initialFruit + ' target=' + board.target +
+               ' held=' + board.held + ' queue=' + (board.queue || []).join(',') +
+               (board.warnings && board.warnings.length ? ' WARN=' + board.warnings.length : ''));
+    for (var r = 0; r < board.rows; r++) {
+      var toks = [];
+      for (var c = 0; c < board.cols; c++) { var t = tokenOf(board.cells[r][c]); toks.push(t.length === 1 ? t + ' ' : t); }
+      lines.push(toks.join(' '));
+    }
+    return lines.join('\n');
+  }
+  // parse(text|[lines], {held, seed, levelDef}) -> board. Lines of tokens as printed by snapshot (header optional).
+  function parse(text, opts) {
+    opts = opts || {};
+    var lines = Array.isArray(text) ? text.slice() : String(text).split('\n');
+    lines = lines.map(function (l) { return l.trim(); }).filter(function (l) { return l.length && !/^L\d/.test(l) && l[0] !== '#'; });
+    var rows = lines.length, cols = lines[0].split(/\s+/).length;
+    var def = opts.levelDef || OT.CONFIG.levelDef(opts.level || 1);
+    var board = {
+      cols: cols, rows: rows, seed: opts.seed || 1, genSeed: opts.seed || 1, tries: 1,
+      levelDef: def, cells: emptyGrid(rows, cols), initialFruit: 0, remaining: 0, target: 0,
+      held: opts.held || null, queue: opts.queue ? opts.queue.slice() : [], moves: 0, score: 0, warnings: [],
+      _rng: mulberry32(opts.seed || 1)
+    };
+    for (var r = 0; r < rows; r++) {
+      var toks = lines[r].split(/\s+/);
+      if (toks.length !== cols) throw new Error('parse: row ' + r + ' has ' + toks.length + ' tokens, expected ' + cols);
+      for (var c = 0; c < cols; c++) {
+        var t = toks[c], cell = null;
+        if (t === '.') cell = null;
+        else if (t === 'K') cell = { kind: 'coconut' };
+        else if (t === 'T') cell = { kind: 'trellis' };
+        else if (t === 'P') cell = { kind: 'pipe' };
+        else if (t === 'w<') cell = { kind: 'wall', lean: -1 };
+        else if (t === 'w>') cell = { kind: 'wall', lean: 1 };
+        else if (UNTOKEN[t]) cell = { kind: 'fruit', type: UNTOKEN[t] };
+        else throw new Error('parse: unknown token "' + t + '" at row ' + r + ' col ' + c);
+        board.cells[r][c] = cell;
+      }
+    }
+    recount(board);
+    if (opts.target !== undefined) board.target = opts.target;
+    refillHand(board);
+    return board;
+  }
+
+  OT.Board = {
+    TUNING: TUNING,
+    TOKENS: TOKEN,
+    create: create,
+    launch: launch,
+    trace: trace,
+    lowestTile: lowestTile,
+    snapshot: snapshot,
+    parse: parse,
+    recount: recount,
+    isWinnable: isWinnable,
+    analyse: analyse,
+    reachableTypes: reachableTypes,
+    laneWeights: laneWeights,
+    segments: segments,
+    compact: compact,
+    rng: mulberry32
+  };
+
+  if (typeof module !== 'undefined' && module.exports) module.exports = OT.Board;
+})();
+
+</script>
+<script>
+/* =========================================================================
+   Orchard Toss — sprites.js  (OT.S)
+   Procedural canvas-2D painters. Plain script (ES2015 max, var/function),
+   no images, no fetch, no DOM access at load time. Runs from file://.
+
+   Contract (prototype/ARCHITECTURE.md, "js/sprites.js — OT.S"):
+     OT.S.PALETTE        { spring|summer|autumn|winter : {sky, skyLow, ground,
+                           groundDark, accent, banner, button, text} }
+     OT.S.FRUIT_COLORS   { cherry|... : {main, dark, shine} }
+     OT.S.fruit(ctx, type, x, y, size, t)
+     OT.S.coconut(ctx, x, y, size, t)
+     OT.S.wall(ctx, x, y, size, lean, season)
+     OT.S.trellis(ctx, x, y, size, season)
+     OT.S.pipe(ctx, x, y, size, season)
+     OT.S.background(ctx, w, h, season, t)          AMBIENT ONLY
+     OT.S.landmarks(ctx, W, H, season, progress, t) ONE tree + fence + sun/moon
+     OT.S.boardFrame(ctx, x, y, w, h, season)
+     OT.S.sprout(ctx, x, y, size, stage, mood, t)
+     OT.S.launcher(ctx, x, y, w, heldType, locked, t)
+     OT.S.monkey(ctx, x, y, size, t)
+     OT.S.splash(ctx, x, y, type, p)
+     OT.S.heart(ctx, x, y, size, filled)
+     OT.S.star(ctx, x, y, size, filled)
+     OT.S.banner(ctx, cx, cy, w, h, color, text, s)
+     OT.S.button(ctx, cx, cy, w, h, color, text, s)
+     OT.S.panel(ctx, x, y, w, h, color)
+     OT.S.text(ctx, txt, x, y, size, color, align, outline)
+     OT.S.font(size) -> string
+
+   Notes / documented choices (no signature deviates from the contract):
+   - Every painter is centred on (x, y) unless the contract says otherwise
+     (`panel` and `boardFrame` take a top-left x,y like the contract's HUD
+     usage; `background` paints the rect 0,0,w,h).
+   - `t` is seconds; any value (undefined, NaN, negative) is safe.
+   - Every painter does ctx.save()/restore() and leaks no state.
+   - Apple is painted GREEN (Granny Smith) rather than red: the three Spring
+     fruits (cherry, strawberry, apple) all appear together from level 1 and
+     three red silhouettes at 62 px were not readable on a phone. The leaf +
+     stem + dented top keep it unmistakably an apple.
+   - `s` on banner/button: values > 4 are a font size in px; values <= 4 are a
+     multiplier of the auto size (h*0.5), matching Numbat's `s` usage.
+   - Chrome language ported from Numbat Patrol sprites.js v7 (plaque body:
+     drop shadow, colour block, dark bottom edge, gloss strip, outline, bold
+     white label). Button is a true pill (radius = h/2) so its end caps are
+     always proportional to height, never stretched by width. Label outline
+     is Deep Navy #335D7C.
+   ========================================================================= */
+
+window.OT = window.OT || {};
+OT.S = {};
+
+/* ---------------- season palettes (design doc section 8) ---------------- */
+OT.S.PALETTE = {
+  spring: { sky: '#8fd4ff', skyLow: '#ffe4f1', ground: '#a3e46f', groundDark: '#5bb44a',
+            accent: '#ff9ccd', banner: '#ff7eb6', button: '#63cf5b', text: '#ffffff' },
+  summer: { sky: '#2aa7f2', skyLow: '#ffd86b', ground: '#7fd955', groundDark: '#3d9c38',
+            accent: '#ffb23f', banner: '#ff7a3d', button: '#ffc233', text: '#ffffff' },
+  autumn: { sky: '#e8a052', skyLow: '#ffe1b0', ground: '#dd9540', groundDark: '#8c3a2b',
+            accent: '#ffb000', banner: '#a3243b', button: '#ff9b1f', text: '#ffffff' },
+  winter: { sky: '#3d6fae', skyLow: '#c5ecea', ground: '#b3dfd9', groundDark: '#4d8f8a',
+            accent: '#ffb52e', banner: '#2fa6a0', button: '#ffa41c', text: '#ffffff' }
+};
+
+/* ---------------- fruit colours (one entry per fruit) ---------------- */
+OT.S.FRUIT_COLORS = {
+  cherry:      { main: '#d8163a', dark: '#7d0a22', shine: '#ff8fa3' },
+  strawberry:  { main: '#ff4d6d', dark: '#b3163f', shine: '#ffb3c1' },
+  apple:       { main: '#8fd83a', dark: '#4a9418', shine: '#dcff9a' },
+  watermelon:  { main: '#ff4f5e', dark: '#217f32', shine: '#ffc2c8' },
+  grape:       { main: '#8e44d6', dark: '#48177f', shine: '#d6b3ff' },
+  banana:      { main: '#ffd53e', dark: '#c98d12', shine: '#fff2b0' },
+  pomegranate: { main: '#e0307a', dark: '#87124c', shine: '#ffa6cf' },
+  pineapple:   { main: '#f7b733', dark: '#b36d0a', shine: '#ffe89a' },
+  orange:      { main: '#ff8f1f', dark: '#c94f00', shine: '#ffd39a' },
+  lemon:       { main: '#ffe135', dark: '#c9a000', shine: '#fff8b3' }
+};
+
+(function () {
+  'use strict';
+
+  var S = OT.S;
+  var PAL = S.PALETTE;
+  var FC = S.FRUIT_COLORS;
+  var TAU = Math.PI * 2;
+  var OUTLINE = '#3b2314';           // thick dark outline colour
+  var NAVY = '#335D7C';              // Deep Navy label outline (Numbat chrome)
+  var WOOD = '#c48a3f', WOOD_HI = '#e8b56a', WOOD_DK = '#7a4a1a';
+  var SKIN = '#f8cba3', SKIN_DK = '#d9a072';
+
+  /* ---------------- shared helpers (private) ---------------- */
+
+  function num(v, d) { v = +v; return (v === v) ? v : (d || 0); }   // NaN-safe
+
+  // deterministic pseudo-random in [0,1) from an integer seed
+  function rnd(i) {
+    var v = Math.sin(i * 127.1 + 311.7) * 43758.5453;
+    return v - Math.floor(v);
+  }
+
+  function pal(season) { return PAL[season] || PAL.spring; }
+
+  // rounded-rect path (own helper: roundRect() isn't in older WebViews)
+  function rrPath(ctx, x, y, w, h, r) {
+    r = Math.min(r, w * 0.5, h * 0.5);
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  }
+
+  // rounded-rect SUBpath (no beginPath) so several can share one path
+  function rrSub(ctx, x, y, w, h, r) {
+    r = Math.min(r, w * 0.5, h * 0.5);
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  }
+
+  // unit-space entry: after this 1 unit == size px, outline style set.
+  function enter(ctx, x, y, size, lw) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(size, size);
+    ctx.lineWidth = lw || 0.05;
+    ctx.strokeStyle = OUTLINE;
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+  }
+
+  // radial "ball" gradient: bright top-left -> main -> dark rim
+  function ballGrad(ctx, cx, cy, r, c) {
+    var g = ctx.createRadialGradient(cx - r * 0.35, cy - r * 0.4, r * 0.08, cx, cy, r * 1.05);
+    g.addColorStop(0, c.shine);
+    g.addColorStop(0.35, c.main);
+    g.addColorStop(1, c.dark);
+    return g;
+  }
+
+  function ball(ctx, cx, cy, r, c, outline) {
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, TAU);
+    ctx.fillStyle = ballGrad(ctx, cx, cy, r, c);
+    ctx.fill();
+    if (outline !== false) { ctx.stroke(); }
+  }
+
+  // top-left specular shine (white ellipse)
+  function spec(ctx, cx, cy, rx, ry, rot, a) {
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, rx, ry, rot || 0, 0, TAU);
+    ctx.fillStyle = 'rgba(255,255,255,' + (a === undefined ? 0.55 : a) + ')';
+    ctx.fill();
+  }
+
+  function dot(ctx, cx, cy, r, color) {
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, TAU);
+    ctx.fillStyle = color;
+    ctx.fill();
+  }
+
+  // soft drop shadow ellipse (unit space)
+  function dropShadow(ctx, cx, cy, rx, ry, a) {
+    var g = ctx.createRadialGradient(cx, cy, 0, cx, cy, rx);
+    g.addColorStop(0, 'rgba(30,15,5,' + (a || 0.28) + ')');
+    g.addColorStop(1, 'rgba(30,15,5,0)');
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.scale(1, ry / rx);
+    ctx.beginPath();
+    ctx.arc(0, 0, rx, 0, TAU);
+    ctx.fillStyle = g;
+    ctx.translate(-cx, -cy);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function leaf(ctx, cx, cy, rx, ry, rot, hi, lo) {
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(rot || 0);
+    var g = ctx.createLinearGradient(0, -ry, 0, ry);
+    g.addColorStop(0, hi || '#9be25a');
+    g.addColorStop(1, lo || '#3f8f22');
+    ctx.beginPath();
+    ctx.moveTo(-rx, 0);
+    ctx.quadraticCurveTo(0, -ry * 1.6, rx, 0);
+    ctx.quadraticCurveTo(0, ry * 1.6, -rx, 0);
+    ctx.closePath();
+    ctx.fillStyle = g;
+    ctx.fill();
+    ctx.stroke();
+    ctx.beginPath();                              // midrib
+    ctx.moveTo(-rx * 0.7, 0);
+    ctx.lineTo(rx * 0.7, 0);
+    ctx.lineWidth *= 0.6;
+    ctx.strokeStyle = 'rgba(40,80,20,0.6)';
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function stem(ctx, x0, y0, cx, cy, x1, y1, w) {
+    ctx.beginPath();
+    ctx.moveTo(x0, y0);
+    ctx.quadraticCurveTo(cx, cy, x1, y1);
+    ctx.lineWidth = w * 2.2;
+    ctx.strokeStyle = OUTLINE;
+    ctx.stroke();
+    ctx.lineWidth = w;
+    ctx.strokeStyle = '#8a5a2a';
+    ctx.stroke();
+  }
+
+  /* =========================================================
+     FRUIT — 10 painters, unit space [-0.5, 0.5], size = tile diameter
+     ========================================================= */
+  var FRUIT_PAINT = {};
+
+  FRUIT_PAINT.cherry = function (ctx, t) {
+    var c = FC.cherry;
+    var sw = Math.sin(t * 2.2) * 0.03;
+    // stems joined at the top
+    stem(ctx, -0.19, 0.0, -0.12, -0.32, 0.06 + sw, -0.44, 0.045);
+    stem(ctx, 0.21, 0.02, 0.2, -0.3, 0.06 + sw, -0.44, 0.045);
+    leaf(ctx, 0.2 + sw, -0.4, 0.14, 0.055, -0.35);
+    ctx.lineWidth = 0.05;
+    ctx.strokeStyle = OUTLINE;
+    ball(ctx, -0.2, 0.2, 0.24, c);
+    ball(ctx, 0.21, 0.23, 0.24, c);
+    spec(ctx, -0.29, 0.1, 0.07, 0.045, -0.7);
+    spec(ctx, 0.12, 0.13, 0.07, 0.045, -0.7);
+  };
+
+  FRUIT_PAINT.strawberry = function (ctx, t) {
+    var c = FC.strawberry, i, j, sx, sy;
+    function body() {
+      ctx.beginPath();
+      ctx.moveTo(0, 0.46);
+      ctx.bezierCurveTo(-0.5, 0.18, -0.44, -0.3, 0, -0.26);
+      ctx.bezierCurveTo(0.44, -0.3, 0.5, 0.18, 0, 0.46);
+      ctx.closePath();
+    }
+    body();
+    ctx.fillStyle = ballGrad(ctx, 0, 0.05, 0.42, c);
+    ctx.fill();
+    ctx.stroke();
+    // seeds
+    ctx.save();
+    body();
+    ctx.clip();
+    for (i = 0; i < 4; i++) {
+      for (j = 0; j < 3; j++) {
+        sx = -0.24 + j * 0.24 + (i % 2) * 0.12;
+        sy = -0.14 + i * 0.14;
+        ctx.beginPath();
+        ctx.ellipse(sx, sy, 0.032, 0.045, 0, 0, TAU);
+        ctx.fillStyle = '#fff1a8';
+        ctx.fill();
+        ctx.lineWidth = 0.018;
+        ctx.strokeStyle = 'rgba(120,20,40,0.7)';
+        ctx.stroke();
+      }
+    }
+    ctx.restore();
+    ctx.lineWidth = 0.05;
+    ctx.strokeStyle = OUTLINE;
+    spec(ctx, -0.17, -0.1, 0.08, 0.05, -0.6);
+    // calyx: 5 leaves fanning from the top
+    var sway = Math.sin(t * 2.5) * 0.04;
+    for (i = -2; i <= 2; i++) {
+      leaf(ctx, i * 0.11 + sway * 0.3, -0.31 - Math.abs(i) * 0.015, 0.09, 0.05,
+           i * 0.55 + sway, '#8fe05a', '#2f8a22');
+    }
+    stem(ctx, 0, -0.28, 0.02, -0.4, 0.03 + sway, -0.48, 0.04);
+  };
+
+  FRUIT_PAINT.apple = function (ctx, t) {
+    var c = FC.apple;
+    function body() {
+      ctx.beginPath();
+      ctx.moveTo(0, -0.27);
+      ctx.bezierCurveTo(-0.1, -0.44, -0.47, -0.36, -0.44, 0.02);
+      ctx.bezierCurveTo(-0.42, 0.3, -0.22, 0.47, 0, 0.42);
+      ctx.bezierCurveTo(0.22, 0.47, 0.42, 0.3, 0.44, 0.02);
+      ctx.bezierCurveTo(0.47, -0.36, 0.1, -0.44, 0, -0.27);
+      ctx.closePath();
+    }
+    body();
+    ctx.fillStyle = ballGrad(ctx, 0, 0.04, 0.44, c);
+    ctx.fill();
+    // warm blush, clipped
+    ctx.save();
+    body();
+    ctx.clip();
+    var g = ctx.createRadialGradient(0.18, 0.12, 0.02, 0.18, 0.12, 0.34);
+    g.addColorStop(0, 'rgba(255,220,90,0.55)');
+    g.addColorStop(1, 'rgba(255,220,90,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(-0.5, -0.5, 1, 1);
+    ctx.restore();
+    body();
+    ctx.stroke();
+    spec(ctx, -0.2, -0.12, 0.09, 0.055, -0.6);
+    var sway = Math.sin(t * 2) * 0.03;
+    stem(ctx, 0, -0.28, 0.02, -0.38, 0.05 + sway, -0.47, 0.045);
+    leaf(ctx, 0.17 + sway, -0.4, 0.15, 0.06, -0.55, '#7ecf3f', '#2e7d1a');
+  };
+
+  FRUIT_PAINT.watermelon = function (ctx, t) {
+    var i;
+    ctx.rotate(-0.28 + Math.sin(t * 1.8) * 0.03);
+    ctx.translate(0, -0.2);
+    // rind (half-disc, flat edge up)
+    ctx.beginPath();
+    ctx.arc(0, 0, 0.44, 0, Math.PI);
+    ctx.closePath();
+    var rg = ctx.createLinearGradient(-0.4, 0, 0.4, 0);
+    rg.addColorStop(0, '#4ec25a');
+    rg.addColorStop(1, '#1d7a2e');
+    ctx.fillStyle = rg;
+    ctx.fill();
+    // rind stripes
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(0, 0, 0.44, 0, Math.PI);
+    ctx.closePath();
+    ctx.clip();
+    ctx.strokeStyle = 'rgba(20,90,30,0.55)';
+    ctx.lineWidth = 0.05;
+    for (i = 0; i < 5; i++) {
+      var a = Math.PI * (0.12 + i * 0.19);
+      ctx.beginPath();
+      ctx.moveTo(Math.cos(a) * 0.3, Math.sin(a) * 0.3);
+      ctx.lineTo(Math.cos(a) * 0.46, Math.sin(a) * 0.46);
+      ctx.stroke();
+    }
+    ctx.restore();
+    // pith
+    ctx.beginPath();
+    ctx.arc(0, 0, 0.37, 0, Math.PI);
+    ctx.closePath();
+    ctx.fillStyle = '#eef9c9';
+    ctx.fill();
+    // flesh
+    ctx.beginPath();
+    ctx.arc(0, 0, 0.325, 0, Math.PI);
+    ctx.closePath();
+    var fg = ctx.createRadialGradient(-0.1, 0.02, 0.02, 0, 0.05, 0.36);
+    fg.addColorStop(0, '#ff8a92');
+    fg.addColorStop(0.5, FC.watermelon.main);
+    fg.addColorStop(1, '#d92a3c');
+    ctx.fillStyle = fg;
+    ctx.fill();
+    // seeds
+    var seeds = [[-0.17, 0.13, 0.5], [0.0, 0.2, 0], [0.16, 0.12, -0.5], [-0.05, 0.06, 0.2]];
+    for (i = 0; i < seeds.length; i++) {
+      ctx.beginPath();
+      ctx.ellipse(seeds[i][0], seeds[i][1], 0.028, 0.045, seeds[i][2], 0, TAU);
+      ctx.fillStyle = '#2b1a10';
+      ctx.fill();
+    }
+    // outline whole slice
+    ctx.beginPath();
+    ctx.arc(0, 0, 0.44, 0, Math.PI);
+    ctx.closePath();
+    ctx.lineWidth = 0.05;
+    ctx.strokeStyle = OUTLINE;
+    ctx.stroke();
+    spec(ctx, -0.2, 0.08, 0.06, 0.035, 0.5, 0.45);
+  };
+
+  FRUIT_PAINT.grape = function (ctx, t) {
+    var c = FC.grape, i;
+    var sway = Math.sin(t * 2.4) * 0.03;
+    stem(ctx, 0, -0.3, 0.0, -0.4, 0.05 + sway, -0.48, 0.045);
+    leaf(ctx, -0.16 + sway, -0.38, 0.15, 0.065, 0.45, '#8fd94f', '#2f7f1f');
+    ctx.lineWidth = 0.05;
+    ctx.strokeStyle = OUTLINE;
+    var rows = [[0.3, [0]], [0.11, [-0.14, 0.14]], [-0.08, [-0.27, 0, 0.27]], [-0.25, [-0.14, 0.14]]];
+    for (i = 0; i < rows.length; i++) {
+      var y = rows[i][0], xs = rows[i][1], j;
+      for (j = 0; j < xs.length; j++) {
+        ball(ctx, xs[j], y, 0.15, c);
+        spec(ctx, xs[j] - 0.05, y - 0.06, 0.04, 0.025, -0.7, 0.5);
+      }
+    }
+  };
+
+  FRUIT_PAINT.banana = function (ctx, t) {
+    var c = FC.banana;
+    ctx.rotate(-0.45 + Math.sin(t * 1.7) * 0.03);
+    ctx.translate(0, -0.06);
+    function body() {
+      ctx.beginPath();
+      ctx.moveTo(-0.46, -0.1);
+      ctx.quadraticCurveTo(0, 0.6, 0.46, -0.1);
+      ctx.quadraticCurveTo(0, 0.12, -0.46, -0.1);
+      ctx.closePath();
+    }
+    body();
+    var g = ctx.createLinearGradient(0, -0.1, 0, 0.3);
+    g.addColorStop(0, c.shine);
+    g.addColorStop(0.45, c.main);
+    g.addColorStop(1, c.dark);
+    ctx.fillStyle = g;
+    ctx.fill();
+    ctx.stroke();
+    // ridge line
+    ctx.beginPath();
+    ctx.moveTo(-0.36, -0.06);
+    ctx.quadraticCurveTo(0, 0.33, 0.36, -0.06);
+    ctx.lineWidth = 0.025;
+    ctx.strokeStyle = 'rgba(150,100,10,0.55)';
+    ctx.stroke();
+    // brown tips
+    dot(ctx, -0.44, -0.1, 0.045, '#6b4318');
+    dot(ctx, 0.44, -0.1, 0.045, '#6b4318');
+    spec(ctx, -0.1, 0.1, 0.1, 0.03, 0.25, 0.5);
+  };
+
+  FRUIT_PAINT.pomegranate = function (ctx, t) {
+    var c = FC.pomegranate, i;
+    ball(ctx, 0, 0.07, 0.37, c);
+    // seed window (cut-away) bottom right
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(0.13, 0.16, 0.16, 0, TAU);
+    ctx.clip();
+    ctx.fillStyle = '#ffd6e2';
+    ctx.fillRect(-0.5, -0.5, 1, 1);
+    var pts = [[0.06, 0.08], [0.18, 0.06], [0.24, 0.17], [0.13, 0.17], [0.05, 0.22], [0.17, 0.27]];
+    for (i = 0; i < pts.length; i++) {
+      dot(ctx, pts[i][0], pts[i][1], 0.045, '#c8123f');
+      dot(ctx, pts[i][0] - 0.012, pts[i][1] - 0.014, 0.014, 'rgba(255,255,255,0.8)');
+    }
+    ctx.restore();
+    ctx.beginPath();
+    ctx.arc(0.13, 0.16, 0.16, 0, TAU);
+    ctx.lineWidth = 0.04;
+    ctx.stroke();
+    ctx.lineWidth = 0.05;
+    spec(ctx, -0.16, -0.1, 0.09, 0.055, -0.6);
+    // crown (calyx)
+    var w = Math.sin(t * 2) * 0.01;
+    ctx.beginPath();
+    ctx.moveTo(-0.15, -0.26);
+    ctx.lineTo(-0.17 + w, -0.44);
+    ctx.lineTo(-0.07, -0.36);
+    ctx.lineTo(0 + w, -0.49);
+    ctx.lineTo(0.07, -0.36);
+    ctx.lineTo(0.17 + w, -0.44);
+    ctx.lineTo(0.15, -0.26);
+    ctx.closePath();
+    ctx.fillStyle = c.dark;
+    ctx.fill();
+    ctx.stroke();
+  };
+
+  FRUIT_PAINT.pineapple = function (ctx, t) {
+    var c = FC.pineapple, i;
+    // crown leaves
+    var sway = Math.sin(t * 2.2) * 0.04;
+    var angs = [-0.75, -0.4, 0, 0.4, 0.75];
+    for (i = 0; i < angs.length; i++) {
+      ctx.save();
+      ctx.translate(0, -0.18);
+      ctx.rotate(angs[i] + sway * (i - 2) * 0.3);
+      ctx.beginPath();
+      ctx.moveTo(-0.07, 0);
+      ctx.quadraticCurveTo(-0.02, -0.2, 0, -0.34 + Math.abs(i - 2) * 0.03);
+      ctx.quadraticCurveTo(0.02, -0.2, 0.07, 0);
+      ctx.closePath();
+      var lg = ctx.createLinearGradient(0, -0.34, 0, 0);
+      lg.addColorStop(0, '#8fe05a');
+      lg.addColorStop(1, '#2e8a26');
+      ctx.fillStyle = lg;
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
+    }
+    // body
+    ctx.beginPath();
+    ctx.ellipse(0, 0.13, 0.31, 0.36, 0, 0, TAU);
+    ctx.fillStyle = ballGrad(ctx, 0, 0.13, 0.36, c);
+    ctx.fill();
+    // cross-hatch
+    ctx.save();
+    ctx.beginPath();
+    ctx.ellipse(0, 0.13, 0.31, 0.36, 0, 0, TAU);
+    ctx.clip();
+    ctx.strokeStyle = 'rgba(140,80,10,0.55)';
+    ctx.lineWidth = 0.028;
+    for (i = -4; i <= 4; i++) {
+      ctx.beginPath();
+      ctx.moveTo(-0.5 + i * 0.13, -0.3);
+      ctx.lineTo(0.2 + i * 0.13, 0.6);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(0.5 - i * 0.13, -0.3);
+      ctx.lineTo(-0.2 - i * 0.13, 0.6);
+      ctx.stroke();
+    }
+    ctx.restore();
+    ctx.beginPath();
+    ctx.ellipse(0, 0.13, 0.31, 0.36, 0, 0, TAU);
+    ctx.stroke();
+    spec(ctx, -0.13, -0.08, 0.08, 0.05, -0.6, 0.5);
+  };
+
+  FRUIT_PAINT.orange = function (ctx, t) {
+    var c = FC.orange, i;
+    ball(ctx, 0, 0.06, 0.39, c);
+    // dimples
+    for (i = 0; i < 9; i++) {
+      var a = rnd(i) * TAU, r = 0.1 + rnd(i + 9) * 0.25;
+      dot(ctx, Math.cos(a) * r, 0.06 + Math.sin(a) * r, 0.018, 'rgba(160,60,0,0.35)');
+    }
+    spec(ctx, -0.17, -0.1, 0.09, 0.055, -0.6);
+    dot(ctx, 0, -0.32, 0.045, '#b34a00');            // stem nub
+    var sway = Math.sin(t * 2.1) * 0.03;
+    leaf(ctx, 0.15 + sway, -0.37, 0.15, 0.06, -0.5, '#7fd044', '#2b7d1c');
+  };
+
+  FRUIT_PAINT.lemon = function (ctx, t) {
+    var c = FC.lemon, i;
+    ctx.rotate(-0.4 + Math.sin(t * 1.9) * 0.03);
+    ctx.beginPath();
+    ctx.ellipse(0, 0.02, 0.4, 0.28, 0, 0, TAU);
+    ctx.fillStyle = ballGrad(ctx, 0, 0.02, 0.4, c);
+    ctx.fill();
+    // end nubs
+    dot(ctx, -0.42, 0.02, 0.07, c.main);
+    dot(ctx, 0.42, 0.02, 0.07, c.dark);
+    // unify outline
+    ctx.beginPath();
+    ctx.ellipse(0, 0.02, 0.4, 0.28, 0, 0, TAU);
+    ctx.stroke();
+    ctx.beginPath(); ctx.arc(-0.42, 0.02, 0.07, 0, TAU); ctx.stroke();
+    ctx.beginPath(); ctx.arc(0.42, 0.02, 0.07, 0, TAU); ctx.stroke();
+    dot(ctx, -0.42, 0.02, 0.05, c.main);
+    dot(ctx, 0.42, 0.02, 0.05, c.dark);
+    for (i = 0; i < 7; i++) {
+      dot(ctx, -0.25 + rnd(i + 3) * 0.5, -0.15 + rnd(i + 21) * 0.3, 0.016, 'rgba(170,130,0,0.35)');
+    }
+    spec(ctx, -0.15, -0.1, 0.1, 0.05, -0.15);
+    leaf(ctx, 0.3, -0.24, 0.13, 0.055, -0.9, '#7fd044', '#2b7d1c');
+  };
+
+  S.fruit = function (ctx, type, x, y, size, t) {
+    t = num(t);
+    size = num(size, 60);
+    enter(ctx, x, y, size, 0.05);
+    dropShadow(ctx, 0.03, 0.45, 0.34, 0.1, 0.22);
+    ctx.rotate(Math.sin(t * 1.6 + (type ? type.length : 0)) * 0.03);
+    var p = FRUIT_PAINT[type];
+    if (p) {
+      p(ctx, t);
+    } else {                                   // unknown type: readable placeholder
+      ball(ctx, 0, 0.05, 0.38, { main: '#bbbbbb', dark: '#666666', shine: '#ffffff' });
+      ctx.fillStyle = OUTLINE;
+      ctx.font = 'bold 0.5px Arial, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('?', 0, 0.07);
+    }
+    ctx.restore();
+  };
+
+  /* =========================================================
+     COCONUT — brown hairy ball with three eyes
+     ========================================================= */
+  S.coconut = function (ctx, x, y, size, t) {
+    t = num(t);
+    size = num(size, 60);
+    enter(ctx, x, y, size, 0.05);
+    dropShadow(ctx, 0.03, 0.45, 0.34, 0.1, 0.22);
+    ctx.rotate(Math.sin(t * 1.3) * 0.02);
+    var i, a, c = { main: '#8b5a2b', dark: '#4a2a10', shine: '#c48a55' };
+    // fibre fringe behind
+    ctx.lineWidth = 0.035;
+    ctx.strokeStyle = '#5a3416';
+    for (i = 0; i < 26; i++) {
+      a = i / 26 * TAU + rnd(i) * 0.2;
+      ctx.beginPath();
+      ctx.moveTo(Math.cos(a) * 0.34, 0.04 + Math.sin(a) * 0.34);
+      ctx.lineTo(Math.cos(a) * (0.42 + rnd(i + 5) * 0.06), 0.04 + Math.sin(a) * (0.42 + rnd(i + 5) * 0.06));
+      ctx.stroke();
+    }
+    ctx.lineWidth = 0.05;
+    ctx.strokeStyle = OUTLINE;
+    ball(ctx, 0, 0.04, 0.37, c);
+    // fibre streaks on the surface
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(0, 0.04, 0.37, 0, TAU);
+    ctx.clip();
+    ctx.lineWidth = 0.02;
+    for (i = 0; i < 10; i++) {
+      ctx.strokeStyle = (i % 2) ? 'rgba(40,20,5,0.4)' : 'rgba(200,150,100,0.25)';
+      ctx.beginPath();
+      ctx.moveTo(-0.4 + rnd(i + 40) * 0.8, -0.35 + rnd(i + 50) * 0.2);
+      ctx.quadraticCurveTo(-0.1 + rnd(i + 60) * 0.2, 0.05, -0.35 + rnd(i + 70) * 0.7, 0.42);
+      ctx.stroke();
+    }
+    ctx.restore();
+    // three eyes
+    var eyes = [[-0.11, -0.12], [0.11, -0.12], [0, 0.06]];
+    for (i = 0; i < 3; i++) {
+      ctx.beginPath();
+      ctx.ellipse(eyes[i][0], eyes[i][1], 0.07, 0.085, 0, 0, TAU);
+      ctx.fillStyle = '#2a1608';
+      ctx.fill();
+      dot(ctx, eyes[i][0] - 0.02, eyes[i][1] - 0.03, 0.02, 'rgba(255,255,255,0.35)');
+    }
+    spec(ctx, -0.17, -0.14, 0.08, 0.045, -0.6, 0.3);
+    ctx.restore();
+  };
+
+  /* =========================================================
+     OBSTACLES — cell-space [-0.5, 0.5], size = CELL
+     ========================================================= */
+  function woodRect(ctx, x, y, w, h, r, horizontal) {
+    var g = horizontal ? ctx.createLinearGradient(0, y, 0, y + h) : ctx.createLinearGradient(x, 0, x + w, 0);
+    g.addColorStop(0, WOOD_HI);
+    g.addColorStop(0.45, WOOD);
+    g.addColorStop(1, WOOD_DK);
+    rrPath(ctx, x, y, w, h, r);
+    ctx.fillStyle = g;
+    ctx.fill();
+    ctx.stroke();
+  }
+
+  function seasonLeaf(season) {
+    if (season === 'spring') { return ['#ffc7e2', '#ff8ac0']; }
+    if (season === 'autumn') { return ['#ffc24d', '#d0641a']; }
+    if (season === 'winter') { return ['#d8f7f2', '#7fc9c0']; }
+    return ['#9be25a', '#3f8f22'];
+  }
+
+  S.wall = function (ctx, x, y, size, lean, season) {
+    lean = (num(lean) < 0) ? -1 : 1;
+    size = num(size, 76);
+    enter(ctx, x, y, size, 0.045);
+    dropShadow(ctx, 0.02, 0.47, 0.4, 0.08, 0.2);
+    // post
+    woodRect(ctx, -0.1, -0.44, 0.2, 0.9, 0.05, false);
+    // ramp plank: low on the side away from lean, high on the lean side
+    ctx.save();
+    ctx.rotate(lean * -0.62);
+    woodRect(ctx, -0.5, -0.09, 1.0, 0.18, 0.06, true);
+    // nails
+    dot(ctx, -0.36, 0, 0.025, '#5a3a1a');
+    dot(ctx, 0.36, 0, 0.025, '#5a3a1a');
+    // deflect arrow on the plank
+    ctx.fillStyle = 'rgba(255,255,255,0.55)';
+    ctx.beginPath();
+    ctx.moveTo(lean * 0.08, -0.05);
+    ctx.lineTo(lean * 0.2, 0);
+    ctx.lineTo(lean * 0.08, 0.05);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+    // post cap
+    woodRect(ctx, -0.14, -0.5, 0.28, 0.1, 0.03, true);
+    var lc = seasonLeaf(season);
+    leaf(ctx, lean * -0.3, 0.38, 0.1, 0.045, lean * 0.4, lc[0], lc[1]);
+    ctx.restore();
+  };
+
+  S.trellis = function (ctx, x, y, size, season) {
+    size = num(size, 76);
+    enter(ctx, x, y, size, 0.045);
+    var i, lc = seasonLeaf(season);
+    dropShadow(ctx, 0.0, 0.3, 0.45, 0.07, 0.2);
+    // lattice diagonals behind the bar
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(-0.5, -0.36, 1, 0.5);
+    ctx.clip();
+    ctx.lineWidth = 0.05;
+    ctx.strokeStyle = '#8a5a2a';
+    for (i = -3; i <= 3; i++) {
+      ctx.beginPath(); ctx.moveTo(i * 0.25 - 0.3, -0.4); ctx.lineTo(i * 0.25 + 0.3, 0.2); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(i * 0.25 + 0.3, -0.4); ctx.lineTo(i * 0.25 - 0.3, 0.2); ctx.stroke();
+    }
+    ctx.restore();
+    // main bars (top and bottom rails)
+    woodRect(ctx, -0.52, -0.38, 1.04, 0.14, 0.04, true);
+    woodRect(ctx, -0.52, 0.06, 1.04, 0.14, 0.04, true);
+    // vine + leaves/blossoms hanging below
+    ctx.lineWidth = 0.035;
+    ctx.strokeStyle = '#3f8f22';
+    ctx.beginPath();
+    ctx.moveTo(-0.45, 0.18);
+    ctx.quadraticCurveTo(-0.2, 0.42, 0, 0.24);
+    ctx.quadraticCurveTo(0.2, 0.08, 0.45, 0.3);
+    ctx.stroke();
+    ctx.lineWidth = 0.035;
+    ctx.strokeStyle = OUTLINE;
+    if (season === 'spring') {
+      for (i = 0; i < 4; i++) {
+        var bx = -0.36 + i * 0.24, by = 0.28 + (i % 2) * 0.1;
+        blossom(ctx, bx, by, 0.07, lc[0], lc[1]);
+      }
+    } else {
+      for (i = 0; i < 4; i++) {
+        leaf(ctx, -0.36 + i * 0.24, 0.3 + (i % 2) * 0.1, 0.09, 0.045, (i % 2) ? 0.5 : -0.4, lc[0], lc[1]);
+      }
+    }
+    ctx.restore();
+  };
+
+  function blossom(ctx, x, y, r, hi, lo) {
+    var i;
+    for (i = 0; i < 5; i++) {
+      var a = i / 5 * TAU - Math.PI / 2;
+      ctx.beginPath();
+      ctx.arc(x + Math.cos(a) * r * 0.75, y + Math.sin(a) * r * 0.75, r * 0.55, 0, TAU);
+      ctx.fillStyle = hi;
+      ctx.fill();
+      ctx.lineWidth = r * 0.25;
+      ctx.strokeStyle = lo;
+      ctx.stroke();
+    }
+    dot(ctx, x, y, r * 0.35, '#ffe36e');
+  }
+
+  S.pipe = function (ctx, x, y, size, season) {
+    size = num(size, 76);
+    enter(ctx, x, y, size, 0.045);
+    var i, winter = (season === 'winter');
+    var hi = winter ? '#d4cfc0' : '#c99a5a', mid = winter ? '#9c9482' : '#9a6a32', dk = winter ? '#5b5548' : '#5a3a1a';
+    dropShadow(ctx, 0.04, 0.48, 0.34, 0.06, 0.18);
+    // hollow log body (full cell height so stacked pipes join)
+    var g = ctx.createLinearGradient(-0.32, 0, 0.32, 0);
+    g.addColorStop(0, hi);
+    g.addColorStop(0.5, mid);
+    g.addColorStop(1, dk);
+    ctx.beginPath();
+    ctx.rect(-0.32, -0.5, 0.64, 1.0);
+    ctx.fillStyle = g;
+    ctx.fill();
+    // bark texture
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(-0.32, -0.5, 0.64, 1.0);
+    ctx.clip();
+    ctx.lineWidth = 0.02;
+    for (i = 0; i < 7; i++) {
+      ctx.strokeStyle = (i % 2) ? 'rgba(0,0,0,0.25)' : 'rgba(255,255,255,0.22)';
+      ctx.beginPath();
+      ctx.moveTo(-0.3 + rnd(i + 80) * 0.6, -0.5);
+      ctx.quadraticCurveTo(-0.3 + rnd(i + 90) * 0.6, 0, -0.3 + rnd(i + 100) * 0.6, 0.5);
+      ctx.stroke();
+    }
+    ctx.restore();
+    // side outlines only (open top & bottom)
+    ctx.beginPath();
+    ctx.moveTo(-0.32, -0.5); ctx.lineTo(-0.32, 0.5);
+    ctx.moveTo(0.32, -0.5); ctx.lineTo(0.32, 0.5);
+    ctx.stroke();
+    // open ends: dark hollow ellipses (rim above, hollow below)
+    ctx.beginPath();
+    ctx.ellipse(0, -0.43, 0.32, 0.09, 0, 0, TAU);
+    ctx.fillStyle = mid;
+    ctx.fill();
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.ellipse(0, -0.43, 0.2, 0.05, 0, 0, TAU);
+    ctx.fillStyle = '#1d0f05';
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(0, 0.43, 0.32, 0.09, 0, 0, Math.PI);
+    ctx.fillStyle = '#1d0f05';
+    ctx.fill();
+    ctx.stroke();
+    // specular streak
+    ctx.fillStyle = 'rgba(255,255,255,0.28)';
+    ctx.fillRect(-0.24, -0.34, 0.06, 0.7);
+    ctx.restore();
+  };
+
+  /* =========================================================
+     BACKGROUND (AMBIENT ONLY) — sky, distant hills, ground band.
+     No sun, no tree, no one-of-a-kind landmark: safe to spill into bars.
+     ========================================================= */
+  S.background = function (ctx, w, h, season, t) {
+    t = num(t);
+    var P = pal(season), i, u;
+    ctx.save();
+    var groundY = h * 0.86;
+    // sky
+    var sg = ctx.createLinearGradient(0, 0, 0, groundY);
+    sg.addColorStop(0, P.sky);
+    sg.addColorStop(0.7, P.skyLow);
+    sg.addColorStop(1, '#ffffff');
+    ctx.fillStyle = sg;
+    ctx.fillRect(0, 0, w, groundY + 2);
+    // soft clouds (repeatable, drift with t)
+    ctx.fillStyle = (season === 'winter') ? 'rgba(255,255,255,0.55)' : 'rgba(255,255,255,0.75)';
+    for (i = 0; i < 7; i++) {
+      var cx = ((rnd(i + 200) * 1.3 + t * 0.006 * (0.5 + rnd(i))) % 1.3 - 0.15) * w;
+      var cy = h * (0.06 + rnd(i + 210) * 0.3);
+      var cr = w * (0.04 + rnd(i + 220) * 0.04);
+      ctx.beginPath();
+      ctx.ellipse(cx, cy, cr * 1.6, cr * 0.55, 0, 0, TAU);
+      ctx.ellipse(cx - cr * 0.6, cy + cr * 0.1, cr * 0.8, cr * 0.5, 0, 0, TAU);
+      ctx.ellipse(cx + cr * 0.6, cy + cr * 0.1, cr * 0.9, cr * 0.55, 0, 0, TAU);
+      ctx.fill();
+    }
+    // ambient particles: blossom petals / fireflies / leaves / snow
+    for (i = 0; i < 18; i++) {
+      var px = ((rnd(i + 300) + t * 0.01 * (season === 'winter' ? 0.5 : 1)) % 1) * w;
+      var py = ((rnd(i + 310) + t * 0.02 * (0.4 + rnd(i + 320))) % 1) * groundY;
+      var pr = Math.max(1.5, w * 0.004) * (0.6 + rnd(i + 330));
+      var pc = season === 'spring' ? 'rgba(255,170,205,0.8)' : season === 'summer' ? 'rgba(255,240,150,0.7)'
+             : season === 'autumn' ? 'rgba(220,110,30,0.8)' : 'rgba(255,255,255,0.9)';
+      dot(ctx, px, py, pr, pc);
+    }
+    // distant hills: far (pale) and near (ground colour)
+    var hillC = [mix(P.sky, P.ground, 0.45), P.ground];
+    for (var layer = 0; layer < 2; layer++) {
+      var base = groundY - h * (layer ? 0.035 : 0.075);
+      ctx.fillStyle = hillC[layer];
+      ctx.beginPath();
+      ctx.moveTo(-w, groundY + 4);
+      ctx.lineTo(-w, base);
+      for (i = -2; i < 20; i++) {
+        var hx = (i + rnd(i + 400 + layer * 50) * 0.5) * w * 0.14;
+        var hr = w * (0.09 + rnd(i + 410 + layer * 50) * 0.05);
+        var hy = base - h * (0.03 + rnd(i + 420 + layer * 50) * 0.04) * (layer ? 0.7 : 1);
+        ctx.quadraticCurveTo(hx - hr * 0.5, hy, hx, hy);
+        ctx.quadraticCurveTo(hx + hr * 0.5, hy, hx + hr, base);
+      }
+      ctx.lineTo(w * 3, groundY + 4);
+      ctx.closePath();
+      ctx.fill();
+    }
+    // ground band
+    var gg = ctx.createLinearGradient(0, groundY, 0, h);
+    gg.addColorStop(0, P.ground);
+    gg.addColorStop(0.25, mix(P.ground, P.groundDark, 0.4));
+    gg.addColorStop(1, P.groundDark);
+    ctx.fillStyle = gg;
+    ctx.fillRect(0, groundY, w, h - groundY + 2);
+    ctx.fillStyle = 'rgba(255,255,255,0.35)';
+    ctx.fillRect(0, groundY, w, Math.max(2, h * 0.006));
+    // grass tufts / ground texture
+    ctx.lineWidth = Math.max(1, h * 0.002);
+    ctx.lineCap = 'round';
+    for (i = 0; i < 40; i++) {
+      var gx = rnd(i + 500) * w, gy = groundY + h * 0.02 + rnd(i + 510) * (h - groundY - h * 0.03);
+      if (season === 'winter' && i % 2) {
+        dot(ctx, gx, gy, Math.max(1.5, w * 0.004), 'rgba(255,255,255,0.6)');
+      } else {
+        ctx.strokeStyle = 'rgba(0,0,0,0.18)';
+        ctx.beginPath();
+        ctx.moveTo(gx, gy + h * 0.008);
+        ctx.quadraticCurveTo(gx - w * 0.004, gy - h * 0.004, gx - w * 0.007, gy - h * 0.012);
+        ctx.moveTo(gx, gy + h * 0.008);
+        ctx.quadraticCurveTo(gx + w * 0.004, gy - h * 0.005, gx + w * 0.006, gy - h * 0.013);
+        ctx.stroke();
+      }
+    }
+    ctx.restore();
+  };
+
+  // hex colour mix (a*(1-k) + b*k)
+  function mix(a, b, k) {
+    function h(c, i) { return parseInt(c.substr(i, 2), 16); }
+    var r = Math.round(h(a, 1) * (1 - k) + h(b, 1) * k);
+    var g = Math.round(h(a, 3) * (1 - k) + h(b, 3) * k);
+    var bl = Math.round(h(a, 5) * (1 - k) + h(b, 5) * k);
+    return 'rgb(' + r + ',' + g + ',' + bl + ')';
+  }
+
+  /* =========================================================
+     LANDMARKS — drawn ONCE inside the logical field, behind the board.
+     ONE orchard tree (grows with progress), a fence, sun (or winter moon).
+     ========================================================= */
+  S.landmarks = function (ctx, W, H, season, progress, t) {
+    t = num(t);
+    var p = Math.max(0, Math.min(1, num(progress)));
+    var P = pal(season), i;
+    ctx.save();
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+
+    /* sun / moon, top right (once) */
+    var sx = W * 0.85, sy = H * 0.075, sr = W * 0.075;
+    if (season === 'winter') {
+      var mg = ctx.createRadialGradient(sx, sy, sr * 0.2, sx, sy, sr * 3);
+      mg.addColorStop(0, 'rgba(230,245,255,0.5)');
+      mg.addColorStop(1, 'rgba(230,245,255,0)');
+      ctx.fillStyle = mg;
+      ctx.fillRect(sx - sr * 3, sy - sr * 3, sr * 6, sr * 6);
+      ctx.beginPath();
+      ctx.arc(sx, sy, sr, 0, TAU);
+      ctx.fillStyle = '#fff7d6';
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(sx + sr * 0.45, sy - sr * 0.2, sr * 0.85, 0, TAU);
+      ctx.fillStyle = P.sky;
+      ctx.fill();
+    } else {
+      var glow = ctx.createRadialGradient(sx, sy, sr * 0.3, sx, sy, sr * 3.5);
+      glow.addColorStop(0, 'rgba(255,240,150,0.85)');
+      glow.addColorStop(0.3, 'rgba(255,230,120,0.3)');
+      glow.addColorStop(1, 'rgba(255,230,120,0)');
+      ctx.fillStyle = glow;
+      ctx.fillRect(sx - sr * 3.5, sy - sr * 3.5, sr * 7, sr * 7);
+      ctx.strokeStyle = 'rgba(255,235,120,0.55)';
+      ctx.lineWidth = sr * 0.18;
+      for (i = 0; i < 8; i++) {
+        var a = i / 8 * TAU + t * 0.15;
+        ctx.beginPath();
+        ctx.moveTo(sx + Math.cos(a) * sr * 1.3, sy + Math.sin(a) * sr * 1.3);
+        ctx.lineTo(sx + Math.cos(a) * sr * 1.9, sy + Math.sin(a) * sr * 1.9);
+        ctx.stroke();
+      }
+      ctx.beginPath();
+      ctx.arc(sx, sy, sr, 0, TAU);
+      ctx.fillStyle = (season === 'autumn') ? '#ffd35a' : '#fff3a6';
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(255,190,60,0.8)';
+      ctx.lineWidth = sr * 0.12;
+      ctx.stroke();
+    }
+
+    /* fence along the ground line (behind the launcher zone) */
+    var fy = H * 0.862, fh = H * 0.05, post = W * 0.024;
+    ctx.strokeStyle = OUTLINE;
+    ctx.lineWidth = Math.max(1.5, W * 0.004);
+    var rail = ctx.createLinearGradient(0, fy - fh, 0, fy);
+    rail.addColorStop(0, '#f1d39a');
+    rail.addColorStop(1, '#b57a36');
+    ctx.fillStyle = rail;
+    rrPath(ctx, -4, fy - fh * 0.85, W + 8, fh * 0.18, 3); ctx.fill(); ctx.stroke();
+    rrPath(ctx, -4, fy - fh * 0.42, W + 8, fh * 0.18, 3); ctx.fill(); ctx.stroke();
+    for (i = 0; i < 9; i++) {
+      var fx = W * (0.03 + i * 0.118);
+      var pg = ctx.createLinearGradient(fx, 0, fx + post, 0);
+      pg.addColorStop(0, '#f1d39a');
+      pg.addColorStop(1, '#a86b2b');
+      ctx.fillStyle = pg;
+      ctx.beginPath();
+      ctx.moveTo(fx, fy);
+      ctx.lineTo(fx, fy - fh);
+      ctx.lineTo(fx + post * 0.5, fy - fh * 1.2);
+      ctx.lineTo(fx + post, fy - fh);
+      ctx.lineTo(fx + post, fy);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+    }
+
+    /* THE orchard tree, bottom-left, grows with progress */
+    var tx = W * 0.12, ty = H * 0.885;
+    var trunkH = H * (0.06 + 0.26 * p);
+    var trunkW = W * (0.012 + 0.05 * p);
+    var canR = W * (0.03 + 0.2 * p);
+    var lc = seasonLeaf(season);
+    var sway = Math.sin(t * 0.9) * 0.02 * p;
+    ctx.save();
+    ctx.translate(tx, ty);
+    ctx.rotate(sway);
+    // roots / trunk
+    var bark = ctx.createLinearGradient(-trunkW, 0, trunkW, 0);
+    bark.addColorStop(0, '#c9945a');
+    bark.addColorStop(0.5, '#8c5a2b');
+    bark.addColorStop(1, '#4e2e12');
+    ctx.fillStyle = bark;
+    ctx.beginPath();
+    ctx.moveTo(-trunkW * 1.6, 0);
+    ctx.quadraticCurveTo(-trunkW * 0.8, -trunkH * 0.2, -trunkW * 0.7, -trunkH * 0.6);
+    ctx.quadraticCurveTo(-trunkW * 0.6, -trunkH * 0.9, -trunkW * 0.3, -trunkH);
+    ctx.lineTo(trunkW * 0.3, -trunkH);
+    ctx.quadraticCurveTo(trunkW * 0.6, -trunkH * 0.9, trunkW * 0.7, -trunkH * 0.6);
+    ctx.quadraticCurveTo(trunkW * 0.8, -trunkH * 0.2, trunkW * 1.6, 0);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = OUTLINE;
+    ctx.lineWidth = Math.max(1.5, W * 0.005);
+    ctx.stroke();
+    if (p >= 0.25) {                     // branches
+      ctx.lineWidth = Math.max(2, trunkW * 0.5);
+      ctx.strokeStyle = '#6b3f1a';
+      ctx.beginPath();
+      ctx.moveTo(0, -trunkH * 0.75);
+      ctx.quadraticCurveTo(-canR * 0.5, -trunkH * 0.9, -canR * 0.75, -trunkH - canR * 0.2);
+      ctx.moveTo(0, -trunkH * 0.65);
+      ctx.quadraticCurveTo(canR * 0.5, -trunkH * 0.85, canR * 0.75, -trunkH - canR * 0.1);
+      ctx.stroke();
+    }
+    // canopy: sapling = a few leaves, then a leafy mass
+    ctx.lineWidth = Math.max(1.5, W * 0.005);
+    ctx.strokeStyle = OUTLINE;
+    if (p < 0.25) {
+      var ls = W * 0.03 + canR;
+      leaf(ctx, -ls * 0.6, -trunkH * 0.75, ls * 0.6, ls * 0.28, 0.6, lc[0], lc[1]);
+      leaf(ctx, ls * 0.6, -trunkH * 0.9, ls * 0.6, ls * 0.28, -0.6, lc[0], lc[1]);
+      leaf(ctx, 0, -trunkH - ls * 0.3, ls * 0.55, ls * 0.25, -1.4, lc[0], lc[1]);
+    } else {
+      var blobs = [[0, -1.05, 1.0], [-0.75, -0.7, 0.8], [0.75, -0.65, 0.8], [-0.35, -1.35, 0.7], [0.4, -1.4, 0.7], [0, -0.55, 0.75]];
+      var canopyC = (season === 'autumn') ? ['#ffb84d', '#c8531c'] : (season === 'winter') ? ['#bfe9e0', '#4f9a8f'] : ['#9be25a', '#3f8f22'];
+      for (i = 0; i < blobs.length; i++) {
+        var bx = blobs[i][0] * canR, by = -trunkH + blobs[i][1] * canR * 0.9, br = blobs[i][2] * canR;
+        var cg = ctx.createRadialGradient(bx - br * 0.3, by - br * 0.35, br * 0.1, bx, by, br);
+        cg.addColorStop(0, canopyC[0]);
+        cg.addColorStop(1, canopyC[1]);
+        ctx.beginPath();
+        ctx.arc(bx, by, br, 0, TAU);
+        ctx.fillStyle = cg;
+        ctx.fill();
+        ctx.stroke();
+      }
+      // blossom stage (0.5..0.75) and fruiting stage (>= 0.75)
+      var deco = (p >= 0.75) ? 'fruit' : (p >= 0.5) ? 'blossom' : null;
+      if (deco) {
+        var fruitC = (season === 'spring') ? FC.cherry : (season === 'summer') ? FC.orange
+                   : (season === 'autumn') ? FC.pomegranate : FC.lemon;
+        for (i = 0; i < 11; i++) {
+          var a2 = rnd(i + 600) * TAU, rr = rnd(i + 610) * canR * 1.1;
+          var dx = Math.cos(a2) * rr, dy = -trunkH - canR * 0.9 + Math.sin(a2) * rr * 0.8;
+          if (deco === 'blossom') {
+            blossom(ctx, dx, dy, canR * 0.11, (season === 'winter') ? '#ffffff' : '#ffd1e6', '#ff8ac0');
+          } else {
+            ctx.lineWidth = Math.max(1.2, canR * 0.03);
+            ctx.strokeStyle = OUTLINE;
+            ball(ctx, dx, dy, canR * 0.1, fruitC);
+            spec(ctx, dx - canR * 0.035, dy - canR * 0.04, canR * 0.03, canR * 0.02, -0.6, 0.6);
+          }
+        }
+      }
+    }
+    ctx.restore();
+    ctx.restore();
+  };
+
+  /* =========================================================
+     BOARD FRAME — wooden trellis frame + leafy canopy strip
+     (x, y) = top-left of the play grid, w/h = grid size
+     ========================================================= */
+  S.boardFrame = function (ctx, x, y, w, h, season) {
+    var P = pal(season), i, lc = seasonLeaf(season);
+    var b = Math.max(8, w * 0.03);           // border thickness
+    ctx.save();
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+    // translucent inner backdrop so fruit read against any sky
+    rrPath(ctx, x - 2, y - 2, w + 4, h + 4, 8);
+    ctx.fillStyle = 'rgba(255,255,255,0.22)';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    // faint lane separators
+    ctx.strokeStyle = 'rgba(255,255,255,0.28)';
+    ctx.lineWidth = 1.5;
+    var cols = Math.max(1, Math.round(w / 76));
+    for (i = 1; i < cols; i++) {
+      ctx.beginPath();
+      ctx.moveTo(x + i * w / cols, y + 4);
+      ctx.lineTo(x + i * w / cols, y + h - 4);
+      ctx.stroke();
+    }
+    // wooden frame with lattice
+    ctx.strokeStyle = OUTLINE;
+    ctx.lineWidth = Math.max(1.5, b * 0.18);
+    ctx.save();
+    ctx.beginPath();
+    rrSub(ctx, x - b, y - b, w + 2 * b, h + 2 * b, b * 0.9);
+    rrSub(ctx, x, y, w, h, 4);
+    ctx.clip('evenodd');
+    var wg = ctx.createLinearGradient(x - b, y - b, x + w + b, y + h + b);
+    wg.addColorStop(0, WOOD_HI);
+    wg.addColorStop(0.5, WOOD);
+    wg.addColorStop(1, WOOD_DK);
+    ctx.fillStyle = wg;
+    ctx.fillRect(x - b - 2, y - b - 2, w + 2 * b + 4, h + 2 * b + 4);
+    ctx.strokeStyle = 'rgba(70,35,10,0.45)';
+    ctx.lineWidth = Math.max(1, b * 0.12);
+    var step = b * 1.4;
+    for (i = -Math.ceil(h / step) - 2; i < Math.ceil((w + 2 * b) / step) + 2; i++) {
+      ctx.beginPath();
+      ctx.moveTo(x - b + i * step, y - b);
+      ctx.lineTo(x - b + i * step + h + 2 * b, y + h + b);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(x - b + i * step, y + h + b);
+      ctx.lineTo(x - b + i * step + h + 2 * b, y - b);
+      ctx.stroke();
+    }
+    ctx.restore();
+    ctx.strokeStyle = OUTLINE;
+    ctx.lineWidth = Math.max(1.5, b * 0.18);
+    rrPath(ctx, x - b, y - b, w + 2 * b, h + 2 * b, b * 0.9);
+    ctx.stroke();
+    rrPath(ctx, x, y, w, h, 4);
+    ctx.stroke();
+    // corner blocks
+    var cs = b * 1.6;
+    var corners = [[x - b, y - b], [x + w + b - cs, y - b], [x - b, y + h + b - cs], [x + w + b - cs, y + h + b - cs]];
+    for (i = 0; i < 4; i++) {
+      rrPath(ctx, corners[i][0], corners[i][1], cs, cs, cs * 0.25);
+      ctx.fillStyle = WOOD_DK;
+      ctx.fill();
+      ctx.stroke();
+      dot(ctx, corners[i][0] + cs / 2, corners[i][1] + cs / 2, cs * 0.16, WOOD_HI);
+    }
+    // canopy strip across the top: leafy scallops with season deco
+    var cy = y - b * 1.2, n = Math.max(4, Math.round(w / 34));
+    for (i = 0; i <= n; i++) {
+      var lx = x - b + (w + 2 * b) * i / n;
+      var lr = b * (1.3 + 0.5 * rnd(i + 700));
+      var cg = ctx.createRadialGradient(lx - lr * 0.3, cy - lr * 0.4, lr * 0.1, lx, cy, lr);
+      cg.addColorStop(0, (season === 'autumn') ? '#ffc24d' : (season === 'winter') ? '#d8f7f2' : '#9be25a');
+      cg.addColorStop(1, (season === 'autumn') ? '#c8531c' : (season === 'winter') ? '#4f9a8f' : '#2f8a22');
+      ctx.beginPath();
+      ctx.arc(lx, cy, lr, 0, TAU);
+      ctx.fillStyle = cg;
+      ctx.fill();
+      ctx.lineWidth = Math.max(1.2, b * 0.14);
+      ctx.stroke();
+    }
+    for (i = 0; i < n; i += 2) {
+      var dx = x - b + (w + 2 * b) * (i + 0.5) / n, dy = cy - b * 0.2;
+      if (season === 'spring') { blossom(ctx, dx, dy, b * 0.5, lc[0], lc[1]); }
+      else if (season === 'winter') { dot(ctx, dx, dy, b * 0.3, '#ffffff'); }
+      else { ctx.lineWidth = Math.max(1, b * 0.1); ball(ctx, dx, dy, b * 0.35, (season === 'summer') ? FC.orange : FC.pomegranate); }
+    }
+    ctx.restore();
+  };
+
+  /* =========================================================
+     SPROUT — the apprentice. size = character height.
+     stage 0..3 (bigger, more confident), mood idle|aim|cheer|sad
+     ========================================================= */
+  S.sprout = function (ctx, x, y, size, stage, mood, t) {
+    t = num(t);
+    size = num(size, 120);
+    stage = Math.max(0, Math.min(3, Math.round(num(stage))));
+    mood = mood || 'idle';
+    var sc = 0.86 + stage * 0.06;
+    var bob = 0, lean = 0, armL, armR, headTilt = 0, i;
+    if (mood === 'cheer') { bob = -Math.abs(Math.sin(t * 9)) * 0.06; armL = -2.6; armR = 2.6; }
+    else if (mood === 'aim') { bob = Math.sin(t * 3) * 0.008; lean = -0.12; armL = -0.4; armR = 2.2; }
+    else if (mood === 'sad') { bob = Math.sin(t * 1.5) * 0.006 + 0.02; lean = 0.08; armL = -0.15; armR = 0.15; headTilt = 0.18; }
+    else { bob = Math.sin(t * 2.5) * 0.012; armL = -0.35 + Math.sin(t * 2.5) * 0.05; armR = 0.35 - Math.sin(t * 2.5) * 0.05; }
+    var confidence = stage * 0.08;       // wider stance, chest out with stage
+    enter(ctx, x, y, size, 0.035);
+    dropShadow(ctx, 0, 0.5, 0.3 * sc, 0.06, 0.28);
+    ctx.translate(0, 0.5);                // pivot at the feet
+    ctx.scale(sc, sc);
+    ctx.rotate(lean);
+    ctx.translate(0, bob - 0.5);
+    ctx.lineWidth = 0.035;
+    ctx.strokeStyle = OUTLINE;
+
+    // legs + boots
+    var stance = 0.07 + confidence * 0.3;
+    for (i = -1; i <= 1; i += 2) {
+      rrPath(ctx, i * stance - 0.06, 0.28, 0.12, 0.16, 0.03);
+      ctx.fillStyle = '#4a6fbf';
+      ctx.fill(); ctx.stroke();
+      rrPath(ctx, i * stance - 0.085, 0.4, 0.17, 0.09, 0.04);
+      ctx.fillStyle = '#6b4a2a';
+      ctx.fill(); ctx.stroke();
+    }
+    // basket at the left hip (signature prop)
+    basket(ctx, -0.27, 0.27, 0.16, t);
+    // arms (behind body when down)
+    function arm(ax, ang) {
+      ctx.save();
+      ctx.translate(ax, 0.06);
+      ctx.rotate(ang);
+      rrPath(ctx, -0.04, 0, 0.08, 0.2, 0.04);
+      ctx.fillStyle = '#4a7bd0';
+      ctx.fill(); ctx.stroke();
+      dot(ctx, 0, 0.21, 0.05, SKIN);
+      ctx.beginPath(); ctx.arc(0, 0.21, 0.05, 0, TAU); ctx.stroke();
+      ctx.restore();
+    }
+    var armsFront = (mood === 'aim' || mood === 'cheer');
+    if (!armsFront) { arm(-0.16, armL); arm(0.16, armR); }
+    // body: overalls
+    rrPath(ctx, -0.19 - confidence * 0.1, -0.06, 0.38 + confidence * 0.2, 0.38, 0.08);
+    var og = ctx.createLinearGradient(-0.2, 0, 0.2, 0);
+    og.addColorStop(0, '#6a9de8');
+    og.addColorStop(1, '#2f5fb4');
+    ctx.fillStyle = og;
+    ctx.fill(); ctx.stroke();
+    // apron with pockets
+    rrPath(ctx, -0.15, 0.04, 0.3, 0.26, 0.05);
+    ctx.fillStyle = '#efd9a6';
+    ctx.fill(); ctx.stroke();
+    rrPath(ctx, -0.12, 0.14, 0.1, 0.09, 0.02); ctx.fillStyle = '#d9bd86'; ctx.fill(); ctx.stroke();
+    rrPath(ctx, 0.02, 0.14, 0.1, 0.09, 0.02); ctx.fillStyle = '#d9bd86'; ctx.fill(); ctx.stroke();
+    // bib + straps
+    rrPath(ctx, -0.1, -0.12, 0.2, 0.14, 0.03);
+    ctx.fillStyle = '#4a7bd0';
+    ctx.fill(); ctx.stroke();
+    ctx.lineWidth = 0.05; ctx.strokeStyle = OUTLINE;
+    ctx.beginPath(); ctx.moveTo(-0.08, -0.1); ctx.lineTo(-0.12, -0.2); ctx.moveTo(0.08, -0.1); ctx.lineTo(0.12, -0.2); ctx.stroke();
+    ctx.lineWidth = 0.025; ctx.strokeStyle = '#6a9de8';
+    ctx.beginPath(); ctx.moveTo(-0.08, -0.1); ctx.lineTo(-0.12, -0.2); ctx.moveTo(0.08, -0.1); ctx.lineTo(0.12, -0.2); ctx.stroke();
+    ctx.lineWidth = 0.035; ctx.strokeStyle = OUTLINE;
+    // stage badges: one gold button per stage on the bib
+    for (i = 0; i < stage; i++) {
+      dot(ctx, -0.06 + i * 0.04, -0.05, 0.02, '#ffd23f');
+      ctx.beginPath(); ctx.arc(-0.06 + i * 0.04, -0.05, 0.02, 0, TAU); ctx.lineWidth = 0.012; ctx.stroke();
+    }
+    ctx.lineWidth = 0.035;
+    if (armsFront) { arm(-0.16, armL); arm(0.16, armR); }
+    // head
+    ctx.save();
+    ctx.translate(0, -0.26);
+    ctx.rotate(headTilt);
+    // hair bob under the hat
+    rrPath(ctx, -0.2, -0.12, 0.4, 0.26, 0.12);
+    ctx.fillStyle = '#7a4a1a';
+    ctx.fill(); ctx.stroke();
+    // face
+    ctx.beginPath();
+    ctx.ellipse(0, 0.0, 0.17, 0.16, 0, 0, TAU);
+    var fg = ctx.createRadialGradient(-0.05, -0.05, 0.02, 0, 0, 0.18);
+    fg.addColorStop(0, '#ffe0c2');
+    fg.addColorStop(1, SKIN_DK);
+    ctx.fillStyle = fg;
+    ctx.fill(); ctx.stroke();
+    // cheeks
+    dot(ctx, -0.1, 0.05, 0.035, 'rgba(255,120,140,0.5)');
+    dot(ctx, 0.1, 0.05, 0.035, 'rgba(255,120,140,0.5)');
+    // eyes
+    if (mood === 'cheer') {
+      ctx.lineWidth = 0.03;
+      ctx.beginPath(); ctx.arc(-0.065, 0.0, 0.035, Math.PI * 1.1, Math.PI * 1.9); ctx.stroke();
+      ctx.beginPath(); ctx.arc(0.065, 0.0, 0.035, Math.PI * 1.1, Math.PI * 1.9); ctx.stroke();
+    } else {
+      var blink = (Math.sin(t * 1.3) > 0.97) ? 0.3 : 1;
+      for (i = -1; i <= 1; i += 2) {
+        ctx.beginPath();
+        ctx.ellipse(i * 0.065, -0.005, 0.03, 0.04 * blink, 0, 0, TAU);
+        ctx.fillStyle = '#2a1608';
+        ctx.fill();
+        if (blink === 1) { dot(ctx, i * 0.065 - 0.01, -0.02, 0.012, '#ffffff'); }
+      }
+      if (mood === 'sad') {
+        ctx.lineWidth = 0.025;
+        ctx.beginPath(); ctx.moveTo(-0.1, -0.06); ctx.lineTo(-0.035, -0.04); ctx.moveTo(0.1, -0.06); ctx.lineTo(0.035, -0.04); ctx.stroke();
+        dot(ctx, 0.1, 0.06 + (t % 1) * 0.06, 0.018, '#7ad0ff');
+      } else if (mood === 'aim') {
+        ctx.lineWidth = 0.025;
+        ctx.beginPath(); ctx.moveTo(-0.1, -0.05); ctx.lineTo(-0.035, -0.055); ctx.moveTo(0.1, -0.05); ctx.lineTo(0.035, -0.055); ctx.stroke();
+      }
+    }
+    // mouth
+    ctx.lineWidth = 0.025;
+    ctx.beginPath();
+    if (mood === 'cheer') {
+      ctx.arc(0, 0.05, 0.055, 0.1, Math.PI - 0.1);
+      ctx.fillStyle = '#c0392b'; ctx.fill();
+    } else if (mood === 'sad') {
+      ctx.arc(0, 0.11, 0.04, Math.PI + 0.3, TAU - 0.3);
+    } else if (mood === 'aim') {
+      ctx.moveTo(-0.03, 0.07); ctx.lineTo(0.04, 0.065);
+    } else {
+      ctx.arc(0, 0.04, 0.045, 0.3, Math.PI - 0.3);
+    }
+    ctx.stroke();
+    // sun hat: brim + dome + season-free band
+    ctx.lineWidth = 0.035;
+    ctx.beginPath();
+    ctx.ellipse(0, -0.12, 0.3, 0.075, 0, 0, TAU);
+    var hg = ctx.createLinearGradient(-0.3, 0, 0.3, 0);
+    hg.addColorStop(0, '#ffe08a');
+    hg.addColorStop(1, '#d9a63c');
+    ctx.fillStyle = hg;
+    ctx.fill(); ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(-0.17, -0.13);
+    ctx.bezierCurveTo(-0.17, -0.34, 0.17, -0.34, 0.17, -0.13);
+    ctx.closePath();
+    ctx.fillStyle = '#f3cf6b';
+    ctx.fill(); ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(-0.165, -0.16);
+    ctx.quadraticCurveTo(0, -0.21, 0.165, -0.16);
+    ctx.lineWidth = 0.04;
+    ctx.strokeStyle = '#e0563f';
+    ctx.stroke();
+    // a little sprout leaf poking from the hat band (name motif)
+    ctx.lineWidth = 0.025; ctx.strokeStyle = OUTLINE;
+    leaf(ctx, 0.14, -0.22, 0.05, 0.025, -0.9, '#9be25a', '#3f8f22');
+    ctx.restore();
+    ctx.restore();
+  };
+
+  // small wicker seed basket (unit-ish): r = half width
+  function basket(ctx, x, y, r, t) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.lineWidth = 0.03;
+    ctx.strokeStyle = OUTLINE;
+    ctx.beginPath();
+    ctx.moveTo(-r, -r * 0.5);
+    ctx.lineTo(r, -r * 0.5);
+    ctx.lineTo(r * 0.75, r * 0.6);
+    ctx.lineTo(-r * 0.75, r * 0.6);
+    ctx.closePath();
+    var g = ctx.createLinearGradient(-r, 0, r, 0);
+    g.addColorStop(0, '#e2b06a');
+    g.addColorStop(1, '#8f5a26');
+    ctx.fillStyle = g;
+    ctx.fill(); ctx.stroke();
+    ctx.lineWidth = 0.012;
+    ctx.strokeStyle = 'rgba(60,30,5,0.5)';
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.9, -r * 0.1); ctx.lineTo(r * 0.9, -r * 0.1);
+    ctx.moveTo(-r * 0.82, r * 0.25); ctx.lineTo(r * 0.82, r * 0.25);
+    ctx.stroke();
+    // handle
+    ctx.lineWidth = 0.03; ctx.strokeStyle = OUTLINE;
+    ctx.beginPath(); ctx.arc(0, -r * 0.5, r * 0.75, Math.PI, TAU); ctx.stroke();
+    ctx.lineWidth = 0.014; ctx.strokeStyle = '#e2b06a';
+    ctx.beginPath(); ctx.arc(0, -r * 0.5, r * 0.75, Math.PI, TAU); ctx.stroke();
+    // seeds / fruit peeking
+    ctx.lineWidth = 0.02; ctx.strokeStyle = OUTLINE;
+    ball(ctx, -r * 0.4, -r * 0.55, r * 0.22, FC.cherry);
+    ball(ctx, r * 0.25, -r * 0.6, r * 0.22, FC.lemon);
+    ball(ctx, -r * 0.05, -r * 0.45, r * 0.2, FC.grape);
+    ctx.restore();
+  }
+
+  /* =========================================================
+     LAUNCHER — basket cradle on a slingshot fork. (x, y) = centre,
+     w = width. heldType drawn in the cradle; locked = greyed + wobble.
+     ========================================================= */
+  S.launcher = function (ctx, x, y, w, heldType, locked, t) {
+    t = num(t);
+    w = num(w, 120);
+    ctx.save();
+    ctx.translate(x + (locked ? Math.sin(t * 28) * w * 0.02 : 0), y);
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = OUTLINE;
+    ctx.lineWidth = Math.max(1.5, w * 0.03);
+    var u = w / 100, i;                    // 1u = 1% of width
+    dropShadow(ctx, 0, 30 * u, 48 * u, 8 * u, 0.28);
+    // fork posts + elastic band (behind)
+    for (i = -1; i <= 1; i += 2) {
+      var pg = ctx.createLinearGradient(i * 40 * u, 0, i * 48 * u, 0);
+      pg.addColorStop(0, WOOD_HI);
+      pg.addColorStop(1, WOOD_DK);
+      ctx.fillStyle = pg;
+      rrPath(ctx, i * 46 * u - 5 * u, -22 * u, 10 * u, 50 * u, 4 * u);
+      ctx.fill(); ctx.stroke();
+      dot(ctx, i * 46 * u, -20 * u, 4 * u, '#e0563f');
+    }
+    ctx.strokeStyle = '#c0392b';
+    ctx.lineWidth = Math.max(2, w * 0.045);
+    ctx.beginPath();
+    ctx.moveTo(-46 * u, -20 * u);
+    ctx.quadraticCurveTo(-30 * u, 2 * u, -22 * u, 4 * u);
+    ctx.moveTo(46 * u, -20 * u);
+    ctx.quadraticCurveTo(30 * u, 2 * u, 22 * u, 4 * u);
+    ctx.stroke();
+    ctx.strokeStyle = OUTLINE;
+    ctx.lineWidth = Math.max(1.5, w * 0.03);
+    // basket back
+    var bg = ctx.createLinearGradient(-30 * u, 0, 30 * u, 0);
+    bg.addColorStop(0, '#e2b06a');
+    bg.addColorStop(1, '#8f5a26');
+    ctx.beginPath();
+    ctx.ellipse(0, -6 * u, 30 * u, 9 * u, 0, 0, TAU);
+    ctx.fillStyle = '#5a3416';
+    ctx.fill(); ctx.stroke();
+    // held fruit
+    if (heldType) {
+      S.fruit(ctx, heldType, 0, -18 * u, 46 * u, t);
+    }
+    // basket front (over the fruit)
+    ctx.beginPath();
+    ctx.moveTo(-30 * u, -6 * u);
+    ctx.bezierCurveTo(-30 * u, 24 * u, 30 * u, 24 * u, 30 * u, -6 * u);
+    ctx.bezierCurveTo(30 * u, 6 * u, -30 * u, 6 * u, -30 * u, -6 * u);
+    ctx.closePath();
+    ctx.fillStyle = bg;
+    ctx.fill(); ctx.stroke();
+    ctx.save();
+    ctx.clip();
+    ctx.lineWidth = Math.max(1, w * 0.012);
+    ctx.strokeStyle = 'rgba(60,30,5,0.45)';
+    for (i = 0; i < 4; i++) {
+      ctx.beginPath();
+      ctx.moveTo(-32 * u, 0 + i * 5 * u);
+      ctx.quadraticCurveTo(0, 8 * u + i * 5 * u, 32 * u, 0 + i * 5 * u);
+      ctx.stroke();
+    }
+    for (i = -2; i <= 2; i++) {
+      ctx.beginPath();
+      ctx.moveTo(i * 11 * u, -2 * u);
+      ctx.lineTo(i * 9 * u, 24 * u);
+      ctx.stroke();
+    }
+    ctx.restore();
+    ctx.fillStyle = 'rgba(255,255,255,0.3)';
+    ctx.beginPath();
+    ctx.ellipse(-14 * u, 2 * u, 9 * u, 2.5 * u, 0.15, 0, TAU);
+    ctx.fill();
+    if (locked) {
+      // grey veil over the whole cradle + a small "wait" clock badge
+      ctx.fillStyle = 'rgba(110,110,125,0.55)';
+      rrPath(ctx, -52 * u, -48 * u, 104 * u, 76 * u, 12 * u);
+      ctx.fill();
+      dot(ctx, 34 * u, -34 * u, 9 * u, '#f4f4f4');
+      ctx.beginPath(); ctx.arc(34 * u, -34 * u, 9 * u, 0, TAU); ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(34 * u, -34 * u); ctx.lineTo(34 * u, -40 * u);
+      ctx.moveTo(34 * u, -34 * u); ctx.lineTo(38 * u, -32 * u);
+      ctx.stroke();
+    }
+    ctx.restore();
+  };
+
+  /* =========================================================
+     MONKEY — banana power-up sweeper. size = height. Faces RIGHT.
+     ========================================================= */
+  S.monkey = function (ctx, x, y, size, t) {
+    t = num(t);
+    size = num(size, 70);
+    enter(ctx, x, y, size, 0.04);
+    var run = Math.sin(t * 14), i;
+    var fur = { main: '#a0632b', dark: '#5c3311', shine: '#d99a5a' };
+    dropShadow(ctx, 0, 0.48, 0.3, 0.06, 0.25);
+    // tail
+    ctx.lineWidth = 0.09; ctx.strokeStyle = OUTLINE;
+    ctx.beginPath();
+    ctx.moveTo(-0.2, 0.15);
+    ctx.quadraticCurveTo(-0.5, 0.05 + run * 0.05, -0.42, -0.3 + run * 0.05);
+    ctx.stroke();
+    ctx.lineWidth = 0.05; ctx.strokeStyle = fur.main;
+    ctx.stroke();
+    ctx.lineWidth = 0.04; ctx.strokeStyle = OUTLINE;
+    // legs
+    for (i = -1; i <= 1; i += 2) {
+      ctx.save();
+      ctx.translate(i * 0.1, 0.25);
+      ctx.rotate(i * run * 0.5);
+      rrPath(ctx, -0.06, 0, 0.12, 0.22, 0.06);
+      ctx.fillStyle = fur.main; ctx.fill(); ctx.stroke();
+      ctx.restore();
+    }
+    // body
+    ball(ctx, 0, 0.12, 0.27, fur);
+    ctx.beginPath(); ctx.ellipse(0, 0.16, 0.15, 0.18, 0, 0, TAU);
+    ctx.fillStyle = '#f2c99a'; ctx.fill();
+    // arms: one holds a banana forward
+    ctx.save();
+    ctx.translate(0.18, 0.05);
+    ctx.rotate(-0.9 + run * 0.25);
+    rrPath(ctx, -0.05, 0, 0.1, 0.26, 0.05);
+    ctx.fillStyle = fur.main; ctx.fill(); ctx.stroke();
+    ctx.restore();
+    ctx.save();
+    ctx.translate(-0.17, 0.06);
+    ctx.rotate(0.6 - run * 0.25);
+    rrPath(ctx, -0.05, 0, 0.1, 0.24, 0.05);
+    ctx.fillStyle = fur.main; ctx.fill(); ctx.stroke();
+    ctx.restore();
+    // head
+    ctx.save();
+    ctx.translate(0.05, -0.22);
+    ctx.rotate(run * 0.05);
+    for (i = -1; i <= 1; i += 2) {
+      ball(ctx, i * 0.25, 0.0, 0.09, fur);
+      dot(ctx, i * 0.25, 0.0, 0.045, '#f2c99a');
+    }
+    ball(ctx, 0, 0, 0.24, fur);
+    // heart-shaped tan face
+    ctx.beginPath();
+    ctx.moveTo(0, 0.16);
+    ctx.bezierCurveTo(-0.22, 0.08, -0.2, -0.16, -0.08, -0.08);
+    ctx.bezierCurveTo(-0.02, -0.14, 0.02, -0.14, 0.08, -0.08);
+    ctx.bezierCurveTo(0.2, -0.16, 0.22, 0.08, 0, 0.16);
+    ctx.closePath();
+    ctx.fillStyle = '#f2c99a'; ctx.fill();
+    for (i = -1; i <= 1; i += 2) {
+      dot(ctx, i * 0.07, -0.03, 0.035, '#2a1608');
+      dot(ctx, i * 0.07 - 0.012, -0.045, 0.012, '#ffffff');
+    }
+    dot(ctx, -0.02, 0.04, 0.012, '#5c3311');
+    dot(ctx, 0.02, 0.04, 0.012, '#5c3311');
+    ctx.lineWidth = 0.025;
+    ctx.beginPath(); ctx.arc(0, 0.06, 0.06, 0.2, Math.PI - 0.2); ctx.stroke();
+    ctx.restore();
+    // banana in the forward hand
+    ctx.restore();
+    S.fruit(ctx, 'banana', x + size * 0.36, y - size * 0.12, size * 0.34, t);
+  };
+
+  /* =========================================================
+     SPLASH — juice burst, p = 0..1 progress (not time)
+     ========================================================= */
+  S.splash = function (ctx, x, y, type, p) {
+    p = Math.max(0, Math.min(1, num(p)));
+    var c = FC[type] || { main: '#ffffff', dark: '#999999', shine: '#ffffff' };
+    var R = 42, i;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.globalAlpha = 1 - p * p;
+    ctx.lineWidth = 2.5;
+    ctx.strokeStyle = OUTLINE;
+    ctx.lineJoin = 'round';
+    // expanding ring
+    ctx.beginPath();
+    ctx.arc(0, 0, R * (0.25 + 0.9 * p), 0, TAU);
+    ctx.strokeStyle = c.main;
+    ctx.lineWidth = Math.max(1, 6 * (1 - p));
+    ctx.stroke();
+    // droplets: radial, decelerating, shrinking; teardrop shape
+    var ease = 1 - (1 - p) * (1 - p);
+    for (i = 0; i < 10; i++) {
+      var a = i / 10 * TAU + rnd(i + 800) * 0.4;
+      var dist = R * (0.2 + ease * (0.8 + rnd(i + 810) * 0.5));
+      var dr = (5 + rnd(i + 820) * 4) * (1 - p * 0.7);
+      var dx = Math.cos(a) * dist, dy = Math.sin(a) * dist + ease * ease * 14;
+      ctx.save();
+      ctx.translate(dx, dy);
+      ctx.rotate(a + Math.PI / 2);
+      ctx.beginPath();
+      ctx.moveTo(0, -dr * 1.6);
+      ctx.quadraticCurveTo(dr, 0, 0, dr);
+      ctx.quadraticCurveTo(-dr, 0, 0, -dr * 1.6);
+      ctx.closePath();
+      ctx.fillStyle = (i % 3 === 0) ? c.dark : c.main;
+      ctx.fill();
+      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = OUTLINE;
+      ctx.stroke();
+      dot(ctx, -dr * 0.3, -dr * 0.3, dr * 0.25, 'rgba(255,255,255,0.8)');
+      ctx.restore();
+    }
+    // centre burst
+    ctx.beginPath();
+    ctx.arc(0, 0, R * 0.35 * (1 - p), 0, TAU);
+    ctx.fillStyle = c.shine;
+    ctx.fill();
+    ctx.restore();
+  };
+
+  /* =========================================================
+     HEART / STAR — HUD icons, size = width
+     ========================================================= */
+  S.heart = function (ctx, x, y, size, filled) {
+    size = num(size, 28);
+    enter(ctx, x, y, size, 0.07);
+    var r = 0.42;
+    function path() {
+      ctx.beginPath();
+      ctx.moveTo(0, r * 1.05);
+      ctx.bezierCurveTo(-r * 1.35, r * 0.15, -r * 0.85, -r * 1.0, 0, -r * 0.4);
+      ctx.bezierCurveTo(r * 0.85, -r * 1.0, r * 1.35, r * 0.15, 0, r * 1.05);
+      ctx.closePath();
+    }
+    path();
+    if (filled) {
+      var g = ctx.createRadialGradient(-0.15, -0.2, 0.05, 0, 0.05, 0.6);
+      g.addColorStop(0, '#ff8fa3');
+      g.addColorStop(0.5, '#ff3b5c');
+      g.addColorStop(1, '#a30f2e');
+      ctx.fillStyle = g;
+    } else {
+      ctx.fillStyle = 'rgba(60,40,50,0.45)';
+    }
+    ctx.fill();
+    ctx.stroke();
+    if (filled) { spec(ctx, -0.18, -0.2, 0.1, 0.06, -0.7, 0.6); }
+    ctx.restore();
+  };
+
+  S.star = function (ctx, x, y, size, filled) {
+    size = num(size, 28);
+    enter(ctx, x, y, size, 0.06);
+    var i, R = 0.48, r = 0.21;
+    ctx.beginPath();
+    for (i = 0; i < 10; i++) {
+      var a = -Math.PI / 2 + i * Math.PI / 5;
+      var rr = (i % 2) ? r : R;
+      ctx.lineTo(Math.cos(a) * rr, Math.sin(a) * rr);
+    }
+    ctx.closePath();
+    if (filled) {
+      var g = ctx.createRadialGradient(-0.12, -0.15, 0.03, 0, 0.05, 0.55);
+      g.addColorStop(0, '#fff3a6');
+      g.addColorStop(0.5, '#ffd23f');
+      g.addColorStop(1, '#d98b12');
+      ctx.fillStyle = g;
+    } else {
+      ctx.fillStyle = 'rgba(60,50,40,0.45)';
+    }
+    ctx.fill();
+    ctx.stroke();
+    if (filled) { spec(ctx, -0.12, -0.14, 0.09, 0.05, -0.6, 0.6); }
+    ctx.restore();
+  };
+
+  /* =========================================================
+     UI CHROME — ported from Numbat Patrol v7 (plaque body) with the
+     v12 Fredoka label + Deep Navy outline. Button = true pill: r = h/2,
+     so end caps are always proportional to height, never stretched.
+     ========================================================= */
+  S.font = function (size) {
+    return 'bold ' + Math.round(num(size, 20)) + 'px Fredoka, "Trebuchet MS", "Segoe UI", Arial, sans-serif';
+  };
+
+  // Fredoka text helper. align default 'left' (Numbat drawText convention).
+  // outline: falsy = none; true = default dark; string = that colour.
+  S.text = function (ctx, txt, x, y, size, color, align, outline) {
+    ctx.save();
+    ctx.font = S.font(size);
+    ctx.textAlign = align || 'left';
+    ctx.textBaseline = 'middle';
+    ctx.lineJoin = 'round';
+    if (outline) {
+      ctx.lineWidth = Math.max(2, num(size, 20) / 7);
+      ctx.strokeStyle = (typeof outline === 'string') ? outline : 'rgba(43,28,15,0.85)';
+      ctx.strokeText(String(txt), x, y);
+    }
+    ctx.fillStyle = color || '#ffffff';
+    ctx.fillText(String(txt), x, y);
+    ctx.restore();
+  };
+
+  function chromeText(ctx, cx, cy, text, fontPx) {
+    ctx.save();
+    ctx.font = '900 ' + Math.round(fontPx) + 'px Fredoka, "Trebuchet MS", "Segoe UI", Arial, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.lineJoin = 'round';
+    ctx.strokeStyle = NAVY;
+    ctx.lineWidth = Math.max(2, fontPx * 0.16);
+    ctx.strokeText(text, cx, cy);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText(text, cx, cy);
+    ctx.restore();
+  }
+
+  function labelPx(h, s) {
+    s = num(s, 1);
+    if (s > 4) { return s; }               // absolute px
+    return Math.max(8, Math.round(h * 0.5 * (s || 1)));
+  }
+
+  // shared plaque body: drop shadow, colour block, dark bottom edge,
+  // gloss strip across the top third, outline, bold white label.
+  function plaque(ctx, cx, cy, w, h, color, text, fontPx, r, shOff, shBlur) {
+    ctx.save();
+    ctx.translate(cx, cy);
+    var x = -w / 2, y = -h / 2;
+    ctx.save();
+    ctx.shadowColor = 'rgba(43,33,24,0.4)';
+    ctx.shadowBlur = shBlur;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = shOff;
+    rrPath(ctx, x, y, w, h, r);
+    ctx.fillStyle = color || '#ff7a3d';
+    ctx.fill();
+    ctx.restore();
+    ctx.save();
+    rrPath(ctx, x, y, w, h, r);
+    ctx.clip();
+    ctx.fillStyle = 'rgba(43,33,24,0.24)';         // dimensional bottom edge
+    ctx.fillRect(x, y + h * 0.76, w, h * 0.24);
+    ctx.fillStyle = 'rgba(255,255,255,0.34)';      // gloss across top third
+    rrPath(ctx, x + h * 0.12, y + h * 0.08, w - h * 0.24, h * 0.3, Math.min(r * 0.65, h * 0.15));
+    ctx.fill();
+    ctx.restore();
+    rrPath(ctx, x, y, w, h, r);
+    ctx.strokeStyle = OUTLINE;
+    ctx.lineWidth = Math.max(1.5, h * 0.05);
+    ctx.lineJoin = 'round';
+    ctx.stroke();
+    if (text) { chromeText(ctx, 0, h * 0.03, String(text), fontPx); }
+    ctx.restore();
+  }
+
+  // colour-blocked ribbon for callouts (zone banners, "LEVEL CLEAR", ...)
+  // with folded ribbon tails behind each end.
+  S.banner = function (ctx, cx, cy, w, h, color, text, s) {
+    w = num(w, 200); h = num(h, 48);
+    color = color || '#ff7a3d';
+    ctx.save();
+    var tail = h * 0.55;
+    ctx.fillStyle = mix(hexOf(color), '#000000', 0.25);
+    ctx.strokeStyle = OUTLINE;
+    ctx.lineWidth = Math.max(1.5, h * 0.05);
+    ctx.lineJoin = 'round';
+    var i;
+    for (i = -1; i <= 1; i += 2) {
+      ctx.beginPath();
+      ctx.moveTo(cx + i * (w / 2 - h * 0.2), cy - h * 0.32);
+      ctx.lineTo(cx + i * (w / 2 + tail), cy - h * 0.32);
+      ctx.lineTo(cx + i * (w / 2 + tail * 0.6), cy + h * 0.08);
+      ctx.lineTo(cx + i * (w / 2 + tail), cy + h * 0.48);
+      ctx.lineTo(cx + i * (w / 2 - h * 0.2), cy + h * 0.48);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+    }
+    ctx.restore();
+    plaque(ctx, cx, cy, w, h, color, text, labelPx(h, s), h * 0.22, h * 0.1, h * 0.16);
+  };
+
+  // chunky pill button; caps are half-circles of radius h/2 (proportional)
+  S.button = function (ctx, cx, cy, w, h, color, text, s) {
+    w = num(w, 200); h = num(h, 56);
+    plaque(ctx, cx, cy, w, h, color || '#63cf5b', text, labelPx(h, s), h * 0.5, h * 0.18, h * 0.26);
+  };
+
+  // rounded glossy HUD panel, (x, y) = top-left
+  S.panel = function (ctx, x, y, w, h, color) {
+    w = num(w, 120); h = num(h, 40);
+    ctx.save();
+    var r = Math.min(h * 0.35, 16);
+    ctx.save();
+    ctx.shadowColor = 'rgba(43,33,24,0.35)';
+    ctx.shadowBlur = h * 0.2;
+    ctx.shadowOffsetY = h * 0.08;
+    rrPath(ctx, x, y, w, h, r);
+    ctx.fillStyle = color || 'rgba(51,93,124,0.85)';
+    ctx.fill();
+    ctx.restore();
+    ctx.save();
+    rrPath(ctx, x, y, w, h, r);
+    ctx.clip();
+    ctx.fillStyle = 'rgba(0,0,0,0.18)';
+    ctx.fillRect(x, y + h * 0.7, w, h * 0.3);
+    ctx.fillStyle = 'rgba(255,255,255,0.28)';
+    rrPath(ctx, x + r * 0.5, y + h * 0.08, w - r, h * 0.32, r * 0.6);
+    ctx.fill();
+    ctx.restore();
+    rrPath(ctx, x, y, w, h, r);
+    ctx.strokeStyle = OUTLINE;
+    ctx.lineWidth = Math.max(1.5, h * 0.06);
+    ctx.lineJoin = 'round';
+    ctx.stroke();
+    ctx.restore();
+  };
+
+  // best-effort '#rrggbb' from any css colour we are likely to be handed
+  function hexOf(c) {
+    if (typeof c === 'string' && /^#[0-9a-fA-F]{6}$/.test(c)) { return c; }
+    if (typeof c === 'string' && /^#[0-9a-fA-F]{3}$/.test(c)) {
+      return '#' + c[1] + c[1] + c[2] + c[2] + c[3] + c[3];
+    }
+    return '#ff7a3d';
+  }
+
+})();
+
+</script>
+<script>
+/* =========================================================================
+   Orchard Toss - assets.js  (port of Numbat Patrol assets.js, font-only)
+
+   Only job: load Fredoka Bold through the FontFace API. Canvas fillText
+   never triggers a lazy @font-face load and document.fonts.check() is a
+   false green for unknown families, so the font MUST be loaded explicitly
+   and added to document.fonts before the title screen paints.
+
+   Source: (OT.AM_DATA && OT.AM_DATA['Fredoka-Bold']) - a base64 data URI
+   injected by build_bundle.py - or the self-hosted file
+   assets/fonts/Fredoka-Bold.woff2 when running from the folder.
+
+   Exposes:
+     OT.A = { fontReady: bool, fontError: string|null }
+     window.__assetsReady = true   when the font RESOLVED (either outcome)
+
+   Script order: config.js -> board.js -> sprites.js -> assets.js -> game.js
+   file://-safe: classic script, ES5, no fetch / modules / CDN.
+   ========================================================================= */
+(function () {
+  'use strict';
+
+  window.OT = window.OT || {};
+  var OT = window.OT;
+
+  var A = OT.A = { fontReady: false, fontError: null };
+
+  function finish(err) {
+    A.fontReady = !err;
+    A.fontError = err ? String(err) : null;
+    window.__assetsReady = true;
+  }
+
+  (function loadFont() {
+    var src = (OT.AM_DATA && OT.AM_DATA['Fredoka-Bold']) ||
+              'assets/fonts/Fredoka-Bold.woff2';
+    try {
+      if (window.FontFace && document.fonts) {
+        var ff = new FontFace('Fredoka', "url('" + src + "') format('woff2')",
+                              { weight: '700' });
+        ff.load().then(function (loaded) {
+          try { document.fonts.add(loaded); } catch (e) { /* already added */ }
+          finish(null);
+        }).catch(function (e) { finish(e || 'FontFace load failed'); });
+      } else {
+        finish('FontFace API unavailable');
+      }
+    } catch (e) { finish(e); }
+  })();
+
+})();
+
+</script>
+<script>
+/* =========================================================================
+   Orchard Toss - game.js  (game shell: engine, state machine, input, HUD)
+
+   Classic script (no modules, no fetch, ES5). Expects, in this order:
+     js/config.js  -> OT.CONFIG   (tunables + levelDef(n))
+     js/board.js   -> OT.Board    (pure rules: create / launch / lowestTile ...)
+     js/sprites.js -> OT.S        (procedural painters)
+     js/assets.js  -> OT.A        (Fredoka FontFace loader, __assetsReady)
+
+   Everything in this file is built against prototype/ARCHITECTURE.md. All
+   game time advances in update(dt) on the game clock; tests move time with
+   OT.debug.step(seconds) only. Painters are resolved through sp(name) so a
+   missing OT.S painter degrades to a labelled placeholder instead of a
+   throw (OT.debug.missingPainters() lists what fell back).
+
+   Contract deviations: none intended. Extras beyond the contract:
+     OT.debug.missingPainters()  -> [names]   (integration aid)
+     OT.debug.snapshot()         -> OT.Board.snapshot(board) or ''
+     OT.debug.pointer(kind,x,y)  -> synthetic logical-space pointer events
+   ========================================================================= */
+(function () {
+  'use strict';
+
+  window.OT = window.OT || {};
+  var OT = window.OT;
+
+  var GAME_VERSION = '0.1.0';
+
+  // ---------------------------------------------------------------- tunables
+  var TUNE = {
+    STEP: 1 / 60,               // fixed timestep (s)
+    DT_CLAMP: 0.25,             // tab-switch dt clamp (s)
+    SPLASH_MIN_S: 2.5,          // splash stays >= this after __assetsReady
+    SKIP_GRACE_MS: 800,         // wall-clock grace before an overlay accepts input
+    // flick detection (logical px)
+    FLICK_VEL: 500,             // upward px/s over the last FLICK_WINDOW_MS
+    FLICK_DISP: 40,             // OR upward displacement since pointerdown
+    FLICK_WINDOW_MS: 100,
+    LAUNCH_ZONE_Y: 700,         // pointerdown below this starts a drag
+    LAUNCHER_W: 84,             // cradle width (>= 60 px touch target)
+    LAUNCHER_SNAP: 18,          // easing rate toward the lane centre (1/s)
+    // flight / impact
+    RETURN_SPEED_MUL: 1.3,      // mismatch return speed vs FLIGHT_SPEED
+    BOUNCE_S: 0.10,             // squash at a wall deflection
+    SQUASH_S: 0.12,             // squash at impact
+    RETURN_WOBBLE: 0.45,        // rad amplitude of the return wobble
+    // pops / juice
+    POP_INTERVAL_S: 0.045,
+    POP_S: 0.26,
+    SPLASH_S: 0.38,
+    POPUP_S: 0.9, POPUP_RISE: 46,
+    CHUNKS_MIN: 2, CHUNKS_MAX: 3,
+    CHUNK_GRAVITY: 1700, CHUNK_FLOOR_Y: 846, CHUNK_BOUNCE: 0.42,
+    CHUNK_LIFE_S: 1.15,
+    COMPACT_S: 0.18,
+    // effect cue durations
+    EFFECT_MONKEY_S: 0.5, EFFECT_LEMON_S: 0.32, EFFECT_APPLE_S: 0.32,
+    EFFECT_CROSS_S: 0.3, EFFECT_BURST_S: 0.36, EFFECT_SEEDS_S: 0.42,
+    EFFECT_CHAIN_S: 0.28, EFFECT_CHAIN_ROUND_S: 0.16,
+    // hud / flow
+    TIMER_RED_S: 10,
+    LEVEL_END_DELAY_S: 0.55,    // pause between the last pop and the clear card
+    AD_TOTAL_S: 5, AD_SKIP_AFTER_S: 3,
+    ZONE_INTRO_AUTO_S: 3.2,
+    RESOLVE_MAX_S: 10
+  };
+
+  // ---------------------------------------------------------------- modules
+  var C = OT.CONFIG;
+  if (!C) {
+    // config.js missing: keep the shell bootable so the failure is visible on
+    // screen and in OT.debug, never a silent white page.
+    try { console.error('OT.CONFIG missing - config.js did not load'); } catch (e) {}
+    C = {
+      W: 480, H: 854, COLS: 5, ROWS: 8, CELL: 76, BOARD_X: 50, BOARD_Y: 126,
+      LAUNCH_Y: 800, FRUITS: [], ZONES: [{ id: 'spring', name: 'Spring', levels: 10, fruits: [] }],
+      HEARTS_MAX: 5, HEART_REFILL_MS: 30 * 60 * 1000, LOCKOUT_S: 0.6,
+      FLIGHT_SPEED: 1100, STAR_FRACTIONS: [0.5, 0.25],
+      levelDef: function (n) {
+        return { n: n, zone: 'spring', zoneIndex: 0, indexInZone: n - 1, rows: 8,
+                 cols: 5, fill: 0.6, timeLimit: 60, fruits: [], obstacles: {} };
+      }
+    };
+  }
+  var B = OT.Board || null;
+  var S = OT.S || null;
+
+  var W = C.W || 480, H = C.H || 854;
+  var COLS = C.COLS || 5, ROWS = C.ROWS || 8, CELL = C.CELL || 76;
+  var BOARD_X = C.BOARD_X || 50, BOARD_Y = C.BOARD_Y || 126;
+  var LAUNCH_Y = C.LAUNCH_Y || 800;
+  var HEARTS_MAX = C.HEARTS_MAX || 5;
+  var REFILL_MS = C.HEART_REFILL_MS || 30 * 60 * 1000;
+  var LOCKOUT_S = (typeof C.LOCKOUT_S === 'number') ? C.LOCKOUT_S : 0.6;
+  var FLIGHT_SPEED = C.FLIGHT_SPEED || 1100;
+  var STAR_FRACTIONS = C.STAR_FRACTIONS || [0.5, 0.25];
+  var ZONES = C.ZONES || [];
+  var TOTAL_LEVELS = 0;
+  var ZONE_START = [];        // first level number of each zone
+  (function () {
+    var i, n = 1;
+    for (i = 0; i < ZONES.length; i++) { ZONE_START.push(n); n += ZONES[i].levels || 0; }
+    TOTAL_LEVELS = n - 1;
+    if (TOTAL_LEVELS < 1) TOTAL_LEVELS = 52;
+  })();
+
+  var LANE0_X = BOARD_X + CELL / 2;
+  var LANE_MAX_X = BOARD_X + (COLS - 1) * CELL + CELL / 2;
+  var BOARD_W = COLS * CELL, BOARD_H = ROWS * CELL;
+  var TILE_SIZE = 0.82 * CELL;
+  var SAVE_KEY = 'ot.save';
+
+  function cellX(col) { return BOARD_X + col * CELL + CELL / 2; }
+  function cellY(row) { return BOARD_Y + row * CELL + CELL / 2; }
+  function clamp(v, a, b) { return v < a ? a : (v > b ? b : v); }
+  function lerp(a, b, t) { return a + (b - a) * t; }
+  function easeOut(t) { t = clamp(t, 0, 1); return 1 - (1 - t) * (1 - t); }
+  function easeIn(t) { t = clamp(t, 0, 1); return t * t; }
+  function laneOf(x) { return clamp(Math.round((x - LANE0_X) / CELL), 0, COLS - 1); }
+  function fmtTime(s) {
+    if (s < 0) s = 0;
+    var whole = Math.ceil(s);
+    var m = Math.floor(whole / 60), r = whole % 60;
+    return m + ':' + (r < 10 ? '0' : '') + r;
+  }
+  function seasonOf(zoneIndex) {
+    var z = ZONES[zoneIndex];
+    return (z && z.id) || 'spring';
+  }
+  function zoneName(zoneIndex) {
+    var z = ZONES[zoneIndex];
+    return (z && z.name) || 'Orchard';
+  }
+
+  // presentation RNG: seeded through OT.Board.rng when available so chunk
+  // scatter is repeatable per board; falls back to Math.random.
+  var prng = Math.random;
+  function rnd(a, b) { return a + (b - a) * prng(); }
+
+  // ---------------------------------------------------------------- painters
+  // sp(name) resolves an OT.S painter at call time; FB holds placeholder
+  // fallbacks so a missing painter is a visible box, not a thrown error.
+  var missing = {};
+  var FB = {};
+  FB.font = function (size) {
+    return 'bold ' + Math.round(size) + 'px Fredoka, "Trebuchet MS", "Segoe UI", Arial, sans-serif';
+  };
+  FB.text = function (ctx, txt, x, y, size, color, align, outline) {
+    ctx.save();
+    ctx.font = FB.font(size);
+    ctx.textAlign = align || 'center';
+    ctx.textBaseline = 'middle';
+    if (outline) {
+      ctx.lineJoin = 'round';
+      ctx.strokeStyle = outline;
+      ctx.lineWidth = Math.max(2, size * 0.16);
+      ctx.strokeText(txt, x, y);
+    }
+    ctx.fillStyle = color || '#ffffff';
+    ctx.fillText(txt, x, y);
+    ctx.restore();
+  };
+  function roundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  }
+  FB.panel = function (ctx, x, y, w, h, color) {
+    ctx.save();
+    roundRect(ctx, x, y, w, h, Math.min(14, h / 2));
+    ctx.fillStyle = color || 'rgba(0,0,0,0.35)';
+    ctx.fill();
+    ctx.restore();
+  };
+  FB.banner = function (ctx, cx, cy, w, h, color, text, s) {
+    FB.panel(ctx, cx - w / 2, cy - h / 2, w, h, color || '#c94f3d');
+    FB.text(ctx, text, cx, cy, s || h * 0.5, '#fff', 'center', 'rgba(0,0,0,0.5)');
+  };
+  FB.button = function (ctx, cx, cy, w, h, color, text, s) {
+    FB.panel(ctx, cx - w / 2, cy - h / 2, w, h, color || '#3b9b5a');
+    FB.text(ctx, text, cx, cy, s || h * 0.46, '#fff', 'center', '#335D7C');
+  };
+  var FB_FRUIT = { cherry: '#d62b3c', strawberry: '#e5334f', apple: '#c8262f',
+    watermelon: '#3f9d4a', grape: '#7d4bb5', banana: '#f3d13a', pomegranate: '#a5203b',
+    pineapple: '#e9b52d', orange: '#f28c1e', lemon: '#f6e13d' };
+  FB.fruit = function (ctx, type, x, y, size, t) {
+    ctx.save();
+    ctx.beginPath(); ctx.arc(x, y, size / 2, 0, Math.PI * 2);
+    ctx.fillStyle = FB_FRUIT[type] || '#999'; ctx.fill();
+    ctx.lineWidth = 3; ctx.strokeStyle = '#2b2118'; ctx.stroke();
+    FB.text(ctx, (type || '?').charAt(0).toUpperCase(), x, y, size * 0.5, '#fff', 'center', '#2b2118');
+    ctx.restore();
+  };
+  FB.coconut = function (ctx, x, y, size) {
+    ctx.save();
+    ctx.beginPath(); ctx.arc(x, y, size / 2, 0, Math.PI * 2);
+    ctx.fillStyle = '#6b4a2b'; ctx.fill();
+    ctx.lineWidth = 3; ctx.strokeStyle = '#2b2118'; ctx.stroke();
+    ctx.restore();
+  };
+  FB.wall = function (ctx, x, y, size, lean) {
+    ctx.save();
+    ctx.translate(x, y); ctx.rotate((lean || 1) * 0.35);
+    ctx.fillStyle = '#8b5a2b';
+    ctx.fillRect(-size * 0.12, -size * 0.42, size * 0.24, size * 0.84);
+    ctx.restore();
+  };
+  FB.trellis = function (ctx, x, y, size) {
+    ctx.save();
+    ctx.fillStyle = '#4f7d3a';
+    ctx.fillRect(x - size * 0.46, y - size * 0.12, size * 0.92, size * 0.24);
+    ctx.restore();
+  };
+  FB.pipe = function (ctx, x, y, size) {
+    ctx.save();
+    ctx.strokeStyle = '#6f8fa0'; ctx.lineWidth = 6;
+    ctx.strokeRect(x - size * 0.3, y - size * 0.5, size * 0.6, size);
+    ctx.restore();
+  };
+  FB.background = function (ctx, w, h, season) {
+    var g = ctx.createLinearGradient(0, 0, 0, h);
+    g.addColorStop(0, '#79c3f0'); g.addColorStop(0.72, '#cfeaf8'); g.addColorStop(0.73, '#5aa04a'); g.addColorStop(1, '#3b7d4f');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
+  };
+  FB.landmarks = function () {};
+  FB.boardFrame = function (ctx, x, y, w, h) {
+    ctx.save();
+    ctx.strokeStyle = 'rgba(80,50,20,0.6)'; ctx.lineWidth = 6;
+    ctx.strokeRect(x, y, w, h);
+    ctx.restore();
+  };
+  FB.sprout = function (ctx, x, y, size, stage, mood) {
+    ctx.save();
+    ctx.beginPath(); ctx.arc(x, y, size * 0.35, 0, Math.PI * 2);
+    ctx.fillStyle = '#e8b88a'; ctx.fill();
+    FB.text(ctx, mood || 'idle', x, y + size * 0.45, 12, '#333', 'center');
+    ctx.restore();
+  };
+  FB.launcher = function (ctx, x, y, w, heldType, locked, t) {
+    ctx.save();
+    ctx.globalAlpha = locked ? 0.5 : 1;
+    roundRect(ctx, x - w / 2, y - 24, w, 48, 12);
+    ctx.fillStyle = locked ? '#888' : '#a86a3a'; ctx.fill();
+    if (heldType) FB.fruit(ctx, heldType, x, y - 6, 44, t);
+    ctx.restore();
+  };
+  FB.monkey = function (ctx, x, y, size) {
+    ctx.save();
+    ctx.beginPath(); ctx.arc(x, y, size / 2, 0, Math.PI * 2);
+    ctx.fillStyle = '#8a5a3a'; ctx.fill();
+    ctx.restore();
+  };
+  FB.splash = function (ctx, x, y, type, p) {
+    ctx.save();
+    ctx.globalAlpha = 1 - p;
+    ctx.strokeStyle = FB_FRUIT[type] || '#fff'; ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.arc(x, y, 10 + 40 * p, 0, Math.PI * 2); ctx.stroke();
+    ctx.restore();
+  };
+  FB.heart = function (ctx, x, y, size, filled) {
+    ctx.save();
+    ctx.beginPath(); ctx.arc(x, y, size / 2, 0, Math.PI * 2);
+    ctx.fillStyle = filled ? '#e0384a' : 'rgba(0,0,0,0.25)'; ctx.fill();
+    ctx.restore();
+  };
+  FB.star = function (ctx, x, y, size, filled) {
+    ctx.save();
+    ctx.beginPath(); ctx.arc(x, y, size / 2, 0, Math.PI * 2);
+    ctx.fillStyle = filled ? '#f6c945' : 'rgba(0,0,0,0.25)'; ctx.fill();
+    ctx.restore();
+  };
+
+  function sp(name) {
+    if (S && typeof S[name] === 'function') return S[name];
+    if (!missing[name]) missing[name] = true;
+    return FB[name] || function () {};
+  }
+  function palette(season) {
+    var p = S && S.PALETTE && S.PALETTE[season];
+    return p || { sky: '#79c3f0', skyLow: '#cfeaf8', ground: '#5aa04a', groundDark: '#3b7d4f',
+                  accent: '#f6c945', banner: '#c94f3d', button: '#3b9b5a', text: '#335D7C' };
+  }
+  function fruitColor(type, key) {
+    var fc = S && S.FRUIT_COLORS && S.FRUIT_COLORS[type];
+    if (fc && fc[key]) return fc[key];
+    if (fc && fc.main) return fc.main;
+    return FB_FRUIT[type] || '#ffffff';
+  }
+  function text(ctx, txt, x, y, size, color, align, outline) {
+    sp('text')(ctx, txt, x, y, size, color, align, outline);
+  }
+
+  // ---------------------------------------------------------------- canvas
+  var canvas = document.getElementById('ot-canvas');
+  var ctx = canvas ? canvas.getContext('2d') : null;
+  var dpr = 1, viewScale = 1, viewOX = 0, viewOY = 0, cssW = 0, cssH = 0;
+
+  function resize() {
+    if (!canvas) return;
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    // visualViewport tracks the mobile URL-bar collapse; innerHeight can lag it
+    var vv = window.visualViewport;
+    cssW = (vv && vv.width) || window.innerWidth;
+    cssH = (vv && vv.height) || window.innerHeight;
+    canvas.style.width = cssW + 'px';
+    canvas.style.height = cssH + 'px';
+    canvas.width = Math.max(1, Math.round(cssW * dpr));
+    canvas.height = Math.max(1, Math.round(cssH * dpr));
+    var s = Math.min(cssW / W, cssH / H);
+    viewScale = s * dpr;
+    viewOX = (canvas.width - W * viewScale) / 2;
+    viewOY = (canvas.height - H * viewScale) / 2;
+  }
+
+  function toLogical(clientX, clientY) {
+    return {
+      x: (clientX * dpr - viewOX) / viewScale,
+      y: (clientY * dpr - viewOY) / viewScale
+    };
+  }
+
+  // ---------------------------------------------------------------- save
+  var save = { v: 1, nextLevel: 1, stars: {}, hearts: HEARTS_MAX, heartsAt: 0, best: 0 };
+
+  function loadSave() {
+    try {
+      var raw = window.localStorage.getItem(SAVE_KEY);
+      if (!raw) return;
+      var d = JSON.parse(raw);
+      if (!d || d.v !== 1) return;
+      save.nextLevel = clamp(Math.round(Number(d.nextLevel) || 1), 1, TOTAL_LEVELS);
+      save.stars = (d.stars && typeof d.stars === 'object') ? d.stars : {};
+      save.hearts = clamp(Math.round(Number(d.hearts)), 0, HEARTS_MAX);
+      if (isNaN(save.hearts)) save.hearts = HEARTS_MAX;
+      save.heartsAt = Number(d.heartsAt) || 0;
+      save.best = Math.max(0, Number(d.best) || 0);
+    } catch (e) { /* storage unavailable or corrupt: keep defaults */ }
+  }
+  function persist() {
+    try {
+      save.hearts = game.hearts;
+      window.localStorage.setItem(SAVE_KEY, JSON.stringify(save));
+    } catch (e) { /* private mode / quota: ignore */ }
+  }
+  function wallNow() { return Date.now(); }
+  // Hearts refill 1 per REFILL_MS measured from heartsAt; never above max.
+  function refillHearts() {
+    var now = wallNow();
+    if (game.hearts >= HEARTS_MAX) { save.heartsAt = now; return; }
+    if (!save.heartsAt) save.heartsAt = now;
+    var elapsed = now - save.heartsAt;
+    var gained = Math.floor(elapsed / REFILL_MS);
+    if (gained > 0) {
+      game.hearts = Math.min(HEARTS_MAX, game.hearts + gained);
+      save.heartsAt = (game.hearts >= HEARTS_MAX) ? now : save.heartsAt + gained * REFILL_MS;
+      persist();
+    }
+  }
+  function msToNextHeart() {
+    if (game.hearts >= HEARTS_MAX) return 0;
+    var left = REFILL_MS - (wallNow() - (save.heartsAt || wallNow()));
+    return left < 0 ? 0 : left;
+  }
+  function loseHeart() {
+    if (game.hearts >= HEARTS_MAX) save.heartsAt = wallNow();
+    game.hearts = Math.max(0, game.hearts - 1);
+    persist();
+  }
+
+  // ---------------------------------------------------------------- game state
+  var game = {
+    state: 'splash',
+    clock: 0,
+    level: 1, zone: 'spring', zoneIndex: 0,
+    score: 0, timeLeft: 0, timeLimit: 0,
+    hearts: HEARTS_MAX,
+    remaining: 0, target: 0,
+    held: null, queue: [],
+    lockout: 0,
+    board: null,
+    stars: 0,
+    flight: null,
+    paused: false,
+    version: GAME_VERSION,
+    start: function () { startGame(); },
+    pause: function () {
+      if (game.paused) return;
+      if (game.state !== 'playing') return;
+      game.paused = true;
+    },
+    resume: function () {
+      if (!game.paused) return;
+      game.paused = false;
+      acc = 0;             // no dt spike: discard time accumulated across the pause
+    }
+  };
+  OT.game = game;
+
+  var splashStartAt = 0;
+  var stateEnteredWall = 0;      // wall clock at the last state change (skip grace)
+  var stateT = 0;                // game-clock seconds in the current state
+  var pendingLevel = 1;          // level to begin after zoneAd / zoneIntro
+  var nextSeed = null;           // OT.debug.seed(n)
+  var seedCounter = 0;
+  var levelEndTimer = -1;        // countdown to the clear/fail card after the last pop
+  var levelEndKind = '';
+
+  // presentation
+  var launcherX = cellX(2), launcherTargetX = cellX(2);
+  var drag = null;               // {id, startY, samples:[{t,y}], x, y}
+  var anim = null;               // post-flight presentation (pops / effects / compaction)
+  var dispCells = null;          // pre-launch grid snapshot while a flight/pop is shown
+  var popups = [];
+  var chunks = [];
+  var lockShake = 0;
+
+  function setState(s) {
+    game.state = s;
+    stateEnteredWall = wallNow();
+    stateT = 0;
+  }
+  function graceOk() { return wallNow() - stateEnteredWall >= TUNE.SKIP_GRACE_MS; }
+
+  function levelDef(n) { return C.levelDef(n); }
+  function zoneProgress() {
+    var zi = game.zoneIndex;
+    var z = ZONES[zi];
+    if (!z || !z.levels) return 0;
+    var start = ZONE_START[zi] || 1, i, done = 0;
+    for (i = start; i < start + z.levels; i++) if (save.stars[i]) done++;
+    return clamp(done / z.levels, 0, 1);
+  }
+  function makeSeed(n) {
+    if (nextSeed !== null) { var s = nextSeed; nextSeed = null; return s; }
+    seedCounter++;
+    return ((n * 7919) + (wallNow() % 100000) * 31 + seedCounter * 104729) >>> 0;
+  }
+
+  function beginLevel(n) {
+    n = clamp(Math.round(Number(n) || 1), 1, TOTAL_LEVELS);
+    var def = levelDef(n);
+    game.level = n;
+    game.zone = def.zone || seasonOf(def.zoneIndex || 0);
+    game.zoneIndex = def.zoneIndex || 0;
+    game.timeLimit = def.timeLimit || 60;
+    game.timeLeft = game.timeLimit;
+    game.score = 0;
+    game.stars = 0;
+    game.lockout = 0;
+    game.flight = null;
+    anim = null; dispCells = null; popups = []; chunks = [];
+    levelEndTimer = -1; levelEndKind = '';
+    drag = null;
+    launcherX = launcherTargetX = cellX(Math.floor(COLS / 2));
+    var seed = makeSeed(n);
+    game.board = null;
+    if (B && typeof B.create === 'function') {
+      try {
+        game.board = B.create(def, seed);
+      } catch (e) {
+        try { console.error('OT.Board.create failed', e); } catch (e2) {}
+        game.board = null;
+      }
+    }
+    if (B && typeof B.rng === 'function') {
+      try { prng = B.rng(seed ^ 0x5bd1e995) || Math.random; } catch (e) { prng = Math.random; }
+    }
+    syncFromBoard();
+    setState('playing');
+    game.paused = false;
+  }
+  function syncFromBoard() {
+    var b = game.board;
+    if (!b) { game.remaining = 0; game.target = 0; game.held = null; game.queue = []; return; }
+    game.remaining = b.remaining;
+    game.target = b.target;
+    game.held = b.held;
+    game.queue = (b.queue || []).slice();
+    if (typeof b.score === 'number') game.score = b.score;
+  }
+
+  function startGame() {
+    // API entry: straight into 'playing' on the saved level (tests rely on it).
+    refillHearts();
+    if (game.hearts <= 0) { setState('noHearts'); return; }
+    game.paused = false;
+    beginLevel(save.nextLevel);
+  }
+  function startFromTitle() {
+    // Player entry: same as start() but a zone's first level shows the intro.
+    refillHearts();
+    if (game.hearts <= 0) { setState('noHearts'); return; }
+    var n = save.nextLevel;
+    var def = levelDef(n);
+    if (def.indexInZone === 0) { pendingLevel = n; setState('zoneIntro'); }
+    else beginLevel(n);
+  }
+  function starsFor(timeLeft, timeLimit) {
+    var f = timeLimit > 0 ? timeLeft / timeLimit : 0;
+    if (f >= (STAR_FRACTIONS[0] !== undefined ? STAR_FRACTIONS[0] : 0.5)) return 3;
+    if (f >= (STAR_FRACTIONS[1] !== undefined ? STAR_FRACTIONS[1] : 0.25)) return 2;
+    return 1;
+  }
+  function doClearLevel() {
+    var n = game.level;
+    game.stars = starsFor(game.timeLeft, game.timeLimit);
+    if (!save.stars[n] || save.stars[n] < game.stars) save.stars[n] = game.stars;
+    var nn = Math.min(TOTAL_LEVELS, n + 1);
+    if (nn > save.nextLevel) save.nextLevel = nn;
+    if (game.score > save.best) save.best = game.score;
+    persist();
+    game.flight = null; anim = null; dispCells = null; drag = null;
+    setState('levelClear');
+  }
+  function doFailLevel() {
+    loseHeart();
+    game.flight = null; anim = null; dispCells = null; drag = null;
+    game.lockout = 0;
+    setState('levelFail');
+  }
+  function advanceAfterClear() {
+    var nn = game.level + 1;
+    if (nn > TOTAL_LEVELS) { setState('title'); return; }
+    var def = levelDef(nn);
+    pendingLevel = nn;
+    if ((def.zoneIndex || 0) !== game.zoneIndex) setState('zoneAd');   // zone transition only
+    else beginLevel(nn);
+  }
+  function retryAfterFail() {
+    refillHearts();
+    if (game.hearts <= 0) { setState('noHearts'); return; }
+    beginLevel(game.level);
+  }
+
+  // ---------------------------------------------------------------- launch
+  // THE launch path. Real flicks, keyboard and OT.debug.launch all come here.
+  function doLaunch(col) {
+    if (game.state !== 'playing' || game.paused) return false;
+    if (game.flight || anim) return false;
+    if (game.lockout > 0) return false;
+    if (!game.board || !B || typeof B.launch !== 'function') return false;
+    col = Math.round(Number(col));
+    if (!(col >= 0 && col < COLS)) return false;
+
+    var b = game.board;
+    dispCells = snapshotCells(b);
+    var result;
+    try {
+      result = B.launch(b, col);
+    } catch (e) {
+      try { console.error('OT.Board.launch threw', e); } catch (e2) {}
+      dispCells = null;
+      return false;
+    }
+    if (!result) { dispCells = null; return false; }
+
+    var pts = [{ x: launcherX, y: LAUNCH_Y }];
+    var i, p, path = result.path || [];
+    for (i = 0; i < path.length; i++) {
+      p = path[i];
+      pts.push({ x: cellX(p.col), y: cellY(p.row), col: p.col, row: p.row });
+    }
+    if (pts.length === 1) pts.push({ x: cellX(col), y: cellY(ROWS - 1), col: col, row: ROWS - 1 });
+    var defl = {};
+    var dl = result.deflections || [];
+    for (i = 0; i < dl.length; i++) defl[dl[i].col + ',' + dl[i].row] = true;
+
+    game.flight = {
+      col: col,
+      type: result.launched || dispHeld(b, result),
+      result: result,
+      pts: pts,
+      seg: 0, segT: 0,
+      x: pts[0].x, y: pts[0].y,
+      rot: 0,
+      sx: 1, sy: 1,            // squash scale
+      phase: 'fly',            // fly | bounce | impact | return | done
+      phaseT: 0,
+      defl: defl,
+      wobble: 0
+    };
+    launcherTargetX = cellX(col);
+    return true;
+  }
+  function dispHeld(b, result) { return result.launched || game.held; }
+  function snapshotCells(b) {
+    var rows = [], r, c, cell, row;
+    if (!b || !b.cells) return null;
+    for (r = 0; r < b.cells.length; r++) {
+      row = [];
+      for (c = 0; c < b.cells[r].length; c++) {
+        cell = b.cells[r][c];
+        row.push(cell ? { kind: cell.kind, type: cell.type, lean: cell.lean } : null);
+      }
+      rows.push(row);
+    }
+    return rows;
+  }
+
+  // ---------------------------------------------------------------- flight
+  function updateFlight(dt) {
+    var f = game.flight;
+    if (!f) return;
+    f.phaseT += dt;
+    var pts = f.pts;
+    if (f.phase === 'fly') {
+      var remain = FLIGHT_SPEED * dt;
+      while (remain > 0 && f.seg < pts.length - 1) {
+        var a = pts[f.seg], b2 = pts[f.seg + 1];
+        var segLen = Math.sqrt((b2.x - a.x) * (b2.x - a.x) + (b2.y - a.y) * (b2.y - a.y)) || 1;
+        var left = (1 - f.segT) * segLen;
+        var step = Math.min(remain, left);
+        f.segT += step / segLen;
+        remain -= step;
+        f.rot += step / (TILE_SIZE * 0.5);
+        f.x = lerp(a.x, b2.x, f.segT);
+        f.y = lerp(a.y, b2.y, f.segT);
+        if (f.segT >= 0.999) {
+          f.seg++; f.segT = 0;
+          f.x = b2.x; f.y = b2.y;
+          if (b2.col !== undefined && f.defl[b2.col + ',' + b2.row]) {
+            f.phase = 'bounce'; f.phaseT = 0;
+            break;
+          }
+        }
+      }
+      if (f.phase === 'fly' && f.seg >= pts.length - 1) {
+        f.phase = 'impact'; f.phaseT = 0;
+      }
+    } else if (f.phase === 'bounce') {
+      var pb = f.phaseT / TUNE.BOUNCE_S;
+      var kb = Math.sin(Math.PI * clamp(pb, 0, 1));
+      f.sx = 1 + 0.25 * kb; f.sy = 1 - 0.3 * kb;
+      if (pb >= 1) { f.sx = f.sy = 1; f.phase = 'fly'; f.phaseT = 0; }
+    } else if (f.phase === 'impact') {
+      var pi = f.phaseT / TUNE.SQUASH_S;
+      var ki = Math.sin(Math.PI * clamp(pi, 0, 1));
+      f.sx = 1 + 0.35 * ki; f.sy = 1 - 0.4 * ki;
+      if (pi >= 1) {
+        f.sx = f.sy = 1;
+        if (f.result.matched) finishFlight(true);
+        else { f.phase = 'return'; f.phaseT = 0; f.seg = pts.length - 1; f.segT = 0; }
+      }
+    } else if (f.phase === 'return') {
+      var remainR = FLIGHT_SPEED * TUNE.RETURN_SPEED_MUL * dt;
+      while (remainR > 0 && f.seg > 0) {
+        var ra = pts[f.seg], rb = pts[f.seg - 1];
+        var rLen = Math.sqrt((rb.x - ra.x) * (rb.x - ra.x) + (rb.y - ra.y) * (rb.y - ra.y)) || 1;
+        var rLeft = (1 - f.segT) * rLen;
+        var rStep = Math.min(remainR, rLeft);
+        f.segT += rStep / rLen;
+        remainR -= rStep;
+        f.x = lerp(ra.x, rb.x, f.segT);
+        f.y = lerp(ra.y, rb.y, f.segT);
+        if (f.segT >= 0.999) { f.seg--; f.segT = 0; f.x = rb.x; f.y = rb.y; }
+      }
+      f.wobble = Math.sin(f.phaseT * 28) * TUNE.RETURN_WOBBLE * (1 - Math.min(1, f.phaseT / 0.6) * 0.5);
+      f.rot = f.wobble;
+      if (f.seg <= 0) finishFlight(false);
+    }
+  }
+
+  function finishFlight(matched) {
+    var f = game.flight;
+    var r = f.result;
+    game.flight = null;
+    if (!matched) {
+      dispCells = null;
+      game.lockout = LOCKOUT_S;
+      lockShake = LOCKOUT_S;
+      addPopup(launcherX, LAUNCH_Y - 70, 'MISS', '#ff6b6b', 30);
+      // held/queue unchanged on a mismatch, but resync anyway (contract)
+      if (r.held) game.held = r.held;
+      if (r.queue) game.queue = r.queue.slice();
+      return;
+    }
+    // matched: hand swap + score/time now, pops + compaction animate next
+    if (r.held) game.held = r.held;
+    if (r.queue) game.queue = r.queue.slice();
+    if (typeof r.timeBonus === 'number' && r.timeBonus > 0) {
+      game.timeLeft += r.timeBonus;
+      addPopup(70, 70, '+' + r.timeBonus.toFixed(1) + ' s', '#7dff9a', 22);
+    }
+    var runKey = {}, i, c;
+    var run = r.run || [];
+    for (i = 0; i < run.length; i++) runKey[run[i].col + ',' + run[i].row] = true;
+    var pops = [];
+    var cleared = r.cleared || [];
+    for (i = 0; i < cleared.length; i++) {
+      c = cleared[i];
+      pops.push({ col: c.col, row: c.row, kind: c.kind || 'fruit', type: c.type,
+                  score: runKey[c.col + ',' + c.row] ? 10 : 15, started: false, t: 0 });
+    }
+    var broken = r.broken || [];
+    for (i = 0; i < broken.length; i++) {
+      c = broken[i];
+      pops.push({ col: c.col, row: c.row, kind: c.kind || 'wall', type: null,
+                  score: 0, started: false, t: 0, obstacle: true });
+    }
+    var effects = buildEffects(r);
+    var popsLen = pops.length ? (pops.length - 1) * TUNE.POP_INTERVAL_S + Math.max(TUNE.POP_S, TUNE.SPLASH_S) : 0;
+    var efLen = 0;
+    for (i = 0; i < effects.length; i++) efLen = Math.max(efLen, effects[i].dur + (effects[i].delay || 0));
+    anim = {
+      phase: 'pop', t: 0,
+      pops: pops, popIndex: 0, popLen: Math.max(popsLen, efLen),
+      hidden: {},
+      effects: effects,
+      compaction: r.compaction || [],
+      result: r,
+      scoreTarget: (typeof r.scoreDelta === 'number') ? game.score + r.scoreDelta : game.score,
+      remainingTarget: (typeof r.remaining === 'number') ? r.remaining : game.remaining
+    };
+    if (r.cherryDouble) addPopup(cellX(r.col), BOARD_Y + 40, 'DOUBLE x2!', '#ffd166', 28);
+    if (r.chain > 0) addPopup(W / 2, BOARD_Y + 90, 'CHAIN x' + r.chain, '#ffb347', 28);
+    if (pops.length === 0 && effects.length === 0) endAnim();
+  }
+
+  function buildEffects(r) {
+    var out = [], i, e, list = r.effects || [];
+    for (i = 0; i < list.length; i++) {
+      e = list[i];
+      var d = 0.3, delay = 0;
+      if (e.kind === 'monkey') d = TUNE.EFFECT_MONKEY_S;
+      else if (e.kind === 'lemonColumn') d = TUNE.EFFECT_LEMON_S;
+      else if (e.kind === 'appleRow') d = TUNE.EFFECT_APPLE_S;
+      else if (e.kind === 'cross') d = TUNE.EFFECT_CROSS_S;
+      else if (e.kind === 'burst') d = TUNE.EFFECT_BURST_S;
+      else if (e.kind === 'seeds') d = TUNE.EFFECT_SEEDS_S;
+      else if (e.kind === 'chain') { d = TUNE.EFFECT_CHAIN_S; delay = (e.round || 0) * TUNE.EFFECT_CHAIN_ROUND_S; }
+      else if (e.kind === 'splash') d = TUNE.SPLASH_S;
+      out.push({ cue: e, dur: d, delay: delay, t: 0 });
+    }
+    return out;
+  }
+
+  function updateAnim(dt) {
+    if (!anim) return;
+    anim.t += dt;
+    var i, p;
+    if (anim.phase === 'pop') {
+      // start pops on their schedule
+      while (anim.popIndex < anim.pops.length && anim.t >= anim.popIndex * TUNE.POP_INTERVAL_S) {
+        p = anim.pops[anim.popIndex];
+        startPop(p);
+        anim.popIndex++;
+      }
+      for (i = 0; i < anim.pops.length; i++) {
+        p = anim.pops[i];
+        if (p.started) p.t += dt;
+      }
+      for (i = 0; i < anim.effects.length; i++) anim.effects[i].t += dt;
+      if (anim.t >= anim.popLen) {
+        anim.phase = 'compact'; anim.t = 0;
+        dispCells = null;    // post-launch grid from here; moved tiles interpolate
+        if (!anim.compaction.length) endAnim();
+      }
+    } else if (anim.phase === 'compact') {
+      if (anim.t >= TUNE.COMPACT_S) endAnim();
+    }
+  }
+  function startPop(p) {
+    p.started = true;
+    anim.hidden[p.col + ',' + p.row] = true;
+    var x = cellX(p.col), y = cellY(p.row);
+    if (!p.obstacle) {
+      game.remaining = Math.max(anim.remainingTarget, game.remaining - 1);
+      if (p.score) {
+        game.score = Math.min(anim.scoreTarget, game.score + p.score);
+        addPopup(x + rnd(-14, 14), y - 10, '+' + p.score, '#ffffff', 18);
+      }
+      spawnChunks(x, y, p.type || 'coconut');
+    } else {
+      addPopup(x, y - 10, 'CRACK', '#ffe08a', 18);
+      spawnChunks(x, y, null);
+    }
+  }
+  function endAnim() {
+    var a = anim;
+    anim = null;
+    dispCells = null;
+    if (a) {
+      game.score = a.scoreTarget;
+      game.remaining = a.remainingTarget;
+      syncHandFromBoard();
+      if (a.result.levelCleared) { levelEndTimer = TUNE.LEVEL_END_DELAY_S; levelEndKind = 'clear'; }
+    }
+  }
+  function syncHandFromBoard() {
+    var b = game.board;
+    if (!b) return;
+    game.remaining = b.remaining;
+    game.target = b.target;
+    if (typeof b.score === 'number') game.score = b.score;
+  }
+
+  // ---------------------------------------------------------------- juice
+  function addPopup(x, y, txt, color, size) {
+    popups.push({ x: x, y: y, text: txt, color: color || '#fff', size: size || 20, t: 0 });
+  }
+  function spawnChunks(x, y, type) {
+    var n = Math.round(rnd(TUNE.CHUNKS_MIN, TUNE.CHUNKS_MAX)), i;
+    for (i = 0; i < n; i++) {
+      chunks.push({
+        x: x + rnd(-10, 10), y: y + rnd(-8, 8),
+        vx: rnd(-170, 170), vy: rnd(-380, -160),
+        r: rnd(4, 8),
+        color: type ? (i % 2 ? fruitColor(type, 'dark') : fruitColor(type, 'main')) : '#8b5a2b',
+        t: 0, bounced: false, alpha: 1
+      });
+    }
+  }
+  function updateJuice(dt) {
+    var i, p, c;
+    for (i = popups.length - 1; i >= 0; i--) {
+      p = popups[i];
+      p.t += dt;
+      if (p.t >= TUNE.POPUP_S) popups.splice(i, 1);
+    }
+    for (i = chunks.length - 1; i >= 0; i--) {
+      c = chunks[i];
+      c.t += dt;
+      c.vy += TUNE.CHUNK_GRAVITY * dt;
+      c.x += c.vx * dt;
+      c.y += c.vy * dt;
+      if (c.y >= TUNE.CHUNK_FLOOR_Y) {
+        c.y = TUNE.CHUNK_FLOOR_Y;
+        if (!c.bounced) { c.bounced = true; c.vy = -Math.abs(c.vy) * TUNE.CHUNK_BOUNCE; c.vx *= 0.7; }
+        else { c.vy = 0; c.vx *= 0.9; }
+      }
+      c.alpha = 1 - easeIn(c.t / TUNE.CHUNK_LIFE_S);
+      if (c.t >= TUNE.CHUNK_LIFE_S) chunks.splice(i, 1);
+    }
+  }
+
+  // ---------------------------------------------------------------- update
+  function update(dt) {
+    if (game.paused) return;   // clock frozen while paused
+    game.clock += dt;
+    stateT += dt;
+    var st = game.state;
+
+    if (st === 'splash') {
+      if (!window.__assetsReady) splashStartAt = game.clock;
+      else if (game.clock - splashStartAt >= TUNE.SPLASH_MIN_S) setState('title');
+    } else if (st === 'playing') {
+      if (game.lockout > 0) { game.lockout = Math.max(0, game.lockout - dt); }
+      if (lockShake > 0) lockShake = Math.max(0, lockShake - dt);
+      // launcher eases toward its target lane when not being dragged
+      if (!drag) {
+        var k = Math.min(1, TUNE.LAUNCHER_SNAP * dt);
+        launcherX += (launcherTargetX - launcherX) * k;
+        if (Math.abs(launcherTargetX - launcherX) < 0.5) launcherX = launcherTargetX;
+      }
+      // timer
+      if (levelEndTimer < 0) {
+        game.timeLeft -= dt;
+        if (game.timeLeft <= 0) {
+          game.timeLeft = 0;
+          if (!game.flight && !anim) { levelEndTimer = TUNE.LEVEL_END_DELAY_S; levelEndKind = 'fail'; }
+        }
+      }
+      updateFlight(dt);
+      updateAnim(dt);
+      if (levelEndTimer >= 0) {
+        levelEndTimer -= dt;
+        if (levelEndTimer < 0) {
+          levelEndTimer = -1;
+          if (levelEndKind === 'clear') doClearLevel();
+          else if (levelEndKind === 'fail') doFailLevel();
+          levelEndKind = '';
+        }
+      }
+    } else if (st === 'zoneAd') {
+      if (stateT >= TUNE.AD_TOTAL_S) setState('zoneIntro');
+    } else if (st === 'zoneIntro') {
+      if (stateT >= TUNE.ZONE_INTRO_AUTO_S) beginLevel(pendingLevel);
+    }
+    updateJuice(dt);
+  }
+
+  // ---------------------------------------------------------------- input
+  var BTN = {
+    pause:  { x: 452, y: 30, r: 26 },
+    next:   { x: W / 2, y: 598, w: 240, h: 66 },
+    retry:  { x: W / 2 - 72, y: 598, w: 132, h: 62 },
+    quit:   { x: W / 2 + 72, y: 598, w: 132, h: 62 },
+    skip:   { x: W / 2, y: 640, w: 210, h: 62 },
+    resume: { x: W / 2, y: H * 0.56, w: 240, h: 66 },
+    title:  { x: W / 2, y: 600, w: 280, h: 72 }
+  };
+  function hitBtn(p, b) {
+    if (b.r) { var dx = p.x - b.x, dy = p.y - b.y; return dx * dx + dy * dy <= (b.r + 8) * (b.r + 8); }
+    return Math.abs(p.x - b.x) <= b.w / 2 + 8 && Math.abs(p.y - b.y) <= b.h / 2 + 8;
+  }
+  function nowMs() {
+    return (window.performance && performance.now) ? performance.now() : Date.now();
+  }
+
+  function pointerDown(id, cx, cy) {
+    var p = toLogical(cx, cy);
+    var st = game.state;
+    if (game.paused) {
+      if (hitBtn(p, BTN.pause) || hitBtn(p, BTN.resume)) game.resume();
+      return;
+    }
+    if (st === 'splash') { if (window.__assetsReady) setState('title'); return; }
+    if (st === 'title') { if (graceOk()) startFromTitle(); return; }
+    if (st === 'zoneIntro') { if (graceOk()) beginLevel(pendingLevel); return; }
+    if (st === 'levelClear') { if (graceOk() && hitBtn(p, BTN.next)) advanceAfterClear(); return; }
+    if (st === 'levelFail') {
+      if (!graceOk()) return;
+      if (hitBtn(p, BTN.retry)) retryAfterFail();
+      else if (hitBtn(p, BTN.quit)) setState('title');
+      return;
+    }
+    if (st === 'zoneAd') {
+      if (graceOk() && stateT >= TUNE.AD_SKIP_AFTER_S && hitBtn(p, BTN.skip)) setState('zoneIntro');
+      return;
+    }
+    if (st === 'noHearts') {
+      if (!graceOk()) return;
+      refillHearts();
+      setState('title');
+      return;
+    }
+    if (st !== 'playing') return;
+    if (hitBtn(p, BTN.pause)) { game.pause(); return; }
+    if (drag) return;   // one finger owns the launcher
+    var onLauncher = Math.abs(p.x - launcherX) <= TUNE.LAUNCHER_W / 2 + 10 && Math.abs(p.y - LAUNCH_Y) <= 60;
+    if (p.y > TUNE.LAUNCH_ZONE_Y || onLauncher) {
+      drag = { id: id, startY: p.y, x: p.x, y: p.y, samples: [{ t: nowMs(), y: p.y }] };
+      launcherX = launcherTargetX = clamp(p.x, LANE0_X, LANE_MAX_X);
+    }
+  }
+  function pointerMove(id, cx, cy) {
+    if (!drag || drag.id !== id) return;
+    var p = toLogical(cx, cy);
+    drag.x = p.x; drag.y = p.y;
+    launcherX = launcherTargetX = clamp(p.x, LANE0_X, LANE_MAX_X);
+    var t = nowMs();
+    drag.samples.push({ t: t, y: p.y });
+    // keep a little more than the velocity window
+    while (drag.samples.length > 2 && t - drag.samples[0].t > TUNE.FLICK_WINDOW_MS * 2) drag.samples.shift();
+  }
+  function pointerUp(id) {
+    if (!drag || drag.id !== id) return;
+    var d = drag;
+    drag = null;
+    var t = nowMs();
+    var lane = laneOf(launcherX);
+    launcherTargetX = cellX(lane);
+    // upward velocity over the last FLICK_WINDOW_MS (logical px/s, up = +)
+    var i, s0 = d.samples[0];
+    for (i = 0; i < d.samples.length; i++) {
+      if (t - d.samples[i].t <= TUNE.FLICK_WINDOW_MS) { s0 = d.samples[i]; break; }
+    }
+    var last = d.samples[d.samples.length - 1];
+    var dtMs = Math.max(1, last.t - s0.t);
+    var vy = (s0.y - last.y) / (dtMs / 1000);
+    var disp = d.startY - last.y;
+    if (vy > TUNE.FLICK_VEL || disp > TUNE.FLICK_DISP) doLaunch(lane);
+    // otherwise: release without a flick only repositions
+  }
+
+  function primaryAction() {
+    // keyboard Enter/Space acts as the overlay's main button
+    var st = game.state;
+    if (st === 'splash') { if (window.__assetsReady) setState('title'); }
+    else if (st === 'title') { if (graceOk()) startFromTitle(); }
+    else if (st === 'zoneIntro') { if (graceOk()) beginLevel(pendingLevel); }
+    else if (st === 'levelClear') { if (graceOk()) advanceAfterClear(); }
+    else if (st === 'levelFail') { if (graceOk()) retryAfterFail(); }
+    else if (st === 'zoneAd') { if (graceOk() && stateT >= TUNE.AD_SKIP_AFTER_S) setState('zoneIntro'); }
+    else if (st === 'noHearts') { if (graceOk()) { refillHearts(); setState('title'); } }
+  }
+
+  function bindInput() {
+    if (!canvas) return;
+
+    canvas.addEventListener('touchstart', function (e) {
+      e.preventDefault();
+      var i, t;
+      for (i = 0; i < e.changedTouches.length; i++) {
+        t = e.changedTouches[i];
+        pointerDown('t' + t.identifier, t.clientX, t.clientY);
+      }
+    }, { passive: false });
+
+    canvas.addEventListener('touchmove', function (e) {
+      e.preventDefault();
+      var i, t;
+      for (i = 0; i < e.changedTouches.length; i++) {
+        t = e.changedTouches[i];
+        pointerMove('t' + t.identifier, t.clientX, t.clientY);
+      }
+    }, { passive: false });
+
+    function touchEnd(e) {
+      e.preventDefault();
+      var i;
+      for (i = 0; i < e.changedTouches.length; i++) {
+        pointerUp('t' + e.changedTouches[i].identifier);
+      }
+    }
+    canvas.addEventListener('touchend', touchEnd, { passive: false });
+    canvas.addEventListener('touchcancel', touchEnd, { passive: false });
+
+    canvas.addEventListener('mousedown', function (e) {
+      e.preventDefault();
+      pointerDown('mouse', e.clientX, e.clientY);
+    });
+    window.addEventListener('mousemove', function (e) {
+      pointerMove('mouse', e.clientX, e.clientY);
+    });
+    window.addEventListener('mouseup', function () {
+      pointerUp('mouse');
+    });
+
+    // block context menu / double-tap zoom / selection
+    canvas.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+    canvas.addEventListener('dblclick', function (e) { e.preventDefault(); });
+    document.addEventListener('gesturestart', function (e) { e.preventDefault(); });
+    document.addEventListener('selectstart', function (e) { e.preventDefault(); });
+
+    window.addEventListener('keydown', function (e) {
+      var k = e.key;
+      if (k === ' ' || k === 'ArrowUp' || k === 'ArrowDown' || k === 'ArrowLeft' || k === 'ArrowRight') e.preventDefault();
+      if (game.paused) {
+        if (k === 'p' || k === 'P' || k === 'Escape' || k === ' ' || k === 'Enter') game.resume();
+        return;
+      }
+      if (game.state !== 'playing') {
+        if (k === ' ' || k === 'Enter') primaryAction();
+        return;
+      }
+      if (k === 'p' || k === 'P' || k === 'Escape') { game.pause(); return; }
+      if (drag) return;
+      if (k === 'ArrowLeft' || k === 'a' || k === 'A') {
+        launcherTargetX = cellX(clamp(laneOf(launcherTargetX) - 1, 0, COLS - 1));
+      } else if (k === 'ArrowRight' || k === 'd' || k === 'D') {
+        launcherTargetX = cellX(clamp(laneOf(launcherTargetX) + 1, 0, COLS - 1));
+      } else if (k === ' ' || k === 'ArrowUp' || k === 'w' || k === 'W') {
+        doLaunch(laneOf(launcherTargetX));
+      }
+    });
+
+    window.addEventListener('resize', resize);
+    // some mobile browsers report stale dimensions at the orientationchange
+    // event itself - resize now and again once the rotation settles
+    window.addEventListener('orientationchange', function () {
+      resize();
+      setTimeout(resize, 300);
+    });
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', resize);
+    }
+    document.addEventListener('fullscreenchange', resize);
+    document.addEventListener('webkitfullscreenchange', resize);
+  }
+
+  // ---------------------------------------------------------------- render
+  function render() {
+    if (!ctx) return;
+    var t = game.clock;
+    var season = seasonOf(game.zoneIndex);
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.fillStyle = '#3b7d4f';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // AMBIENT pass over the whole canvas (bars included), in logical units
+    ctx.setTransform(viewScale, 0, 0, viewScale, viewOX, viewOY);
+    var fullW = canvas.width / viewScale, fullH = canvas.height / viewScale;
+    ctx.save();
+    ctx.translate(-viewOX / viewScale, -viewOY / viewScale);
+    sp('background')(ctx, fullW, fullH, season, t);
+    ctx.restore();
+
+    // everything else lives inside the logical field
+    ctx.save();
+    ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.clip();
+
+    var st = game.state;
+    if (st === 'splash') renderSplash(t);
+    else if (st === 'title') renderTitle(t, season);
+    else {
+      renderScene(t, season);
+      if (st === 'zoneIntro') renderZoneIntro(t);
+      else if (st === 'levelClear') renderLevelClear(t, season);
+      else if (st === 'levelFail') renderLevelFail(t, season);
+      else if (st === 'zoneAd') renderZoneAd(t);
+      else if (st === 'noHearts') renderNoHearts(t, season);
+      if (game.paused) renderPaused(t, season);
+    }
+    ctx.restore();
+  }
+
+  function renderSplash(t) {
+    var pal = palette('spring');
+    ctx.fillStyle = 'rgba(0,0,0,0.25)';
+    ctx.fillRect(0, 0, W, H);
+    text(ctx, 'ORCHARD', W / 2, H * 0.40, 64, '#fff', 'center', pal.text || '#335D7C');
+    text(ctx, 'TOSS', W / 2, H * 0.40 + 66, 64, pal.accent || '#f6c945', 'center', pal.text || '#335D7C');
+    var i;
+    for (i = 0; i < 3; i++) {
+      var ph = (Math.sin(t * 4 - i * 0.9) + 1) / 2;
+      ctx.beginPath();
+      ctx.arc(W / 2 - 30 + i * 30, H * 0.62, 5 + 5 * ph, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(255,255,255,' + (0.4 + 0.6 * ph) + ')';
+      ctx.fill();
+    }
+    text(ctx, window.__assetsReady ? 'ready' : 'loading', W / 2, H * 0.70, 16, 'rgba(255,255,255,0.8)', 'center');
+  }
+
+  function renderTitle(t, season) {
+    var pal = palette(season);
+    sp('landmarks')(ctx, W, H, season, zoneProgress(), t);
+    sp('sprout')(ctx, 82, H * 0.585, 130, game.zoneIndex, 'cheer', t);
+    sp('banner')(ctx, W / 2, H * 0.24, 400, 96, pal.banner, 'ORCHARD TOSS', 44);
+    var n = save.nextLevel, def = levelDef(n);
+    text(ctx, zoneName(def.zoneIndex || 0).toUpperCase() + '  LEVEL ' + n, W / 2, H * 0.36, 26, '#fff', 'center', pal.text || '#335D7C');
+    if (save.best > 0) text(ctx, 'BEST ' + save.best, W / 2, H * 0.36 + 34, 20, '#fff', 'center', pal.text || '#335D7C');
+    var i, hx = W / 2 - (HEARTS_MAX - 1) * 20;
+    for (i = 0; i < HEARTS_MAX; i++) sp('heart')(ctx, hx + i * 40, H * 0.48, 30, i < game.hearts);
+    var pulse = 1 + 0.03 * Math.sin(t * 5);
+    sp('button')(ctx, BTN.title.x, BTN.title.y, BTN.title.w * pulse, BTN.title.h * pulse, pal.button, 'TAP TO START', 30);
+    text(ctx, 'v' + GAME_VERSION, W - 10, H - 14, 13, 'rgba(255,255,255,0.75)', 'right');
+  }
+
+  function renderScene(t, season) {
+    sp('landmarks')(ctx, W, H, season, zoneProgress(), t);
+    sp('boardFrame')(ctx, BOARD_X, BOARD_Y, BOARD_W, BOARD_H, season);
+    renderTiles(t, season);
+    renderEffects(t);
+    renderFlight(t);
+    renderLauncherZone(t, season);
+    renderChunks();
+    renderHUD(t, season);
+    renderPopups();
+  }
+
+  function drawCell(cell, x, y, t, season, scale) {
+    if (!cell) return;
+    if (scale !== undefined && scale !== 1) {
+      ctx.save();
+      ctx.translate(x, y); ctx.scale(scale, scale); ctx.translate(-x, -y);
+    }
+    if (cell.kind === 'fruit') sp('fruit')(ctx, cell.type, x, y, TILE_SIZE, t);
+    else if (cell.kind === 'coconut') sp('coconut')(ctx, x, y, TILE_SIZE, t);
+    else if (cell.kind === 'wall') sp('wall')(ctx, x, y, CELL, cell.lean || 1, season);
+    else if (cell.kind === 'trellis') sp('trellis')(ctx, x, y, CELL, season);
+    else if (cell.kind === 'pipe') sp('pipe')(ctx, x, y, CELL, season);
+    if (scale !== undefined && scale !== 1) ctx.restore();
+  }
+
+  function renderTiles(t, season) {
+    var b = game.board;
+    var grid = dispCells || (b && b.cells);
+    if (!grid) {
+      text(ctx, 'NO BOARD', W / 2, BOARD_Y + BOARD_H / 2, 28, '#fff', 'center', '#335D7C');
+      return;
+    }
+    var r, c, cell, key, i;
+    var hidden = anim ? anim.hidden : null;
+    var moving = {};
+    var compP = 0;
+    if (anim && anim.phase === 'compact') {
+      compP = easeOut(anim.t / TUNE.COMPACT_S);
+      for (i = 0; i < anim.compaction.length; i++) {
+        var mv = anim.compaction[i];
+        if (mv && mv.to) moving[mv.to.col + ',' + mv.to.row] = mv;
+      }
+    }
+    // aim hint: the lowest tile in the launcher's lane
+    if (!game.flight && !anim && !dispCells && B && typeof B.lowestTile === 'function' && game.state === 'playing') {
+      var lane = laneOf(drag ? launcherX : launcherTargetX);
+      var lt = null;
+      try { lt = B.lowestTile(b, lane); } catch (e) { lt = null; }
+      if (lt) {
+        ctx.save();
+        ctx.strokeStyle = 'rgba(255,255,255,' + (0.45 + 0.25 * Math.sin(t * 6)) + ')';
+        ctx.lineWidth = 4;
+        ctx.beginPath(); ctx.arc(cellX(lt.col), cellY(lt.row), TILE_SIZE / 2 + 5, 0, Math.PI * 2); ctx.stroke();
+        ctx.restore();
+      }
+    }
+    for (r = 0; r < grid.length; r++) {
+      for (c = 0; c < grid[r].length; c++) {
+        cell = grid[r][c];
+        if (!cell) continue;
+        key = c + ',' + r;
+        if (hidden && hidden[key] && dispCells) continue;   // popping: drawn by the pop anim
+        var x = cellX(c), y = cellY(r);
+        if (moving[key]) {
+          x = lerp(cellX(moving[key].from.col), x, compP);
+          y = lerp(cellY(moving[key].from.row), y, compP);
+        }
+        drawCell(cell, x, y, t, season);
+      }
+    }
+    // pops: shrinking tile + juice splash
+    if (anim && anim.phase === 'pop' && dispCells) {
+      for (i = 0; i < anim.pops.length; i++) {
+        var p = anim.pops[i];
+        if (!p.started) continue;
+        var cellP = dispCells[p.row] && dispCells[p.row][p.col];
+        var pp = p.t / TUNE.POP_S;
+        if (pp < 1 && cellP) {
+          var sc = pp < 0.35 ? 1 + 0.35 * (pp / 0.35) : Math.max(0, 1.35 * (1 - (pp - 0.35) / 0.65));
+          drawCell(cellP, cellX(p.col), cellY(p.row), t, season, sc);
+        }
+        var sPk = p.t / TUNE.SPLASH_S;
+        if (sPk < 1 && !p.obstacle) sp('splash')(ctx, cellX(p.col), cellY(p.row), p.type || 'cherry', clamp(sPk, 0, 1));
+      }
+    }
+  }
+
+  function renderEffects(t) {
+    if (!anim || anim.phase !== 'pop') return;
+    var i, e, cue, p, x, y;
+    for (i = 0; i < anim.effects.length; i++) {
+      e = anim.effects[i]; cue = e.cue;
+      var tt = e.t - (e.delay || 0);
+      if (tt < 0 || tt > e.dur) continue;
+      p = clamp(tt / e.dur, 0, 1);
+      ctx.save();
+      if (cue.kind === 'monkey') {
+        x = lerp(BOARD_X - 50, BOARD_X + BOARD_W + 50, p);
+        y = cellY(cue.row) - 6 - Math.abs(Math.sin(p * Math.PI * 6)) * 10;
+        sp('monkey')(ctx, x, y, 62, t);
+      } else if (cue.kind === 'lemonColumn') {
+        ctx.globalAlpha = 0.55 * (1 - p);
+        ctx.fillStyle = '#fff36b';
+        ctx.fillRect(cellX(cue.col) - CELL * 0.35, BOARD_Y, CELL * 0.7, BOARD_H);
+        ctx.globalAlpha = 1;
+        ctx.fillStyle = '#ffffff';
+        y = lerp(BOARD_Y + BOARD_H, BOARD_Y, p);
+        ctx.fillRect(cellX(cue.col) - CELL * 0.4, y - 4, CELL * 0.8, 8);
+      } else if (cue.kind === 'appleRow') {
+        ctx.globalAlpha = 0.55 * (1 - p);
+        ctx.fillStyle = '#ff5c4d';
+        ctx.fillRect(BOARD_X, cellY(cue.row) - CELL * 0.35, BOARD_W * Math.min(1, p * 1.4), CELL * 0.7);
+      } else if (cue.kind === 'cross') {
+        ctx.globalAlpha = 0.6 * (1 - p);
+        ctx.fillStyle = '#ff9fb1';
+        var ex = CELL * (0.5 + p);
+        ctx.fillRect(cellX(cue.col) - ex - CELL / 2, cellY(cue.row) - CELL * 0.3, 2 * ex + CELL, CELL * 0.6);
+        ctx.fillRect(cellX(cue.col) - CELL * 0.3, cellY(cue.row) - ex - CELL / 2, CELL * 0.6, 2 * ex + CELL);
+      } else if (cue.kind === 'burst') {
+        ctx.globalAlpha = 1 - p;
+        ctx.strokeStyle = '#7dff9a'; ctx.lineWidth = 6;
+        ctx.beginPath(); ctx.arc(cellX(cue.col), cellY(cue.row), CELL * 0.3 + CELL * 1.3 * p, 0, Math.PI * 2); ctx.stroke();
+      } else if (cue.kind === 'seeds') {
+        var cells = cue.cells || [], k;
+        var ox = cellX(anim.result.col), oy = anim.result.impact ? cellY(anim.result.impact.row) : BOARD_Y + BOARD_H;
+        ctx.fillStyle = '#ffd6e0';
+        for (k = 0; k < cells.length; k++) {
+          var sx = lerp(ox, cellX(cells[k].col), easeOut(p));
+          var sy = lerp(oy, cellY(cells[k].row), easeOut(p)) - Math.sin(p * Math.PI) * 60;
+          ctx.beginPath(); ctx.arc(sx, sy, 6, 0, Math.PI * 2); ctx.fill();
+        }
+      } else if (cue.kind === 'chain') {
+        var cc = cue.cells || [], j;
+        ctx.globalAlpha = 1 - p;
+        ctx.strokeStyle = '#ffb347'; ctx.lineWidth = 5;
+        for (j = 0; j < cc.length; j++) {
+          ctx.beginPath(); ctx.arc(cellX(cc[j].col), cellY(cc[j].row), CELL * 0.2 + CELL * 0.5 * p, 0, Math.PI * 2); ctx.stroke();
+        }
+      } else if (cue.kind === 'splash') {
+        sp('splash')(ctx, cellX(cue.col), cellY(cue.row), cue.type || 'cherry', p);
+      }
+      ctx.restore();
+    }
+  }
+
+  function renderFlight(t) {
+    var f = game.flight;
+    if (!f) return;
+    ctx.save();
+    ctx.translate(f.x, f.y);
+    ctx.rotate(f.rot);
+    ctx.scale(f.sx, f.sy);
+    sp('fruit')(ctx, f.type, 0, 0, TILE_SIZE, t);
+    ctx.restore();
+  }
+
+  function renderLauncherZone(t, season) {
+    var mood = 'idle';
+    if (game.state === 'levelFail' || game.state === 'noHearts') mood = 'sad';
+    else if (game.state === 'levelClear' || game.state === 'zoneIntro') mood = 'cheer';
+    else if (drag || game.flight) mood = 'aim';
+    sp('sprout')(ctx, 40, LAUNCH_Y + 4, 100, game.zoneIndex, mood, t);
+    var locked = game.lockout > 0;
+    var shakeX = lockShake > 0 ? Math.sin(lockShake * 60) * 4 : 0;
+    var heldShown = game.flight ? null : game.held;
+    sp('launcher')(ctx, launcherX + shakeX, LAUNCH_Y, TUNE.LAUNCHER_W, heldShown, locked, t);
+    if (game.state === 'playing' && !drag && !game.flight && !anim && stateT < 4 && game.level <= 2) {
+      text(ctx, 'DRAG + FLICK UP', launcherX, LAUNCH_Y + 42, 15, 'rgba(255,255,255,0.9)', 'center', 'rgba(0,0,0,0.5)');
+    }
+  }
+
+  function renderChunks() {
+    var i, c;
+    for (i = 0; i < chunks.length; i++) {
+      c = chunks[i];
+      ctx.save();
+      ctx.globalAlpha = clamp(c.alpha, 0, 1);
+      ctx.fillStyle = c.color;
+      ctx.beginPath(); ctx.arc(c.x, c.y, c.r, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+    }
+  }
+
+  function renderPopups() {
+    var i, p, k;
+    for (i = 0; i < popups.length; i++) {
+      p = popups[i];
+      k = p.t / TUNE.POPUP_S;
+      ctx.save();
+      ctx.globalAlpha = 1 - easeIn(k);
+      text(ctx, p.text, p.x, p.y - easeOut(k) * TUNE.POPUP_RISE, p.size, p.color, 'center', 'rgba(0,0,0,0.6)');
+      ctx.restore();
+    }
+  }
+
+  function renderHUD(t, season) {
+    var pal = palette(season);
+    var dark = 'rgba(30,20,10,0.45)';
+    var outline = pal.text || '#335D7C';
+    // row 1: timer | zone banner | hearts | pause
+    var red = game.timeLeft < TUNE.TIMER_RED_S;
+    var timerColor = red ? '#d8323c' : dark;
+    var pulse = red ? 1 + 0.06 * Math.sin(t * 10) : 1;
+    sp('panel')(ctx, 8, 8, 118, 44, timerColor);
+    text(ctx, fmtTime(game.timeLeft), 67, 31, 28 * pulse, '#fff', 'center', outline);
+    sp('banner')(ctx, 236, 30, 190, 44, pal.banner, zoneName(game.zoneIndex).toUpperCase() + ' ' + (levelDef(game.level).indexInZone + 1 || game.level), 22);
+    var i;
+    for (i = 0; i < HEARTS_MAX; i++) sp('heart')(ctx, 346 + i * 16, 30, 15, i < game.hearts);
+    // pause button
+    ctx.save();
+    ctx.beginPath(); ctx.arc(BTN.pause.x, BTN.pause.y, BTN.pause.r, 0, Math.PI * 2);
+    ctx.fillStyle = pal.button || '#3b9b5a'; ctx.fill();
+    ctx.lineWidth = 3; ctx.strokeStyle = outline; ctx.stroke();
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(BTN.pause.x - 9, BTN.pause.y - 10, 6, 20);
+    ctx.fillRect(BTN.pause.x + 3, BTN.pause.y - 10, 6, 20);
+    ctx.restore();
+    // row 2: score | fruit left | held + next
+    sp('panel')(ctx, 8, 60, 140, 52, dark);
+    text(ctx, 'SCORE', 78, 74, 13, 'rgba(255,255,255,0.85)', 'center');
+    text(ctx, String(game.score), 78, 96, 22, '#fff', 'center', outline);
+    sp('panel')(ctx, 156, 60, 166, 52, dark);
+    text(ctx, 'FRUIT LEFT', 239, 74, 13, 'rgba(255,255,255,0.85)', 'center');
+    text(ctx, game.remaining + '  →  ' + game.target, 239, 96, 22, '#fff', 'center', outline);
+    sp('panel')(ctx, 330, 60, 142, 52, dark);
+    text(ctx, 'HELD', 356, 72, 12, 'rgba(255,255,255,0.85)', 'center');
+    if (game.held) sp('fruit')(ctx, game.held, 356, 94, 30, t);
+    text(ctx, 'NEXT', 428, 72, 12, 'rgba(255,255,255,0.85)', 'center');
+    var q = game.queue || [];
+    for (i = 0; i < Math.min(3, q.length); i++) {
+      if (q[i]) sp('fruit')(ctx, q[i], 402 + i * 26, 94, 20 - i * 2, t);
+    }
+  }
+
+  function dim(alpha) {
+    ctx.fillStyle = 'rgba(20,14,8,' + (alpha || 0.55) + ')';
+    ctx.fillRect(0, 0, W, H);
+  }
+
+  function renderZoneIntro(t) {
+    var season = seasonOf(levelDef(pendingLevel).zoneIndex || 0);
+    var pal = palette(season);
+    dim(0.45);
+    sp('banner')(ctx, W / 2, H * 0.32, 380, 100, pal.banner, zoneName(levelDef(pendingLevel).zoneIndex || 0).toUpperCase(), 46);
+    text(ctx, 'LEVEL ' + pendingLevel, W / 2, H * 0.32 + 84, 28, '#fff', 'center', pal.text || '#335D7C');
+    sp('sprout')(ctx, W / 2, H * 0.58, 150, levelDef(pendingLevel).zoneIndex || 0, 'cheer', t);
+    if (graceOk()) text(ctx, 'TAP TO PLAY', W / 2, H * 0.78, 22, '#fff', 'center', pal.text || '#335D7C');
+  }
+
+  function renderLevelClear(t, season) {
+    var pal = palette(season);
+    dim(0.5);
+    sp('banner')(ctx, W / 2, 300, 380, 90, pal.banner, 'LEVEL CLEAR!', 40);
+    var i;
+    for (i = 0; i < 3; i++) {
+      var pop = clamp((stateT - 0.25 - i * 0.2) / 0.3, 0, 1);
+      var size = 64 * (0.6 + 0.4 * easeOut(pop));
+      sp('star')(ctx, W / 2 - 90 + i * 90, 400, size, i < game.stars && pop > 0);
+    }
+    text(ctx, 'SCORE ' + game.score, W / 2, 480, 30, '#fff', 'center', pal.text || '#335D7C');
+    text(ctx, 'TIME LEFT ' + fmtTime(game.timeLeft), W / 2, 520, 22, '#fff', 'center', pal.text || '#335D7C');
+    sp('button')(ctx, BTN.next.x, BTN.next.y, BTN.next.w, BTN.next.h, pal.button, 'NEXT', 30);
+  }
+
+  function renderLevelFail(t, season) {
+    var pal = palette(season);
+    dim(0.55);
+    sp('banner')(ctx, W / 2, 300, 380, 90, '#b8323c', "TIME'S UP", 40);
+    var i, hx = W / 2 - (HEARTS_MAX - 1) * 20;
+    for (i = 0; i < HEARTS_MAX; i++) sp('heart')(ctx, hx + i * 40, 400, 30, i < game.hearts);
+    text(ctx, 'HEART LOST', W / 2, 450, 24, '#ffb3b3', 'center', pal.text || '#335D7C');
+    text(ctx, 'FRUIT LEFT ' + game.remaining + '  →  ' + game.target, W / 2, 500, 22, '#fff', 'center', pal.text || '#335D7C');
+    sp('button')(ctx, BTN.retry.x, BTN.retry.y, BTN.retry.w, BTN.retry.h, pal.button, 'RETRY', 26);
+    sp('button')(ctx, BTN.quit.x, BTN.quit.y, BTN.quit.w, BTN.quit.h, '#7a6a5a', 'QUIT', 26);
+  }
+
+  function renderZoneAd(t) {
+    dim(0.85);
+    sp('panel')(ctx, 40, 200, W - 80, 440, '#f3efe6');
+    text(ctx, 'AD BREAK', W / 2, 270, 44, '#333', 'center');
+    text(ctx, '(monetisation stub)', W / 2, 315, 18, '#666', 'center');
+    var left = Math.max(0, Math.ceil(TUNE.AD_TOTAL_S - stateT));
+    text(ctx, String(left), W / 2, 420, 96, '#333', 'center');
+    text(ctx, 'next: ' + zoneName(levelDef(pendingLevel).zoneIndex || 0).toUpperCase(), W / 2, 520, 22, '#555', 'center');
+    if (stateT >= TUNE.AD_SKIP_AFTER_S) {
+      sp('button')(ctx, BTN.skip.x, BTN.skip.y, BTN.skip.w, BTN.skip.h, '#3b9b5a', 'SKIP', 28);
+    } else {
+      text(ctx, 'skip in ' + Math.ceil(TUNE.AD_SKIP_AFTER_S - stateT), W / 2, BTN.skip.y, 18, '#777', 'center');
+    }
+  }
+
+  function renderNoHearts(t, season) {
+    var pal = palette(season);
+    dim(0.6);
+    sp('banner')(ctx, W / 2, 300, 380, 90, '#b8323c', 'NO HEARTS', 40);
+    var i, hx = W / 2 - (HEARTS_MAX - 1) * 20;
+    for (i = 0; i < HEARTS_MAX; i++) sp('heart')(ctx, hx + i * 40, 400, 30, i < game.hearts);
+    var ms = msToNextHeart();
+    text(ctx, 'NEXT HEART IN', W / 2, 460, 22, '#fff', 'center', pal.text || '#335D7C');
+    text(ctx, fmtTime(ms / 1000), W / 2, 500, 40, '#fff', 'center', pal.text || '#335D7C');
+    text(ctx, 'TAP TO GO BACK', W / 2, 600, 20, 'rgba(255,255,255,0.9)', 'center', pal.text || '#335D7C');
+  }
+
+  function renderPaused(t, season) {
+    var pal = palette(season);
+    dim(0.6);
+    sp('banner')(ctx, W / 2, H * 0.40, 300, 84, pal.banner, 'PAUSED', 40);
+    sp('button')(ctx, BTN.resume.x, BTN.resume.y, BTN.resume.w, BTN.resume.h, pal.button, 'RESUME', 30);
+  }
+
+  // ---------------------------------------------------------------- main loop
+  var acc = 0;
+  var lastRaf = -1;
+
+  function frame(now) {
+    if (lastRaf < 0) lastRaf = now;
+    var dt = (now - lastRaf) / 1000;
+    lastRaf = now;
+    if (dt > TUNE.DT_CLAMP) dt = TUNE.DT_CLAMP;
+    if (game.paused) {
+      acc = 0;                   // clock stopped: discard wall time, no spike on resume
+    } else {
+      acc += dt;
+      var guard = 0;
+      while (acc >= TUNE.STEP && guard < 30) {
+        update(TUNE.STEP);
+        acc -= TUNE.STEP;
+        guard++;
+      }
+    }
+    render();
+    window.requestAnimationFrame(frame);
+  }
+
+  // ---------------------------------------------------------------- debug hooks
+  function stepSeconds(seconds) {
+    if (game.paused) return;   // pause proof: stepping while paused advances nothing
+    var n = Math.max(1, Math.round((Number(seconds) || 0) / TUNE.STEP));
+    var i;
+    for (i = 0; i < n; i++) update(TUNE.STEP);
+  }
+
+  OT.debug = {
+    TUNE: TUNE,
+    step: stepSeconds,
+    launch: function (col) { return doLaunch(col); },
+    resolve: function () {
+      var steps = Math.round(TUNE.RESOLVE_MAX_S / TUNE.STEP), i;
+      for (i = 0; i < steps; i++) {
+        if (!game.flight && !anim) break;
+        if (game.paused) break;
+        update(TUNE.STEP);
+      }
+      return !game.flight && !anim;
+    },
+    skipTo: function (n) {
+      game.paused = false;
+      beginLevel(n);
+      return game.state === 'playing';
+    },
+    setTimeLeft: function (s) { game.timeLeft = Math.max(0, Number(s) || 0); return game.timeLeft; },
+    clearLevel: function () {
+      if (game.state !== 'playing') return false;
+      levelEndTimer = -1; levelEndKind = '';
+      doClearLevel();
+      return true;
+    },
+    failLevel: function () {
+      if (game.state !== 'playing') return false;
+      levelEndTimer = -1; levelEndKind = '';
+      doFailLevel();
+      return true;
+    },
+    addHearts: function (k) {
+      game.hearts = clamp(Math.round(game.hearts + (Number(k) || 0)), 0, HEARTS_MAX);
+      if (game.hearts >= HEARTS_MAX) save.heartsAt = wallNow();
+      persist();
+      return game.hearts;
+    },
+    seed: function (n) { nextSeed = (n === null || n === undefined) ? null : (Number(n) >>> 0); return nextSeed; },
+    view: function () {
+      return { dpr: dpr, scale: viewScale, ox: viewOX, oy: viewOY, cssW: cssW, cssH: cssH };
+    },
+    // extras (integration aids, not in the contract)
+    missingPainters: function () { var k, out = []; for (k in missing) if (missing.hasOwnProperty(k)) out.push(k); return out; },
+    snapshot: function () {
+      if (!game.board || !B || typeof B.snapshot !== 'function') return '';
+      try { return B.snapshot(game.board); } catch (e) { return ''; }
+    },
+    pointer: function (kind, x, y) {
+      // synthetic pointer in LOGICAL space (kind: 'down'|'move'|'up')
+      var cx = (x * viewScale + viewOX) / dpr, cy = (y * viewScale + viewOY) / dpr;
+      if (kind === 'down') pointerDown('dbg', cx, cy);
+      else if (kind === 'move') pointerMove('dbg', cx, cy);
+      else pointerUp('dbg');
+      return { drag: !!drag, launcherX: launcherX };
+    },
+    save: function () { return save; },
+    launcherX: function () { return launcherX; },
+    anim: function () { return anim; }
+  };
+
+  // ---------------------------------------------------------------- boot
+  loadSave();
+  game.hearts = save.hearts;
+  refillHearts();
+  resize();
+  bindInput();
+  setState('splash');
+  splashStartAt = game.clock;
+  window.__ready = true;   // canvas sized, state = 'splash', input bound
+  window.requestAnimationFrame(frame);
+})();
+
+</script>
+</body>
+</html>

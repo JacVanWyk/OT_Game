@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Orchard Toss — sprite sheet</title>
+<style>
+  body { margin: 0; background: #e9e4d8; font-family: "Trebuchet MS", Arial, sans-serif; }
+  canvas { display: block; }
+</style>
+</head>
+<body>
+<canvas id="sheet"></canvas>
+<script src="../js/sprites.js"></script>
+<script>
+/* Renders EVERY OT.S painter into one labelled canvas (screenshot review).
+   Plain script, file:// safe, no fetch. Sets window.__sheetReady = true
+   synchronously after drawing. */
+(function () {
+  'use strict';
+  var S = OT.S;
+  var W = 1440, H = 2360;
+  var cv = document.getElementById('sheet');
+  cv.width = W; cv.height = H;
+  var ctx = cv.getContext('2d');
+  var t = 0.7;                                     // fixed animation time
+  var SEASONS = ['spring', 'summer', 'autumn', 'winter'];
+  var FRUITS = ['cherry', 'strawberry', 'apple', 'watermelon', 'grape', 'banana', 'pomegranate', 'pineapple', 'orange', 'lemon'];
+
+  ctx.fillStyle = '#e9e4d8';
+  ctx.fillRect(0, 0, W, H);
+
+  function label(txt, x, y, size, color) {
+    ctx.save();
+    ctx.font = 'bold ' + (size || 14) + 'px "Trebuchet MS", Arial, sans-serif';
+    ctx.fillStyle = color || '#3b2314';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    ctx.fillText(txt, x, y);
+    ctx.restore();
+  }
+  function section(txt, y) {
+    ctx.fillStyle = '#335D7C';
+    ctx.fillRect(20, y, W - 40, 3);
+    label(txt, 20, y + 8, 20, '#335D7C');
+  }
+  // checker/sky swatch behind a group so light fruit read
+  function bed(x, y, w, h, col) {
+    ctx.fillStyle = col || '#bfe3ff';
+    ctx.fillRect(x, y, w, h);
+  }
+
+  var y = 20, i, j, x;
+
+  /* ---------- 1. fruits at 3 sizes (62 = board size, 40, 100) ---------- */
+  section('1. Fruit x 3 sizes (62 px board tile, 40 px HUD preview, 100 px)  + coconut', y); y += 40;
+  bed(20, y, W - 40, 250, '#a9dcff');
+  var colW = 128;
+  for (i = 0; i < FRUITS.length; i++) {
+    x = 40 + i * colW;
+    label(FRUITS[i], x, y + 4, 13);
+    S.fruit(ctx, FRUITS[i], x + 50, y + 60, 62, t);
+    S.fruit(ctx, FRUITS[i], x + 50, y + 120, 40, t);
+    S.fruit(ctx, FRUITS[i], x + 55, y + 195, 100, t + i);
+  }
+  x = 40 + 10 * colW;
+  label('coconut', x, y + 4, 13);
+  S.coconut(ctx, x + 40, y + 60, 62, t);
+  S.coconut(ctx, x + 40, y + 120, 40, t);
+  S.coconut(ctx, x + 45, y + 195, 100, t);
+  label('unknown', x + 80, y + 120, 13);
+  S.fruit(ctx, 'durian', x + 110, y + 160, 62, t);
+  y += 262;
+
+  /* ---------- 1b. fruits in a real 5x8-style grid on a season bed ---------- */
+  section('1b. Grid readability check: 76 px cells, fruit at 0.82*CELL on each season background', y); y += 40;
+  for (j = 0; j < 4; j++) {
+    x = 40 + j * 350;
+    ctx.save();
+    ctx.beginPath(); ctx.rect(x, y, 330, 230); ctx.clip();
+    S.background(ctx, 330, 230, SEASONS[j], t);
+    ctx.restore();
+    S.boardFrame(ctx, x + 20, y + 40, 4 * 76 - 14, 2 * 76 + 10, SEASONS[j]);
+    var grid = [['cherry', 'strawberry', 'apple', 'coconut'], ['watermelon', 'grape', 'banana', 'wall'], ['pomegranate', 'pineapple', 'orange', 'lemon']];
+    for (i = 0; i < 4; i++) {
+      var cx = x + 20 + i * 76 + 31, cy0 = y + 40 + 33;
+      var k;
+      for (k = 0; k < 2; k++) {
+        var typ = grid[k + (j % 2)][i];
+        if (typ === 'coconut') { S.coconut(ctx, cx, cy0 + k * 76, 62, t); }
+        else if (typ === 'wall') { S.wall(ctx, cx, cy0 + k * 76, 76, 1, SEASONS[j]); }
+        else { S.fruit(ctx, typ, cx, cy0 + k * 76, 62, t); }
+      }
+    }
+    label(SEASONS[j], x + 4, y + 4, 13, '#ffffff');
+  }
+  y += 245;
+
+  /* ---------- 2. obstacles x 4 seasons ---------- */
+  section('2. Obstacles (wall lean -1 / +1, trellis, pipe) x 4 seasons, 76 px cells; pipes stacked to show joining', y); y += 40;
+  for (j = 0; j < 4; j++) {
+    x = 40 + j * 350;
+    bed(x, y, 330, 180, j === 3 ? '#cfe9ef' : '#a9dcff');
+    label(SEASONS[j], x + 4, y + 4, 13);
+    S.wall(ctx, x + 50, y + 70, 76, -1, SEASONS[j]);
+    S.wall(ctx, x + 130, y + 70, 76, 1, SEASONS[j]);
+    S.trellis(ctx, x + 210, y + 70, 76, SEASONS[j]);
+    S.pipe(ctx, x + 290, y + 60, 76, SEASONS[j]);
+    S.pipe(ctx, x + 290, y + 136, 76, SEASONS[j]);
+    label('wall<', x + 30, y + 120, 12); label('wall>', x + 110, y + 120, 12); label('trellis', x + 185, y + 120, 12);
+  }
+  y += 195;
+
+  /* ---------- 3. Sprout 4 stages x 4 moods ---------- */
+  section('3. Sprout: stage 0..3 (columns) x mood idle / aim / cheer / sad (rows), size 120', y); y += 40;
+  var MOODS = ['idle', 'aim', 'cheer', 'sad'];
+  bed(20, y, 640, 4 * 140, '#d7f0c2');
+  for (j = 0; j < 4; j++) {
+    label(MOODS[j], 28, y + j * 140 + 4, 13);
+    for (i = 0; i < 4; i++) {
+      x = 120 + i * 140;
+      if (j === 0) { label('stage ' + i, x - 20, y + 4, 13); }
+      S.sprout(ctx, x, y + j * 140 + 78, 120, i, MOODS[j], t + i * 0.3);
+    }
+  }
+  /* ---------- 4. launcher, monkey, splash ---------- */
+  x = 690;
+  label('launcher (held apple) / locked (held grape), w=130', x, y, 13);
+  bed(x, y + 20, 720, 120, '#d7f0c2');
+  S.launcher(ctx, x + 90, y + 90, 130, 'apple', false, t);
+  S.launcher(ctx, x + 260, y + 90, 130, 'grape', true, t);
+  label('monkey 70 / 110', x + 360, y + 24, 13);
+  S.monkey(ctx, x + 400, y + 90, 70, t);
+  S.monkey(ctx, x + 520, y + 85, 110, t + 0.1);
+  label('sprout 60 (HUD size) idle/cheer', x + 590, y + 24, 13);
+  S.sprout(ctx, x + 620, y + 90, 60, 3, 'idle', t);
+  S.sprout(ctx, x + 680, y + 90, 60, 0, 'cheer', t);
+
+  var y2 = y + 160;
+  label('splash p = 0, 0.2, 0.4, 0.6, 0.8, 1.0 (watermelon, grape, lemon)', x, y2, 13);
+  bed(x, y2 + 20, 720, 270, '#a9dcff');
+  var SPL = ['watermelon', 'grape', 'lemon'];
+  for (j = 0; j < 3; j++) {
+    for (i = 0; i < 6; i++) {
+      S.splash(ctx, x + 60 + i * 110, y2 + 65 + j * 85, SPL[j], i / 5);
+    }
+  }
+  var y3 = y2 + 305;
+  label('hearts filled/empty 28 & 44, stars filled/empty 28 & 44', x, y3, 13);
+  bed(x, y3 + 20, 720, 70, '#d7f0c2');
+  S.heart(ctx, x + 30, y3 + 55, 28, true);  S.heart(ctx, x + 70, y3 + 55, 28, false);
+  S.heart(ctx, x + 125, y3 + 55, 44, true); S.heart(ctx, x + 180, y3 + 55, 44, false);
+  S.star(ctx, x + 260, y3 + 55, 28, true);  S.star(ctx, x + 300, y3 + 55, 28, false);
+  S.star(ctx, x + 355, y3 + 55, 44, true);  S.star(ctx, x + 410, y3 + 55, 44, false);
+  for (i = 0; i < 5; i++) { S.heart(ctx, x + 480 + i * 34, y3 + 55, 28, i < 3); }
+  y += 4 * 140 + 20;
+
+  /* ---------- 5. UI chrome ---------- */
+  section('5. UI chrome: banner / button (3 widths, caps stay round) / panel / text helper', y); y += 40;
+  bed(20, y, W - 40, 250, '#a9dcff');
+  S.banner(ctx, 200, y + 45, 300, 52, PALS('spring').banner, 'SPRING 3', 1);
+  S.banner(ctx, 560, y + 45, 320, 52, PALS('autumn').banner, 'LEVEL CLEAR!', 1);
+  S.banner(ctx, 940, y + 45, 320, 64, PALS('winter').banner, 'WINTER', 1);
+  S.button(ctx, 130, y + 130, 180, 60, PALS('spring').button, 'PLAY', 1);
+  S.button(ctx, 380, y + 130, 260, 60, PALS('summer').button, 'NEXT LEVEL', 1);
+  S.button(ctx, 720, y + 130, 360, 60, '#ff6b6b', 'RETRY', 1);
+  S.button(ctx, 1050, y + 130, 160, 72, PALS('winter').button, 'SKIP', 26);
+  S.button(ctx, 1280, y + 130, 60, 60, '#17c3b2', 'II', 1);
+  S.panel(ctx, 40, y + 175, 200, 56);
+  S.text(ctx, 'TIME 0:45', 140, y + 203, 24, '#ffffff', 'center', true);
+  S.panel(ctx, 260, y + 175, 200, 56, '#ff3b5c');
+  S.text(ctx, 'SCORE 1240', 360, y + 203, 24, '#ffffff', 'center', '#335D7C');
+  S.panel(ctx, 480, y + 175, 260, 56, 'rgba(255,255,255,0.8)');
+  S.text(ctx, 'FRUIT LEFT 14 -> 3', 610, y + 203, 22, '#335D7C', 'center');
+  S.text(ctx, 'plain left text 18', 770, y + 190, 18, '#3b2314', 'left');
+  S.text(ctx, 'outlined right 28', 1400, y + 205, 28, '#ffd23f', 'right', true);
+  label('font(): ' + S.font(24), 780, y + 225, 12);
+  y += 265;
+
+  /* ---------- 6. backgrounds + landmarks ---------- */
+  section('6. Backgrounds (ambient) + landmarks at progress 0 / 0.5 / 1, boardFrame at contract coords (x0.27; red = field edge, 60 px bar spill each side)', y); y += 40;
+  var ySec6 = y;
+  var sc = 0.27, FW = 480, FH = 854, TW = (FW + 120) * sc + 14, TH = FH * sc + 22;
+  for (j = 0; j < 4; j++) {
+    for (i = 0; i < 3; i++) {
+      var slot = j * 3 + i;
+      x = 40 + 60 * sc + (slot % 6) * TW;
+      y = ySec6 + Math.floor(slot / 6) * TH;
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.scale(sc, sc);
+      ctx.beginPath(); ctx.rect(-60, 0, FW + 120, FH); ctx.clip();
+      ctx.translate(-60, 0);
+      S.background(ctx, FW + 120, FH, SEASONS[j], t);
+      ctx.translate(60, 0);
+      S.landmarks(ctx, FW, FH, SEASONS[j], i / 2, t);
+      S.boardFrame(ctx, 50, 126, 380, 608, SEASONS[j]);
+      S.sprout(ctx, 100, 800, 110, j, 'idle', t);
+      S.launcher(ctx, 240, 805, 130, 'cherry', false, t);
+      ctx.strokeStyle = 'rgba(255,0,0,0.6)'; ctx.lineWidth = 3;
+      ctx.strokeRect(0, 0, FW, FH);                                    // field boundary (red)
+      ctx.restore();
+      label(SEASONS[j] + ' p=' + (i / 2), x - 60 * sc, y + FH * sc + 4, 12);
+    }
+  }
+  y = ySec6 + 2 * TH + 10;
+
+  function PALS(s) { return S.PALETTE[s]; }
+
+  label('OT.S keys: ' + Object.keys(S).join(', '), 20, y, 12);
+  window.__sheetH = y + 20;
+  window.__sheetReady = true;
+})();
+</script>
+</body>
+</html>

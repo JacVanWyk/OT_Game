@@ -6,9 +6,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Orchard Toss** (working title) — a portrait, one-handed mobile tile-matching puzzle inspired by Flipull / Plotting (Taito, 1989). The player drags a launcher along the bottom edge and flicks a held fruit upward into a 5-lane board; a fruit that hits a matching fruit clears the contiguous same-type line and fires that fruit's power-up. Host character: **Sprout**, a young orchardist's apprentice. This is Ben's game (concept and design decisions); Jac (this machine's user) owns the prototype build. It is the second of two sibling game concepts — the first, **Numbat Patrol**, lives in `../ben_game_1/`.
 
-**Current state: design phase, no code yet.** The repository contains one file:
+**Current state: v0.1.0 POC built, verified and deployed (2026-09-02)**, live behind the router login at `https://tools-app.net/hosted/orchard-toss/`. Key files:
 
 - `OrchardToss.md` — the single source of truth for every design decision (fruit/power-up roster, zones, obstacles, art, character, controls, pacing, board layout, lives/scoring, prototype scope, name check). Currently **v3 (2026-09-01)**, with **no open questions remaining**. Read it before any design or implementation work.
+- `prototype/ARCHITECTURE.md` — the binding module contract (`OT.CONFIG`, `OT.Board`, `OT.S`, `OT.game`/`OT.debug`, bundler, tests) and the gameplay-model decisions that go beyond the design doc (canopy-anchored board with upward compaction, obstacle semantics, coconut rule, cherry twin). Read it before touching any module.
+- `prototype/js/` — `config.js` (all level/zone/time tunables) → `board.js` (pure logic, Node-testable, `OT.Board.TUNING` for scoring/bonus/generation tunables) → `sprites.js` (procedural art) → `assets.js` (font) → `game.js` (shell, input, animation, persistence). `RELEASE_NOTES.md` records what each version verified and the QA findings behind every tuning value.
+
+**Commands** (from `prototype/`): `node tests/board_test.js` (52 logic checks, exit 0 required); `node tests/headless_smoke.mjs` (12 browser checks, starts and stops its own server); `python3 build_bundle.py` (single-file `dist/OrchardToss.html`); `python3 -m http.server` for LAN phone testing (stop it after). Deploy = copy `index.html`, `js/*.js`, `assets/fonts/` into `/mnt/c/PROD_DB/infra_router/router-server/hosted_apps/orchard-toss/`, then diff for byte-identity and curl the page, a script and the font anonymously (expect 302 to login). Tuning changes must be re-measured with the sensible-player simulation (scripts described in RELEASE_NOTES v0.1.0), not eyeballed.
 
 The master brainstorm (`Game Concepts.md`) and any reference art live in Ben's "Side Hustles/Games" folder, not here. There is no reference art for Orchard Toss yet — sections 8 and 9 of the design doc are written briefs to work from.
 

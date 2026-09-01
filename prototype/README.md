@@ -49,14 +49,17 @@ lanes, **Space** or **↑** launch.
 - **Level clear:** when `remaining < target`, where
   `target = max(2, round(initialFruit × 0.10))`. Levels start about 50–75 %
   full.
-- **Timer:** 45–60 s per level counting down on the game clock; each clear
-  adds time back (+0.5 s per run tile, +1.0 s per power-up tile, capped at
-  +5 s per launch). Time out = level failed.
+- **Timer:** Spring 45→38 s, later zones 40→32 s per level, counting down on
+  the game clock; each clear adds time back (+0.25 s per run tile, +0.5 s per
+  power-up tile, capped at +3 s per launch — `OT.Board.TUNING.TIME_*`). Time
+  out = level failed. (Retuned 2026-09-02: the first values, 60→45 s with a
+  0.5/1.0/5 bonus, refunded the whole level for every player archetype.)
 - **Hearts:** shared pool of 5; −1 per failed attempt; refill 1 per 30 min
   (from the timestamp of the last loss, persisted in `localStorage`). At 0
   hearts the game shows the time to the next heart.
-- **Stars:** 1–3 on level clear from time remaining: ≥ 50 % of the limit
-  left = 3★, ≥ 25 % = 2★, else 1★ (tunable, `STAR_FRACTIONS`).
+- **Stars:** 1–3 on level clear from time remaining: ≥ 80 % of the limit
+  left = 3★, ≥ 50 % = 2★, else 1★ (tunable, `STAR_FRACTIONS`; was 50/25 %,
+  which gave 3★ to everyone).
 - **Score:** 10 per run tile, 15 per power-up tile, ×2 on a cherry double,
   ×(1 + 0.5 × chain) for orange chains.
 
@@ -78,7 +81,7 @@ per zone.
 
 | Fruit | Real trait | Power-up |
 |---|---|---|
-| Cherry | grows in pairs | launches as a pair — if the next tile up is also a cherry that run clears too and the launch scores ×2 |
+| Cherry | grows in pairs | launches as a pair — a twin cherry fires into the adjacent lane (the side showing a cherry, else right); if the twin also hits a cherry run it clears too and the launch scores ×2, a twin miss just returns with no penalty |
 | Strawberry | seeds across the surface | clears a plus-shaped cross around the impact (any tile kind) |
 | Apple | crisp, whole | clears the impact row |
 | Watermelon | bursts messily | clears the 8 neighbours of the impact (any type) |
@@ -179,9 +182,34 @@ node tests/headless_smoke.mjs       # headless browser suite: starts its own htt
 thrown error · `2` browser harness missing · `3` SKIP because the game is
 not built yet (index.html or a script file absent) — never a silent 0.
 
-## Verified
+## Verified (v0.1.0, 2026-09-02 — headless, swiftshader Chromium)
 
-_Nothing yet._ Integration verification is pending: no claim in this README
-has been confirmed against a running build. The integrator fills this section
-from headless evidence (`tests/headless_smoke.mjs` output, screenshots in
-`assets/screens/`, `tests/board_test.js` counts) once the five modules land.
+- `node tests/board_test.js` → `SUMMARY passed=52 failed=0 errors=0`: 260-board
+  winnability sweep (52 levels × 5 seeds, 0 warnings), 2 000-launch fuzz,
+  recount + compaction invariants after every launch, all 10 power-ups on
+  fixtures, both wall leans, pipe/trellis/coconut rules, cherry twin (match,
+  miss, edge, pipe, trellis, deflection), orange chain rounds, and three
+  negative controls that prove the invariants can fail.
+- `node tests/headless_smoke.mjs` → 12 passed: http boot, title → playing,
+  launch + resolve changes `remaining`, timer follows `step`, `skipTo(52)`
+  boots Winter, `failLevel` drops one heart, pause proof, 390×844 and
+  844×390 screenshots, rendered-pixel probe with its sky negative control,
+  and the `file://` bundle boot with Fredoka resolved.
+- Every one of the 10 power-ups launched once in the real game with its
+  effect cue rendered and `remaining`/score/time-bonus matching the board's
+  result; wall deflection, trellis return (+ lockout, re-launch refused
+  during lockout), and pipe pass-through exercised on Winter boards.
+- Cherry twin: 4 791-launch fuzz over 800 boards (746 twin flights, 351
+  doubles) with 0 state failures; a double scores (10 + 2×15) × 2 = 80.
+- HUD text contrast measured ≥ 5.2:1 on every value; the canopy strip
+  changes 0 pixels in the HUD band (negative control: 3 294 with the old
+  geometry); no HUD box overlaps at 390×844 or 360×640.
+- Render-loop guard: a throwing painter no longer stops the loop (clock
+  advanced 0.70 s over 700 ms wall with the error logged once).
+- Persistence: level advance, heart loss, and heart refill (2 → 4 after
+  61 min, timestamp advanced by exactly 60 min) survive a fresh boot.
+- Screenshots of every state are in `assets/screens/`.
+
+Not verified: real finger flicks on a phone (headless cannot gesture; the
+debug launch drives the same `doLaunch` path), and the human feel of the
+retuned time limits — the numbers came from a sensible-player simulation.

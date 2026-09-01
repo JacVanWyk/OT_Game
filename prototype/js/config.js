@@ -40,11 +40,13 @@
   };
 
   // time limit in seconds over the zone, [first level, last level]
+  // 2026-09-02 pacing retune (QA finding A): was Spring 60->50, others 55->45, under which the time bonus refunded the
+  // whole level and every archetype cleared with 90-100% time left. See TUNING.TIME_* in board.js and STAR_FRACTIONS.
   var TIME_RAMP = {
-    spring: [60, 50],
-    summer: [55, 45],
-    autumn: [55, 45],
-    winter: [55, 45]
+    spring: [45, 38],
+    summer: [40, 32],
+    autumn: [40, 32],
+    winter: [40, 32]
   };
 
   // obstacle counts per zone as a function of indexInZone (0-based) and zone length
@@ -100,7 +102,8 @@
     ZONES: ZONES,
     TOTAL_LEVELS: 52,
     HEARTS_MAX: 5, HEART_REFILL_MS: 30 * 60 * 1000,
-    LOCKOUT_S: 0.6, FLIGHT_SPEED: 1100 /* px/s */, STAR_FRACTIONS: [0.5, 0.25] /* >=50% time left = 3 stars, >=25% = 2, else 1 */,
+    LOCKOUT_S: 0.6, FLIGHT_SPEED: 1100 /* px/s */,
+    STAR_FRACTIONS: [0.8, 0.5] /* >=80% time left = 3 stars, >=50% = 2, else 1 (was [0.5, 0.25]: gave 3 stars to everyone, QA 2026-09-02) */,
     FRUIT_INTRO: FRUIT_INTRO, FILL_RAMP: FILL_RAMP, TIME_RAMP: TIME_RAMP, OBSTACLE_RAMP: OBSTACLE_RAMP,
     levelDef: levelDef
   };

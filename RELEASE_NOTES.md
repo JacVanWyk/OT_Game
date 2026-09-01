@@ -10,71 +10,77 @@ evidence) and listing the changed files. Design source of truth:
 
 ## 2026-09-02 — v0.1.0 — first playable POC
 
-**STATUS: BUILD IN PROGRESS (unverified).** Nothing in this entry has been
-confirmed against a running build; the integrator flips the status and fills
-the evidence once `tests/board_test.js` and `tests/headless_smoke.mjs` are
-green.
+**STATUS: VERIFIED + DEPLOYED.** Full-spec build (all 10 fruits, all 4
+zones, 52 levels, obstacles, coconuts, hearts, stars, ad stub) on the Numbat
+Patrol web-prototype pattern. Live behind the router login at
+**https://tools-app.net/hosted/orchard-toss/** — deployed as a straight
+authoring copy (`index.html`, `js/*.js`, `assets/fonts/`) into
+`router-server/hosted_apps/orchard-toss/`, all 7 files byte-identical to
+source, no `<base>` tag; anonymous requests to the page, a script, the font
+and the no-slash path all 302 to login as designed. Single-file bundle
+`prototype/dist/OrchardToss.html` (0.21 MB, font embedded) boots from
+`file://`. Test commands: `node tests/board_test.js` (52 checks),
+`node tests/headless_smoke.mjs` (12 checks, self-serving), `python3
+build_bundle.py`.
 
-**Planned scope** (design doc v3 sections 5–15, built as the full spec, not a
-vertical slice):
+**How it was built.** Contract-first: `prototype/ARCHITECTURE.md` fixed the
+module APIs, then four builders ran in parallel (board logic + Node tests,
+procedural art + spritesheet, game shell + input, bundler/docs/smoke test),
+followed by an integration pass, a read-only gameplay QA pass, a
+board-tuning pass, and a final integration for the cherry twin. Every module
+shipped with its own negative controls.
 
-1. **Stack:** `index.html` + five plain scripts (`config` → `board` →
-   `sprites` → `assets` → `game`) on one canvas under `window.OT`; no
-   modules, no fetch; runs from `file://`. Portrait logical field 480×854,
-   ambient/landmark background split, Fredoka Bold via FontFace.
-2. **Board logic (`js/board.js`):** 5×8 grid, tiles compacted toward the
-   canopy, launch-up-and-match with the contiguous-run clear, seeded RNG,
-   all 10 power-ups (cherry pair, strawberry cross, apple row, watermelon
-   splash, grape cluster, banana monkey row, pomegranate random 5, pineapple
-   obstacle break, orange chain, lemon column), walls (deflect), trellis
-   (return), pipes (vertical-only), coconuts (Autumn+), winnability check,
-   level generation for all 52 `levelDef`s.
-3. **Zones:** Spring 10 / Summer 12 / Autumn 14 / Winter 16 levels; fruit
-   and obstacle ramps per zone; Spring obstacle-free.
-4. **Game loop (`js/game.js`):** splash → title → zoneIntro → playing →
-   levelClear / levelFail → zoneAd (interstitial stub at zone transitions
-   only) …; countdown timer with time-back on clears; drag-and-flick input
-   with launch lockout on a mismatch; rolling/squashing fruit, wall bounces,
-   juice splash and falling chunks; HUD (timer, score, remaining/target,
-   hearts, held + next); 5-heart pool with 30-min refill in `localStorage`;
-   1–3 stars from time remaining; pause overlay; Sprout and the orchard tree
-   growing with progress.
-5. **Art (`js/sprites.js`):** procedural glossy mobile-casual painters for
-   all fruit, coconut, three obstacles × four seasons, Sprout (4 stages × 4
-   moods), launcher, monkey, splash, hearts/stars, Numbat-style banner /
-   button / panel chrome; `tools/spritesheet.html` review sheet.
-6. **Tooling:** `build_bundle.py` (single-file `dist/OrchardToss.html`
-   with the font embedded; `--zip <version>` for a versioned authoring-folder
-   archive), `tests/board_test.js` (Node, zero deps, with negative
-   controls), `tests/headless_smoke.mjs` (browser-harness suite with its own
-   http.server, file:// bundle boot, 390×844 / 844×390 screenshots,
-   rendered-pixel probe with a negative control).
+**Gameplay model (decisions beyond the design doc, see ARCHITECTURE.md):**
+tiles hang from the canopy and compact upward, so the launched fruit always
+hits the lowest tile in its lane; walls deflect sideways, trellis returns the
+fruit, pipes pass vertically only; coconuts (Autumn+) never match and count
+toward remaining; level clear at `remaining < target`,
+`target = max(2, round(initial × 0.10))`.
 
-**Tooling self-verification (2026-09-02, tooling builder — scratch copies,
-not the game):** `build_bundle.py` produced a bundle from five dummy scripts
-with all markers in order and `OT.AM_DATA` before `config.js`, and exited 1
-with a named cause on each negative control (deleted script, swapped script
-tags, duplicated tag, missing font, empty font, extra external `<script src>`,
-external `href`, `fetch(` in a script). `tests/headless_smoke.mjs` passed
-12/12 against a contract-shaped stub game, failed the expected checks (exit 1)
-when the stub was broken (no board drawn, `failLevel` no-op, `launch` no-op),
-and exits 3 with a SKIP message when the game is absent, leaving no server
-listening. **This says nothing about the real game.**
+**Findings fixed during QA (all measured, not guessed):**
 
-**Verified:** _pending integration._
+1. *Dead hands / soft-lock.* A queue-fed hand plus "mismatch keeps the hand"
+   left 23% of hands with no target; only 58 of 1 040 boards were clearable.
+   Fixed with hand rescue (swap/redraw reported as `result.handRescue`,
+   animated as a SWAP popup) → 1 040/1 040 clearable, then cut further to a
+   21.5% rescue rate with `DRAW_LOOKAHEAD` 3.
+2. *Timer never bit.* The 0.5/1.0/5 s time bonus refunded every level; every
+   archetype cleared with 90–100% time left and everyone got 3★. Retuned:
+   bonus 0.25/0.5/cap 3 s, limits Spring 45→38 s and later zones 40→32 s,
+   `STAR_FRACTIONS` [0.8, 0.5]. After: sensible player 88% 3★, naive
+   23% 3★ / 77% 2★, casual fails 3% of levels (worst zone 5%).
+3. *Cherry double unreachable* (0 in 381 launches, compaction never leaves a
+   gap). Redefined as a twin cherry into the adjacent lane, animated as a
+   second flight; 22% of cherry launches now double.
+4. *Single-tile runs.* `CLUSTER_BIAS` 0.55 lifts mean matched run 1.12 → 1.67.
+5. *HUD values invisible* (white text stroked with a 4 px white outline,
+   1.0:1). Outline is now Deep Navy `#335D7C`; measured ≥ 5.2:1 everywhere.
+6. *Canopy strip painted over the HELD/NEXT previews.* Clipped; 0 pixels
+   changed in the HUD band (negative control 3 294).
+7. *Render throw froze the loop forever* (rAF scheduled after render).
+   Guarded; proven with an injected throwing painter.
+8. *Meta-progression hidden* behind the board. Orchard showcase with the
+   growing tree + Sprout on zoneIntro and levelClear; level 52 ends on an
+   "ORCHARD RESTORED!" finale that routes back to the title.
 
-**Changed files** (to be completed by the integrator):
+**For Ben to decide (tuning, not bugs):** later zones are now slightly
+easier for casual players than Spring (fail 1–5% vs 4%); the measured lever
+is `TIME_RAMP` ×0.9 for Summer–Winter. Banana is mechanically identical to
+apple (distinct monkey presentation only). Apple is drawn green so it reads
+apart from cherry and strawberry at tile size. Star thresholds are set
+against a simulated "naive" player (1 s think, no errors), not a real one.
 
-- `prototype/index.html` — _(pending)_
-- `prototype/js/config.js` — _(pending)_
-- `prototype/js/board.js` — _(pending)_
-- `prototype/js/sprites.js` — _(pending)_
-- `prototype/js/assets.js` — _(pending)_
-- `prototype/js/game.js` — _(pending)_
-- `prototype/tools/spritesheet.html` — _(pending)_
-- `prototype/tests/board_test.js` — _(pending)_
-- `prototype/build_bundle.py` — new (tooling builder)
-- `prototype/tests/headless_smoke.mjs` — new (tooling builder)
-- `prototype/README.md` — new (tooling builder)
-- `prototype/ARCHITECTURE.md` — module contract
-- `RELEASE_NOTES.md` — this file
+**Not verified:** real finger flicks on a phone (headless cannot gesture;
+`OT.debug.launch` drives the same code path as a flick), the hosted page
+past the login wall (only the redirects and the byte-identical copy were
+checked), and the human feel of the retuned time limits.
+
+**Changed files:** `prototype/index.html`, `prototype/js/config.js`,
+`prototype/js/board.js`, `prototype/js/sprites.js`, `prototype/js/assets.js`,
+`prototype/js/game.js`, `prototype/build_bundle.py`,
+`prototype/tests/board_test.js`, `prototype/tests/headless_smoke.mjs`,
+`prototype/tools/spritesheet.html`, `prototype/assets/fonts/Fredoka-Bold.woff2`,
+`prototype/assets/spritesheet_v0.1.0.png`, `prototype/assets/screens/*.png`,
+`prototype/dist/OrchardToss.html`, `prototype/ARCHITECTURE.md`,
+`prototype/README.md`, `CLAUDE.md`, this file; deployed copy in
+`C:\PROD_DB\infra_router\router-server\hosted_apps\orchard-toss\`.

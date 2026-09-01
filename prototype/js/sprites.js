@@ -1114,11 +1114,18 @@ OT.S.FRUIT_COLORS = {
       ctx.stroke();
       dot(ctx, corners[i][0] + cs / 2, corners[i][1] + cs / 2, cs * 0.16, WOOD_HI);
     }
-    // canopy strip across the top: leafy scallops with season deco
-    var cy = y - b * 1.2, n = Math.max(4, Math.round(w / 34));
+    // canopy strip across the top: leafy scallops with season deco.
+    // CLIPPED to the band [y - 0.7b, y + 4] so it never reaches the HUD band
+    // above (the HUD ends at y - 8 for the 76 px grid: 118) and never spills
+    // onto the row-0 tiles below (tile tops start at y + 7).
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(x - b - 2, y - b * 0.7, w + 2 * b + 4, b * 0.7 + 4);
+    ctx.clip();
+    var cy = y - b * 0.15, n = Math.max(4, Math.round(w / 34));
     for (i = 0; i <= n; i++) {
       var lx = x - b + (w + 2 * b) * i / n;
-      var lr = b * (1.3 + 0.5 * rnd(i + 700));
+      var lr = b * (0.95 + 0.4 * rnd(i + 700));
       var cg = ctx.createRadialGradient(lx - lr * 0.3, cy - lr * 0.4, lr * 0.1, lx, cy, lr);
       cg.addColorStop(0, (season === 'autumn') ? '#ffc24d' : (season === 'winter') ? '#d8f7f2' : '#9be25a');
       cg.addColorStop(1, (season === 'autumn') ? '#c8531c' : (season === 'winter') ? '#4f9a8f' : '#2f8a22');
@@ -1130,11 +1137,12 @@ OT.S.FRUIT_COLORS = {
       ctx.stroke();
     }
     for (i = 0; i < n; i += 2) {
-      var dx = x - b + (w + 2 * b) * (i + 0.5) / n, dy = cy - b * 0.2;
-      if (season === 'spring') { blossom(ctx, dx, dy, b * 0.5, lc[0], lc[1]); }
-      else if (season === 'winter') { dot(ctx, dx, dy, b * 0.3, '#ffffff'); }
-      else { ctx.lineWidth = Math.max(1, b * 0.1); ball(ctx, dx, dy, b * 0.35, (season === 'summer') ? FC.orange : FC.pomegranate); }
+      var dx = x - b + (w + 2 * b) * (i + 0.5) / n, dy = cy - b * 0.1;
+      if (season === 'spring') { blossom(ctx, dx, dy, b * 0.38, lc[0], lc[1]); }
+      else if (season === 'winter') { dot(ctx, dx, dy, b * 0.25, '#ffffff'); }
+      else { ctx.lineWidth = Math.max(1, b * 0.1); ball(ctx, dx, dy, b * 0.28, (season === 'summer') ? FC.orange : FC.pomegranate); }
     }
+    ctx.restore();   // canopy clip
     ctx.restore();
   };
 

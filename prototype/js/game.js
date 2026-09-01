@@ -44,6 +44,7 @@
     BOUNCE_S: 0.10,             // squash at a wall deflection
     SQUASH_S: 0.12,             // squash at impact
     RETURN_WOBBLE: 0.45,        // rad amplitude of the return wobble
+    TWIN_DELAY_S: 0.08,         // cherry twin leaves the launcher this long after the primary
     // pops / juice
     POP_INTERVAL_S: 0.045,
     POP_S: 0.26,
@@ -57,6 +58,9 @@
     EFFECT_MONKEY_S: 0.5, EFFECT_LEMON_S: 0.32, EFFECT_APPLE_S: 0.32,
     EFFECT_CROSS_S: 0.3, EFFECT_BURST_S: 0.36, EFFECT_SEEDS_S: 0.42,
     EFFECT_CHAIN_S: 0.28, EFFECT_CHAIN_ROUND_S: 0.16,
+    // hand rescue presentation (result.handRescue / result.queueRedrawn)
+    HAND_FX_S: 0.7,             // HELD ring + launcher flash
+    QUEUE_FX_S: 0.6,            // NEXT slot flash
     // hud / flow
     TIMER_RED_S: 10,
     LEVEL_END_DELAY_S: 0.55,    // pause between the last pop and the clear card
@@ -75,7 +79,7 @@
       W: 480, H: 854, COLS: 5, ROWS: 8, CELL: 76, BOARD_X: 50, BOARD_Y: 126,
       LAUNCH_Y: 800, FRUITS: [], ZONES: [{ id: 'spring', name: 'Spring', levels: 10, fruits: [] }],
       HEARTS_MAX: 5, HEART_REFILL_MS: 30 * 60 * 1000, LOCKOUT_S: 0.6,
-      FLIGHT_SPEED: 1100, STAR_FRACTIONS: [0.5, 0.25],
+      FLIGHT_SPEED: 1100, STAR_FRACTIONS: [0.8, 0.5],
       levelDef: function (n) {
         return { n: n, zone: 'spring', zoneIndex: 0, indexInZone: n - 1, rows: 8,
                  cols: 5, fill: 0.6, timeLimit: 60, fruits: [], obstacles: {} };
@@ -93,7 +97,7 @@
   var REFILL_MS = C.HEART_REFILL_MS || 30 * 60 * 1000;
   var LOCKOUT_S = (typeof C.LOCKOUT_S === 'number') ? C.LOCKOUT_S : 0.6;
   var FLIGHT_SPEED = C.FLIGHT_SPEED || 1100;
-  var STAR_FRACTIONS = C.STAR_FRACTIONS || [0.5, 0.25];
+  var STAR_FRACTIONS = C.STAR_FRACTIONS || [0.8, 0.5];
   var ZONES = C.ZONES || [];
   var TOTAL_LEVELS = 0;
   var ZONE_START = [];        // first level number of each zone
@@ -103,6 +107,24 @@
     TOTAL_LEVELS = n - 1;
     if (TOTAL_LEVELS < 1) TOTAL_LEVELS = 52;
   })();
+
+  // Label outline colour (Deep Navy, the Numbat chrome). NOT pal.text: that is
+  // the palette's text FILL colour (#ffffff in every season) and using it as
+  // the outline made every HUD value a white-on-white blob.
+  var TXT_OUTLINE = '#335D7C';
+
+  // HUD layout (logical px). Row 1 must not overlap: timer panel | zone banner
+  // (ribbon tails add h*0.55 each side) | hearts | pause button.
+  var HUD = {
+    timer:  { x: 8, y: 8, w: 108, h: 44 },                  // 8..116
+    banner: { cx: 230, cy: 30, w: 170, h: 44 },             // body 145..315, tails 121.6..338.4
+    hearts: { x0: 350, y: 30, step: 15, size: 14 },         // 343..417
+    score:  { x: 8, y: 60, w: 140, h: 52 },
+    left:   { x: 156, y: 60, w: 166, h: 52 },
+    hand:   { x: 330, y: 60, w: 142, h: 52 },
+    heldX: 356, heldY: 94, heldSize: 30,
+    nextX0: 402, nextY: 94, nextStep: 26
+  };
 
   var LANE0_X = BOARD_X + CELL / 2;
   var LANE_MAX_X = BOARD_X + (COLS - 1) * CELL + CELL / 2;
@@ -417,6 +439,8 @@
   var popups = [];
   var chunks = [];
   var lockShake = 0;
+  var handFx = null;             // {t, kind:'swap'|'redraw'} after a hand rescue
+  var queueFx = null;            // {t, slots:[indices]} after queue entries were redrawn
 
   function setState(s) {
     game.state = s;
@@ -453,6 +477,7 @@
     game.lockout = 0;
     game.flight = null;
     anim = null; dispCells = null; popups = []; chunks = [];
+    handFx = null; queueFx = null;
     levelEndTimer = -1; levelEndKind = '';
     drag = null;
     launcherX = launcherTargetX = cellX(Math.floor(COLS / 2));
@@ -501,8 +526,8 @@
   }
   function starsFor(timeLeft, timeLimit) {
     var f = timeLimit > 0 ? timeLeft / timeLimit : 0;
-    if (f >= (STAR_FRACTIONS[0] !== undefined ? STAR_FRACTIONS[0] : 0.5)) return 3;
-    if (f >= (STAR_FRACTIONS[1] !== undefined ? STAR_FRACTIONS[1] : 0.25)) return 2;
+    if (f >= (STAR_FRACTIONS[0] !== undefined ? STAR_FRACTIONS[0] : 0.8)) return 3;
+    if (f >= (STAR_FRACTIONS[1] !== undefined ? STAR_FRACTIONS[1] : 0.5)) return 2;
     return 1;
   }
   function doClearLevel() {
@@ -558,33 +583,52 @@
     }
     if (!result) { dispCells = null; return false; }
 
+    var type = result.launched || dispHeld(b, result);
+    var f = makeBody(type, col, result.path, result.deflections, 0);
+    f.result = result;
+    f.matched = !!result.matched;
+    f.primaryDone = false;
+    // cherry twin (board.js, 2026-09-02): result.twin = {col, path, deflections, impact, matched} when the
+    // primary matched; a second cherry leaves the launcher a few frames later and flies its own lane
+    f.twin = null;
+    var tw = result.twin;
+    if (tw && tw.path && tw.path.length && tw.col >= 0 && tw.col < COLS) {
+      f.twin = makeBody(type, tw.col, tw.path, tw.deflections, TUNE.TWIN_DELAY_S);
+      f.twin.matched = !!tw.matched;
+      f.twin.isTwin = true;
+    }
+    game.flight = f;
+    launcherTargetX = cellX(col);
+    return true;
+  }
+  // A flying fruit body (the primary launch, or the cherry twin): a polyline from
+  // the launcher through the board path, plus the squash/bounce/return state.
+  function makeBody(type, col, path, deflections, delay) {
     var pts = [{ x: launcherX, y: LAUNCH_Y }];
-    var i, p, path = result.path || [];
+    var i, p;
+    path = path || [];
     for (i = 0; i < path.length; i++) {
       p = path[i];
       pts.push({ x: cellX(p.col), y: cellY(p.row), col: p.col, row: p.row });
     }
     if (pts.length === 1) pts.push({ x: cellX(col), y: cellY(ROWS - 1), col: col, row: ROWS - 1 });
     var defl = {};
-    var dl = result.deflections || [];
+    var dl = deflections || [];
     for (i = 0; i < dl.length; i++) defl[dl[i].col + ',' + dl[i].row] = true;
-
-    game.flight = {
+    return {
       col: col,
-      type: result.launched || dispHeld(b, result),
-      result: result,
+      type: type,
       pts: pts,
       seg: 0, segT: 0,
       x: pts[0].x, y: pts[0].y,
       rot: 0,
       sx: 1, sy: 1,            // squash scale
-      phase: 'fly',            // fly | bounce | impact | return | done
+      phase: delay > 0 ? 'wait' : 'fly',   // wait | fly | bounce | impact | return | done
       phaseT: 0,
+      delay: delay || 0,
       defl: defl,
       wobble: 0
     };
-    launcherTargetX = cellX(col);
-    return true;
   }
   function dispHeld(b, result) { return result.launched || game.held; }
   function snapshotCells(b) {
@@ -605,8 +649,22 @@
   function updateFlight(dt) {
     var f = game.flight;
     if (!f) return;
+    if (!f.primaryDone) stepBody(f, dt);
+    f = game.flight;
+    if (!f) return;                      // a mismatch return just finished (lockout applied)
+    if (f.twin && f.twin.phase !== 'done') stepBody(f.twin, dt);
+    if (f.primaryDone && (!f.twin || f.twin.phase === 'done')) game.flight = null;
+  }
+
+  // Advances one body through wait -> fly -> (bounce)* -> impact -> done | return -> done.
+  function stepBody(f, dt) {
+    var isTwin = !!f.isTwin;
     f.phaseT += dt;
     var pts = f.pts;
+    if (f.phase === 'wait') {
+      if (f.phaseT >= f.delay) { f.phase = 'fly'; f.phaseT = 0; }
+      return;
+    }
     if (f.phase === 'fly') {
       var remain = FLIGHT_SPEED * dt;
       while (remain > 0 && f.seg < pts.length - 1) {
@@ -642,8 +700,10 @@
       f.sx = 1 + 0.35 * ki; f.sy = 1 - 0.4 * ki;
       if (pi >= 1) {
         f.sx = f.sy = 1;
-        if (f.result.matched) finishFlight(true);
-        else { f.phase = 'return'; f.phaseT = 0; f.seg = pts.length - 1; f.segT = 0; }
+        if (f.matched) {
+          f.phase = 'done'; f.phaseT = 0;
+          if (isTwin) twinArrived(true); else finishFlight(true);
+        } else { f.phase = 'return'; f.phaseT = 0; f.seg = pts.length - 1; f.segT = 0; }
       }
     } else if (f.phase === 'return') {
       var remainR = FLIGHT_SPEED * TUNE.RETURN_SPEED_MUL * dt;
@@ -660,14 +720,35 @@
       }
       f.wobble = Math.sin(f.phaseT * 28) * TUNE.RETURN_WOBBLE * (1 - Math.min(1, f.phaseT / 0.6) * 0.5);
       f.rot = f.wobble;
-      if (f.seg <= 0) finishFlight(false);
+      if (f.seg <= 0) {
+        f.phase = 'done'; f.phaseT = 0;
+        // a returning twin is NOT a miss: no lockout, no MISS popup (board.js: "it simply returns, no penalty")
+        if (isTwin) twinArrived(false); else finishFlight(false);
+      }
+    }
+  }
+
+  // The cherry twin has settled (matched: squashed on its cherry; else it is back in the launcher).
+  // Releases the twin-run pops and the twin burst cue that finishFlight gated on it.
+  function twinArrived(matched) {
+    if (!anim) return;
+    if (anim.twinArrived) return;
+    anim.twinArrived = true;
+    anim.twinAt = anim.t;
+    var r = anim.result;
+    if (matched && r && r.cherryDouble && r.twin && r.twin.impact) {
+      var x = (cellX(r.col) + cellX(r.twin.col)) / 2;
+      var y = (cellY(r.impact ? r.impact.row : r.twin.impact.row) + cellY(r.twin.impact.row)) / 2 - 10;
+      addPopup(x, y, 'DOUBLE! x2', '#ffd166', 30);
     }
   }
 
   function finishFlight(matched) {
     var f = game.flight;
     var r = f.result;
-    game.flight = null;
+    f.primaryDone = true;
+    // the flight stays alive while the twin is still in the air (updateFlight clears it)
+    if (!f.twin || f.twin.phase === 'done') game.flight = null;
     if (!matched) {
       dispCells = null;
       game.lockout = LOCKOUT_S;
@@ -685,15 +766,30 @@
       game.timeLeft += r.timeBonus;
       addPopup(70, 70, '+' + r.timeBonus.toFixed(1) + ' s', '#7dff9a', 22);
     }
+    // hand rescue (board.js): the held type had no lane target and was swapped
+    // with a queue entry / redrawn - show it, subtly, so the swap is not a mystery
+    if (r.handRescue) {
+      handFx = { t: 0, kind: r.handRescue.kind || 'swap', queueIndex: r.handRescue.queueIndex };
+      addPopup(HUD.heldX, HUD.heldY - 26, r.handRescue.kind === 'redraw' ? 'NEW' : 'SWAP', '#ffe08a', 16);
+    }
+    if (r.queueRedrawn && r.queueRedrawn.length) {
+      queueFx = { t: 0, slots: r.queueRedrawn.slice() };
+    }
     var runKey = {}, i, c;
     var run = r.run || [];
     for (i = 0; i < run.length; i++) runKey[run[i].col + ',' + run[i].row] = true;
-    var pops = [];
+    // cherry twin: the cells of the twin's run pop when the TWIN lands, not when the primary does.
+    // They are the cleared cells in the twin's impact column that are not part of the primary run.
+    var twinCol = (r.twin && r.twin.matched && r.twin.impact) ? r.twin.impact.col : -1;
+    var hasTwin = !!(f.twin && f.twin.phase !== 'done');
+    var pops = [], twinPops = [];
     var cleared = r.cleared || [];
     for (i = 0; i < cleared.length; i++) {
       c = cleared[i];
-      pops.push({ col: c.col, row: c.row, kind: c.kind || 'fruit', type: c.type,
-                  score: runKey[c.col + ',' + c.row] ? 10 : 15, started: false, t: 0 });
+      var pop = { col: c.col, row: c.row, kind: c.kind || 'fruit', type: c.type,
+                  score: runKey[c.col + ',' + c.row] ? 10 : 15, started: false, t: 0 };
+      if (twinCol >= 0 && c.col === twinCol && !runKey[c.col + ',' + c.row]) { pop.twin = true; twinPops.push(pop); }
+      else pops.push(pop);
     }
     var broken = r.broken || [];
     for (i = 0; i < broken.length; i++) {
@@ -702,12 +798,19 @@
                   score: 0, started: false, t: 0, obstacle: true });
     }
     var effects = buildEffects(r);
+    // the twin's burst cue waits for the twin too
+    for (i = 0; i < effects.length; i++) {
+      var cue = effects[i].cue;
+      if (twinCol >= 0 && cue.kind === 'burst' && cue.col === r.twin.impact.col && cue.row === r.twin.impact.row) effects[i].twin = true;
+    }
     var popsLen = pops.length ? (pops.length - 1) * TUNE.POP_INTERVAL_S + Math.max(TUNE.POP_S, TUNE.SPLASH_S) : 0;
     var efLen = 0;
-    for (i = 0; i < effects.length; i++) efLen = Math.max(efLen, effects[i].dur + (effects[i].delay || 0));
+    for (i = 0; i < effects.length; i++) if (!effects[i].twin) efLen = Math.max(efLen, effects[i].dur + (effects[i].delay || 0));
     anim = {
       phase: 'pop', t: 0,
       pops: pops, popIndex: 0, popLen: Math.max(popsLen, efLen),
+      twinPops: twinPops, twinPopIndex: 0,
+      twinArrived: !hasTwin, twinAt: 0,   // set by twinArrived() when the twin lands / returns
       hidden: {},
       effects: effects,
       compaction: r.compaction || [],
@@ -715,9 +818,11 @@
       scoreTarget: (typeof r.scoreDelta === 'number') ? game.score + r.scoreDelta : game.score,
       remainingTarget: (typeof r.remaining === 'number') ? r.remaining : game.remaining
     };
-    if (r.cherryDouble) addPopup(cellX(r.col), BOARD_Y + 40, 'DOUBLE x2!', '#ffd166', 28);
+    // DOUBLE popup: shown by twinArrived() when the twin lands (between the two lanes); fall back to
+    // here only if the board reported a double without a twin flight to wait for
+    if (r.cherryDouble && !hasTwin) addPopup(cellX(r.col), BOARD_Y + 40, 'DOUBLE! x2', '#ffd166', 28);
     if (r.chain > 0) addPopup(W / 2, BOARD_Y + 90, 'CHAIN x' + r.chain, '#ffb347', 28);
-    if (pops.length === 0 && effects.length === 0) endAnim();
+    if (pops.length === 0 && twinPops.length === 0 && effects.length === 0) endAnim();
   }
 
   function buildEffects(r) {
@@ -749,12 +854,33 @@
         startPop(p);
         anim.popIndex++;
       }
+      // the twin run pops only once the twin has landed (twinArrived), on its own schedule from that moment
+      if (!anim.twinArrived && !game.flight) twinArrived(true);   // safety: no twin body left to wait for
+      if (anim.twinArrived) {
+        while (anim.twinPopIndex < anim.twinPops.length &&
+               anim.t - anim.twinAt >= anim.twinPopIndex * TUNE.POP_INTERVAL_S) {
+          p = anim.twinPops[anim.twinPopIndex];
+          startPop(p);
+          anim.twinPopIndex++;
+          anim.popLen = Math.max(anim.popLen, anim.t + Math.max(TUNE.POP_S, TUNE.SPLASH_S));
+        }
+      }
       for (i = 0; i < anim.pops.length; i++) {
         p = anim.pops[i];
         if (p.started) p.t += dt;
       }
-      for (i = 0; i < anim.effects.length; i++) anim.effects[i].t += dt;
-      if (anim.t >= anim.popLen) {
+      for (i = 0; i < anim.twinPops.length; i++) {
+        p = anim.twinPops[i];
+        if (p.started) p.t += dt;
+      }
+      for (i = 0; i < anim.effects.length; i++) {
+        var e = anim.effects[i];
+        if (e.twin && !anim.twinArrived) continue;   // gated on the twin's landing
+        if (e.twin && !e.released) { e.released = true; anim.popLen = Math.max(anim.popLen, anim.t + e.dur + (e.delay || 0)); }
+        e.t += dt;
+      }
+      var twinSettled = anim.twinArrived && anim.twinPopIndex >= anim.twinPops.length && !game.flight;
+      if (anim.t >= anim.popLen && twinSettled) {
         anim.phase = 'compact'; anim.t = 0;
         dispCells = null;    // post-launch grid from here; moved tiles interpolate
         if (!anim.compaction.length) endAnim();
@@ -850,6 +976,8 @@
     } else if (st === 'playing') {
       if (game.lockout > 0) { game.lockout = Math.max(0, game.lockout - dt); }
       if (lockShake > 0) lockShake = Math.max(0, lockShake - dt);
+      if (handFx) { handFx.t += dt; if (handFx.t >= TUNE.HAND_FX_S) handFx = null; }
+      if (queueFx) { queueFx.t += dt; if (queueFx.t >= TUNE.QUEUE_FX_S) queueFx = null; }
       // launcher eases toward its target lane when not being dragged
       if (!drag) {
         var k = Math.min(1, TUNE.LAUNCHER_SNAP * dt);
@@ -1103,8 +1231,8 @@
     var pal = palette('spring');
     ctx.fillStyle = 'rgba(0,0,0,0.25)';
     ctx.fillRect(0, 0, W, H);
-    text(ctx, 'ORCHARD', W / 2, H * 0.40, 64, '#fff', 'center', pal.text || '#335D7C');
-    text(ctx, 'TOSS', W / 2, H * 0.40 + 66, 64, pal.accent || '#f6c945', 'center', pal.text || '#335D7C');
+    text(ctx, 'ORCHARD', W / 2, H * 0.40, 64, '#fff', 'center', TXT_OUTLINE);
+    text(ctx, 'TOSS', W / 2, H * 0.40 + 66, 64, pal.accent || '#f6c945', 'center', TXT_OUTLINE);
     var i;
     for (i = 0; i < 3; i++) {
       var ph = (Math.sin(t * 4 - i * 0.9) + 1) / 2;
@@ -1122,8 +1250,8 @@
     sp('sprout')(ctx, 82, H * 0.585, 130, game.zoneIndex, 'cheer', t);
     sp('banner')(ctx, W / 2, H * 0.24, 400, 96, pal.banner, 'ORCHARD TOSS', 44);
     var n = save.nextLevel, def = levelDef(n);
-    text(ctx, zoneName(def.zoneIndex || 0).toUpperCase() + '  LEVEL ' + n, W / 2, H * 0.36, 26, '#fff', 'center', pal.text || '#335D7C');
-    if (save.best > 0) text(ctx, 'BEST ' + save.best, W / 2, H * 0.36 + 34, 20, '#fff', 'center', pal.text || '#335D7C');
+    text(ctx, zoneName(def.zoneIndex || 0).toUpperCase() + '  LEVEL ' + n, W / 2, H * 0.36, 26, '#fff', 'center', TXT_OUTLINE);
+    if (save.best > 0) text(ctx, 'BEST ' + save.best, W / 2, H * 0.36 + 34, 20, '#fff', 'center', TXT_OUTLINE);
     var i, hx = W / 2 - (HEARTS_MAX - 1) * 20;
     for (i = 0; i < HEARTS_MAX; i++) sp('heart')(ctx, hx + i * 40, H * 0.48, 30, i < game.hearts);
     var pulse = 1 + 0.03 * Math.sin(t * 5);
@@ -1202,10 +1330,11 @@
         drawCell(cell, x, y, t, season);
       }
     }
-    // pops: shrinking tile + juice splash
+    // pops: shrinking tile + juice splash (primary-run / power-up pops, then the cherry twin's run)
     if (anim && anim.phase === 'pop' && dispCells) {
-      for (i = 0; i < anim.pops.length; i++) {
-        var p = anim.pops[i];
+      var allPops = anim.twinPops && anim.twinPops.length ? anim.pops.concat(anim.twinPops) : anim.pops;
+      for (i = 0; i < allPops.length; i++) {
+        var p = allPops[i];
         if (!p.started) continue;
         var cellP = dispCells[p.row] && dispCells[p.row][p.col];
         var pp = p.t / TUNE.POP_S;
@@ -1280,6 +1409,10 @@
   function renderFlight(t) {
     var f = game.flight;
     if (!f) return;
+    if (f.twin && f.twin.phase !== 'done' && f.twin.phase !== 'wait') renderBody(f.twin, t);
+    if (!f.primaryDone) renderBody(f, t);
+  }
+  function renderBody(f, t) {
     ctx.save();
     ctx.translate(f.x, f.y);
     ctx.rotate(f.rot);
@@ -1293,10 +1426,22 @@
     if (game.state === 'levelFail' || game.state === 'noHearts') mood = 'sad';
     else if (game.state === 'levelClear' || game.state === 'zoneIntro') mood = 'cheer';
     else if (drag || game.flight) mood = 'aim';
-    sp('sprout')(ctx, 40, LAUNCH_Y + 4, 100, game.zoneIndex, mood, t);
+    var showcase = game.state === 'zoneIntro' || game.state === 'levelClear';   // Sprout stands beside the orchard card instead
+    if (!showcase) sp('sprout')(ctx, 40, LAUNCH_Y + 4, 100, game.zoneIndex, mood, t);
     var locked = game.lockout > 0;
     var shakeX = lockShake > 0 ? Math.sin(lockShake * 60) * 4 : 0;
     var heldShown = game.flight ? null : game.held;
+    if (handFx) {
+      // launcher flash: soft warm glow that fades out over HAND_FX_S
+      var hk = 1 - clamp(handFx.t / TUNE.HAND_FX_S, 0, 1);
+      ctx.save();
+      var g = ctx.createRadialGradient(launcherX, LAUNCH_Y, 10, launcherX, LAUNCH_Y, 74);
+      g.addColorStop(0, 'rgba(255,230,140,' + (0.55 * hk) + ')');
+      g.addColorStop(1, 'rgba(255,230,140,0)');
+      ctx.fillStyle = g;
+      ctx.beginPath(); ctx.arc(launcherX, LAUNCH_Y, 74, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+    }
     sp('launcher')(ctx, launcherX + shakeX, LAUNCH_Y, TUNE.LAUNCHER_W, heldShown, locked, t);
     if (game.state === 'playing' && !drag && !game.flight && !anim && stateT < 4 && game.level <= 2) {
       text(ctx, 'DRAG + FLICK UP', launcherX, LAUNCH_Y + 42, 15, 'rgba(255,255,255,0.9)', 'center', 'rgba(0,0,0,0.5)');
@@ -1330,16 +1475,17 @@
   function renderHUD(t, season) {
     var pal = palette(season);
     var dark = 'rgba(30,20,10,0.45)';
-    var outline = pal.text || '#335D7C';
-    // row 1: timer | zone banner | hearts | pause
+    var outline = TXT_OUTLINE;
+    // row 1: timer | zone banner | hearts | pause  (layout in HUD, no overlaps)
     var red = game.timeLeft < TUNE.TIMER_RED_S;
     var timerColor = red ? '#d8323c' : dark;
     var pulse = red ? 1 + 0.06 * Math.sin(t * 10) : 1;
-    sp('panel')(ctx, 8, 8, 118, 44, timerColor);
-    text(ctx, fmtTime(game.timeLeft), 67, 31, 28 * pulse, '#fff', 'center', outline);
-    sp('banner')(ctx, 236, 30, 190, 44, pal.banner, zoneName(game.zoneIndex).toUpperCase() + ' ' + (levelDef(game.level).indexInZone + 1 || game.level), 22);
+    var T = HUD.timer, Bn = HUD.banner, Hh = HUD.hearts;
+    sp('panel')(ctx, T.x, T.y, T.w, T.h, timerColor);
+    text(ctx, fmtTime(game.timeLeft), T.x + T.w / 2, T.y + T.h / 2 + 1, 28 * pulse, '#fff', 'center', outline);
+    sp('banner')(ctx, Bn.cx, Bn.cy, Bn.w, Bn.h, pal.banner, zoneName(game.zoneIndex).toUpperCase() + ' ' + (levelDef(game.level).indexInZone + 1 || game.level), 22);
     var i;
-    for (i = 0; i < HEARTS_MAX; i++) sp('heart')(ctx, 346 + i * 16, 30, 15, i < game.hearts);
+    for (i = 0; i < HEARTS_MAX; i++) sp('heart')(ctx, Hh.x0 + i * Hh.step, Hh.y, Hh.size, i < game.hearts);
     // pause button
     ctx.save();
     ctx.beginPath(); ctx.arc(BTN.pause.x, BTN.pause.y, BTN.pause.r, 0, Math.PI * 2);
@@ -1350,20 +1496,95 @@
     ctx.fillRect(BTN.pause.x + 3, BTN.pause.y - 10, 6, 20);
     ctx.restore();
     // row 2: score | fruit left | held + next
-    sp('panel')(ctx, 8, 60, 140, 52, dark);
-    text(ctx, 'SCORE', 78, 74, 13, 'rgba(255,255,255,0.85)', 'center');
-    text(ctx, String(game.score), 78, 96, 22, '#fff', 'center', outline);
-    sp('panel')(ctx, 156, 60, 166, 52, dark);
-    text(ctx, 'FRUIT LEFT', 239, 74, 13, 'rgba(255,255,255,0.85)', 'center');
-    text(ctx, game.remaining + '  →  ' + game.target, 239, 96, 22, '#fff', 'center', outline);
-    sp('panel')(ctx, 330, 60, 142, 52, dark);
-    text(ctx, 'HELD', 356, 72, 12, 'rgba(255,255,255,0.85)', 'center');
-    if (game.held) sp('fruit')(ctx, game.held, 356, 94, 30, t);
+    var Sc = HUD.score, Lf = HUD.left, Hd = HUD.hand;
+    sp('panel')(ctx, Sc.x, Sc.y, Sc.w, Sc.h, dark);
+    text(ctx, 'SCORE', Sc.x + Sc.w / 2, 74, 13, 'rgba(255,255,255,0.85)', 'center');
+    text(ctx, String(game.score), Sc.x + Sc.w / 2, 96, 22, '#fff', 'center', outline);
+    sp('panel')(ctx, Lf.x, Lf.y, Lf.w, Lf.h, dark);
+    text(ctx, 'FRUIT LEFT', Lf.x + Lf.w / 2, 74, 13, 'rgba(255,255,255,0.85)', 'center');
+    text(ctx, game.remaining + '  →  ' + game.target, Lf.x + Lf.w / 2, 96, 22, '#fff', 'center', outline);
+    sp('panel')(ctx, Hd.x, Hd.y, Hd.w, Hd.h, dark);
+    text(ctx, 'HELD', HUD.heldX, 72, 12, 'rgba(255,255,255,0.85)', 'center');
+    if (handFx) {
+      // hand rescue: a pulsing ring around the HELD preview while the SWAP popup rises
+      var hk = 1 - clamp(handFx.t / TUNE.HAND_FX_S, 0, 1);
+      ctx.save();
+      ctx.strokeStyle = 'rgba(255,224,138,' + (0.35 + 0.65 * hk) + ')';
+      ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.arc(HUD.heldX, HUD.heldY, HUD.heldSize / 2 + 5 + 4 * (1 - hk), 0, Math.PI * 2); ctx.stroke();
+      ctx.restore();
+    }
+    if (game.held) sp('fruit')(ctx, game.held, HUD.heldX, HUD.heldY, HUD.heldSize, t);
     text(ctx, 'NEXT', 428, 72, 12, 'rgba(255,255,255,0.85)', 'center');
     var q = game.queue || [];
     for (i = 0; i < Math.min(3, q.length); i++) {
-      if (q[i]) sp('fruit')(ctx, q[i], 402 + i * 26, 94, 20 - i * 2, t);
+      var qx = HUD.nextX0 + i * HUD.nextStep, qs = 20 - i * 2;
+      if (queueFx && queueFx.slots.indexOf(i) >= 0) {
+        // redrawn NEXT slot: brief white flash ring
+        var qk = 1 - clamp(queueFx.t / TUNE.QUEUE_FX_S, 0, 1);
+        ctx.save();
+        ctx.strokeStyle = 'rgba(255,255,255,' + (0.9 * qk) + ')';
+        ctx.lineWidth = 2.5;
+        ctx.beginPath(); ctx.arc(qx, HUD.nextY, qs / 2 + 3 + 3 * (1 - qk), 0, Math.PI * 2); ctx.stroke();
+        ctx.restore();
+      }
+      if (q[i]) sp('fruit')(ctx, q[i], qx, HUD.nextY, qs, t);
     }
+  }
+
+  // Rects (logical px) of the row-1 HUD elements, for the no-overlap test.
+  function hudBoxes() {
+    var T = HUD.timer, Bn = HUD.banner, Hh = HUD.hearts, P = BTN.pause;
+    var tail = Bn.h * 0.55;                       // S.banner ribbon tails
+    return [
+      { name: 'timer',  x0: T.x, y0: T.y, x1: T.x + T.w, y1: T.y + T.h },
+      { name: 'banner', x0: Bn.cx - Bn.w / 2 - tail, y0: Bn.cy - Bn.h / 2, x1: Bn.cx + Bn.w / 2 + tail, y1: Bn.cy + Bn.h / 2 },
+      { name: 'hearts', x0: Hh.x0 - Hh.size / 2, y0: Hh.y - Hh.size / 2, x1: Hh.x0 + (HEARTS_MAX - 1) * Hh.step + Hh.size / 2, y1: Hh.y + Hh.size / 2 },
+      { name: 'pause',  x0: P.x - P.r, y0: P.y - P.r, x1: P.x + P.r, y1: P.y + P.r }
+    ];
+  }
+
+  // Meta-progression showcase: the orchard tree from OT.S.landmarks, cropped
+  // to a postcard and drawn large on the overlay screens (during play it is
+  // hidden behind the board). Tree base lands at (cx, baseY); Sprout stands
+  // beside it. progress = levels cleared in the zone / zone length.
+  function num(v) { v = Number(v); return v === v ? v : 0; }
+  function renderOrchardShowcase(cx, baseY, scale, season, progress, t, stage, mood) {
+    var pal = palette(season);
+    var tx = W * 0.12, ty = H * 0.885;            // landmark-space tree base
+    var pp = clamp(num(progress), 0, 1);
+    var halfW = W * 0.36, top = H * (0.22 + 0.40 * pp), below = H * 0.02;   // card grows with the tree
+    var r = 26 / scale;
+    ctx.save();
+    ctx.translate(cx - tx * scale, baseY - ty * scale);
+    ctx.scale(scale, scale);
+    roundRect(ctx, tx - halfW, ty - top, halfW * 2, top + below, r);
+    ctx.save();
+    ctx.clip();
+    var g = ctx.createLinearGradient(0, ty - top, 0, ty);
+    g.addColorStop(0, pal.sky); g.addColorStop(1, pal.skyLow);
+    ctx.fillStyle = g;
+    ctx.fillRect(tx - halfW, ty - top, halfW * 2, top + below);
+    ctx.fillStyle = pal.ground;
+    ctx.fillRect(tx - halfW, ty - H * 0.035, halfW * 2, H * 0.035 + below);
+    ctx.fillStyle = pal.groundDark;
+    ctx.fillRect(tx - halfW, ty + 2, halfW * 2, below);
+    sp('landmarks')(ctx, W, H, season, progress, t);
+    ctx.restore();
+    roundRect(ctx, tx - halfW, ty - top, halfW * 2, top + below, r);
+    ctx.strokeStyle = '#3b2314';
+    ctx.lineWidth = 4 / scale;
+    ctx.stroke();
+    ctx.restore();
+    var cardRight = cx + (halfW - tx) * scale;
+    sp('sprout')(ctx, cardRight + 62, baseY + 2, 110 * scale / 0.5, stage, mood, t);
+  }
+  function zoneProgressFor(zi) {
+    var z = ZONES[zi];
+    if (!z || !z.levels) return 0;
+    var start = ZONE_START[zi] || 1, i, done = 0;
+    for (i = start; i < start + z.levels; i++) if (save.stars[i]) done++;
+    return { p: clamp(done / z.levels, 0, 1), done: done, total: z.levels };
   }
 
   function dim(alpha) {
@@ -1372,27 +1593,37 @@
   }
 
   function renderZoneIntro(t) {
-    var season = seasonOf(levelDef(pendingLevel).zoneIndex || 0);
+    var zi = levelDef(pendingLevel).zoneIndex || 0;
+    var season = seasonOf(zi);
     var pal = palette(season);
     dim(0.45);
-    sp('banner')(ctx, W / 2, H * 0.32, 380, 100, pal.banner, zoneName(levelDef(pendingLevel).zoneIndex || 0).toUpperCase(), 46);
-    text(ctx, 'LEVEL ' + pendingLevel, W / 2, H * 0.32 + 84, 28, '#fff', 'center', pal.text || '#335D7C');
-    sp('sprout')(ctx, W / 2, H * 0.58, 150, levelDef(pendingLevel).zoneIndex || 0, 'cheer', t);
-    if (graceOk()) text(ctx, 'TAP TO PLAY', W / 2, H * 0.78, 22, '#fff', 'center', pal.text || '#335D7C');
+    // the zone's orchard, large: a new zone starts as a sapling
+    var zp = zoneProgressFor(zi);
+    renderOrchardShowcase(190, 330, 0.5, season, zp.p, t, zi, 'idle');
+    text(ctx, 'ORCHARD ' + zp.done + ' / ' + zp.total, 190, 356, 16, '#fff', 'center', TXT_OUTLINE);
+    sp('banner')(ctx, W / 2, 440, 380, 100, pal.banner, zoneName(zi).toUpperCase(), 46);
+    text(ctx, 'LEVEL ' + pendingLevel, W / 2, 524, 28, '#fff', 'center', TXT_OUTLINE);
+    if (graceOk()) text(ctx, 'TAP TO PLAY', W / 2, 640, 22, '#fff', 'center', TXT_OUTLINE);
   }
 
   function renderLevelClear(t, season) {
     var pal = palette(season);
+    var finale = game.level >= TOTAL_LEVELS;      // level 52 cleared: the orchard is restored
     dim(0.5);
-    sp('banner')(ctx, W / 2, 300, 380, 90, pal.banner, 'LEVEL CLEAR!', 40);
+    // the growing orchard, large (progress already counts this clear)
+    var zp = zoneProgressFor(game.zoneIndex);
+    renderOrchardShowcase(200, 250, 0.4, season, finale ? 1 : zp.p, t, game.zoneIndex, 'cheer');
+    text(ctx, finale ? 'EVERY TREE IN BLOOM' : 'ORCHARD ' + zp.done + ' / ' + zp.total, 200, 272, 15, '#fff', 'center', TXT_OUTLINE);
+    if (finale) sp('banner')(ctx, W / 2, 335, 400, 90, '#f2b52a', 'ORCHARD RESTORED!', 34);
+    else sp('banner')(ctx, W / 2, 335, 380, 90, pal.banner, 'LEVEL CLEAR!', 40);
     var i;
     for (i = 0; i < 3; i++) {
       var pop = clamp((stateT - 0.25 - i * 0.2) / 0.3, 0, 1);
-      var size = 64 * (0.6 + 0.4 * easeOut(pop));
-      sp('star')(ctx, W / 2 - 90 + i * 90, 400, size, i < game.stars && pop > 0);
+      var size = 60 * (0.6 + 0.4 * easeOut(pop));
+      sp('star')(ctx, W / 2 - 84 + i * 84, 428, size, i < game.stars && pop > 0);
     }
-    text(ctx, 'SCORE ' + game.score, W / 2, 480, 30, '#fff', 'center', pal.text || '#335D7C');
-    text(ctx, 'TIME LEFT ' + fmtTime(game.timeLeft), W / 2, 520, 22, '#fff', 'center', pal.text || '#335D7C');
+    text(ctx, 'SCORE ' + game.score, W / 2, 496, 28, '#fff', 'center', TXT_OUTLINE);
+    text(ctx, (finale ? 'ALL ' + TOTAL_LEVELS + ' LEVELS CLEARED   ' : '') + 'TIME LEFT ' + fmtTime(game.timeLeft), W / 2, 534, finale ? 18 : 22, '#fff', 'center', TXT_OUTLINE);
     sp('button')(ctx, BTN.next.x, BTN.next.y, BTN.next.w, BTN.next.h, pal.button, 'NEXT', 30);
   }
 
@@ -1402,8 +1633,8 @@
     sp('banner')(ctx, W / 2, 300, 380, 90, '#b8323c', "TIME'S UP", 40);
     var i, hx = W / 2 - (HEARTS_MAX - 1) * 20;
     for (i = 0; i < HEARTS_MAX; i++) sp('heart')(ctx, hx + i * 40, 400, 30, i < game.hearts);
-    text(ctx, 'HEART LOST', W / 2, 450, 24, '#ffb3b3', 'center', pal.text || '#335D7C');
-    text(ctx, 'FRUIT LEFT ' + game.remaining + '  →  ' + game.target, W / 2, 500, 22, '#fff', 'center', pal.text || '#335D7C');
+    text(ctx, 'HEART LOST', W / 2, 450, 24, '#ffb3b3', 'center', TXT_OUTLINE);
+    text(ctx, 'FRUIT LEFT ' + game.remaining + '  →  ' + game.target, W / 2, 500, 22, '#fff', 'center', TXT_OUTLINE);
     sp('button')(ctx, BTN.retry.x, BTN.retry.y, BTN.retry.w, BTN.retry.h, pal.button, 'RETRY', 26);
     sp('button')(ctx, BTN.quit.x, BTN.quit.y, BTN.quit.w, BTN.quit.h, '#7a6a5a', 'QUIT', 26);
   }
@@ -1430,9 +1661,9 @@
     var i, hx = W / 2 - (HEARTS_MAX - 1) * 20;
     for (i = 0; i < HEARTS_MAX; i++) sp('heart')(ctx, hx + i * 40, 400, 30, i < game.hearts);
     var ms = msToNextHeart();
-    text(ctx, 'NEXT HEART IN', W / 2, 460, 22, '#fff', 'center', pal.text || '#335D7C');
-    text(ctx, fmtTime(ms / 1000), W / 2, 500, 40, '#fff', 'center', pal.text || '#335D7C');
-    text(ctx, 'TAP TO GO BACK', W / 2, 600, 20, 'rgba(255,255,255,0.9)', 'center', pal.text || '#335D7C');
+    text(ctx, 'NEXT HEART IN', W / 2, 460, 22, '#fff', 'center', TXT_OUTLINE);
+    text(ctx, fmtTime(ms / 1000), W / 2, 500, 40, '#fff', 'center', TXT_OUTLINE);
+    text(ctx, 'TAP TO GO BACK', W / 2, 600, 20, 'rgba(255,255,255,0.9)', 'center', TXT_OUTLINE);
   }
 
   function renderPaused(t, season) {
@@ -1446,7 +1677,25 @@
   var acc = 0;
   var lastRaf = -1;
 
+  // The loop must survive a throw inside update()/render(): the next frame is
+  // scheduled FIRST, and both calls are guarded. Each distinct error message is
+  // logged once (console.error) so a broken painter is visible, not a frozen
+  // game with a silent console. OT.debug.loopErrors() lists what was caught.
+  var loopErrors = {};
+  var loopErrorList = [];
+  function guarded(fn, where) {
+    try { fn(); }
+    catch (e) {
+      var msg = where + ': ' + (e && e.message ? e.message : String(e));
+      if (!loopErrors[msg]) {
+        loopErrors[msg] = true;
+        loopErrorList.push(msg);
+        try { console.error('OT loop error (' + msg + ')', e); } catch (e2) {}
+      }
+    }
+  }
   function frame(now) {
+    window.requestAnimationFrame(frame);
     if (lastRaf < 0) lastRaf = now;
     var dt = (now - lastRaf) / 1000;
     lastRaf = now;
@@ -1457,13 +1706,12 @@
       acc += dt;
       var guard = 0;
       while (acc >= TUNE.STEP && guard < 30) {
-        update(TUNE.STEP);
+        guarded(function () { update(TUNE.STEP); }, 'update');
         acc -= TUNE.STEP;
         guard++;
       }
     }
-    render();
-    window.requestAnimationFrame(frame);
+    guarded(render, 'render');
   }
 
   // ---------------------------------------------------------------- debug hooks
@@ -1531,7 +1779,12 @@
     },
     save: function () { return save; },
     launcherX: function () { return launcherX; },
-    anim: function () { return anim; }
+    anim: function () { return anim; },
+    render: function () { render(); return true; },  // force a frame now (pixel probes in tests)
+    hudBoxes: hudBoxes,                              // row-1 HUD rects (overlap test)
+    handFx: function () { return handFx; },
+    queueFx: function () { return queueFx; },
+    loopErrors: function () { return loopErrorList.slice(); }   // distinct update/render errors caught by the loop
   };
 
   // ---------------------------------------------------------------- boot

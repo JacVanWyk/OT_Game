@@ -45,7 +45,7 @@ Power-ups (section 5), applied when the LAUNCHED fruit matches:
 
 | Fruit | Effect on top of the line clear |
 |---|---|
-| cherry | launches as a PAIR: after the first run clears, the next tile up the column (pre-compaction) is checked; if it is also a cherry that run clears too and the whole launch scores ×2 (`result.cherryDouble = true`) |
+| cherry | launches as a PAIR (redefined 2026-09-02 — the original "next tile up the column" reading was unreachable, 0 doubles in 381 launches, because compaction never leaves a gap): when the primary cherry matches, a TWIN cherry fires into the ADJACENT lane (the side whose impact is a cherry; else `TUNING.CHERRY_TWIN_SIDE`, left at the right edge) under the same wall/pipe/trellis rules. `result.twin = {col, path, deflections, impact, matched}` or null. If the twin also hits a cherry run, that run clears too (cells in `powerup.cells`, `burst` at the twin impact) and the launch scores ×2 (`result.cherryDouble = true`); a twin mismatch just returns, no penalty. Measured 22% of cherry launches double. |
 | strawberry | clears the plus-shaped cross (impact ± 1 row/col), any tile kind, obstacles untouched |
 | apple | clears the impact row (all tile kinds) |
 | watermelon | clears the 8 neighbours of the impact (all tile kinds) |
@@ -56,7 +56,7 @@ Power-ups (section 5), applied when the LAUNCHED fruit matches:
 | orange | chain reaction: every 4-connected same-type cluster of size ≥ 2 that touches any cleared cell also clears, repeated up to 4 rounds; `result.chain` = clusters cleared |
 | lemon | clears the impact column (all tile kinds, both sides of obstacles) |
 
-Level clear when `remaining < target` (section 14). `target = max(2, round(initialFruit * 0.10))`. Score: 10/tile in the run, 15/tile from power-ups, ×2 cherry double, ×(1 + 0.5·chain) orange. Time bonus (section 11): +0.5 s per run tile, +1.0 s per power-up tile, capped at +5 s per launch → `result.timeBonus`.
+Level clear when `remaining < target` (section 14). `target = max(2, round(initialFruit * 0.10))`. Score: 10/tile in the run, 15/tile from power-ups, ×2 cherry double, ×(1 + 0.5·chain) orange. Time bonus (section 11): +0.25 s per run tile, +0.5 s per power-up tile, capped at +3 s per launch → `result.timeBonus` (`OT.Board.TUNING.TIME_RUN/TIME_POWER/TIME_CAP`; halved from 0.5/1.0/5 on 2026-09-02 because the original values refunded the whole level). Generation tunables added the same day: `CLUSTER_BIAS` 0.55 (a new tile copies the type above it with that probability → mean matched run 1.12 → 1.67) and `DRAW_LOOKAHEAD` 3 (queue entries are drawn against a greedy-played copy of the board → hand-rescue rate 55% → 21.5%).
 
 ## `js/config.js` — `OT.CONFIG` (owned by the board builder)
 
@@ -69,12 +69,12 @@ OT.CONFIG = {
            {id:'autumn', name:'Autumn', levels:14, fruits:['pomegranate','pineapple']},
            {id:'winter', name:'Winter', levels:16, fruits:['orange','lemon']} ],
   HEARTS_MAX: 5, HEART_REFILL_MS: 30*60*1000,
-  LOCKOUT_S: 0.6, FLIGHT_SPEED: 1100 /* px/s */, STAR_FRACTIONS: [0.5, 0.25] /* ≥50% time left = 3★, ≥25% = 2★, else 1★ */,
+  LOCKOUT_S: 0.6, FLIGHT_SPEED: 1100 /* px/s */, STAR_FRACTIONS: [0.8, 0.5] /* ≥80% time left = 3★, ≥50% = 2★, else 1★ (was [0.5, 0.25]: gave 3★ to everyone) */,
   levelDef(n) -> LevelDef   // n = 1..52
 }
 ```
 
-`LevelDef = { n, zone:'spring'|…, zoneIndex:0..3, indexInZone, rows:8, cols:5, fill:0.5..0.75, timeLimit:45..60, fruits:[types unlocked so far, cumulative across zones — a NEW zone's fruits are introduced one at a time over its first levels], obstacles:{walls, trellis, pipes, coconuts} }`. Spring: no obstacles, no coconuts (section 7). Summer: walls 1→2. Autumn: walls 2, trellis 1, coconuts 1→2. Winter: walls 2→3, trellis 1→2, pipes 1→2, coconuts 2. Times: Spring 60 s tapering to 50, later zones 55→45. These are tunables — keep them in this one place.
+`LevelDef = { n, zone:'spring'|…, zoneIndex:0..3, indexInZone, rows:8, cols:5, fill:0.5..0.75, timeLimit:45..60, fruits:[types unlocked so far, cumulative across zones — a NEW zone's fruits are introduced one at a time over its first levels], obstacles:{walls, trellis, pipes, coconuts} }`. Spring: no obstacles, no coconuts (section 7). Summer: walls 1→2. Autumn: walls 2, trellis 1, coconuts 1→2. Winter: walls 2→3, trellis 1→2, pipes 1→2, coconuts 2. Times (`TIME_RAMP`, retuned 2026-09-02): Spring 45 s tapering to 38, later zones 40→32 (the original 60→50 / 55→45 never bit: every player archetype cleared with 90–100% time left). These are tunables — keep them in this one place.
 
 ## `js/board.js` — `OT.Board` (pure logic, no DOM, no canvas)
 

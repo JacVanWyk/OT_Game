@@ -52,13 +52,15 @@ var E = '.  .  .  .  .';
 
 // ================================================================ config
 check('config: levelDef 1..52 shape, zone bands, cumulative fruit unlock', function () {
-  var prevFruits = 0;
+  var prevFruits = 0, timeMin = Infinity, timeMax = -Infinity;
+  Object.keys(C.TIME_RAMP).forEach(function (z) { C.TIME_RAMP[z].forEach(function (t) { timeMin = Math.min(timeMin, t); timeMax = Math.max(timeMax, t); }); });
   for (var n = 1; n <= 52; n++) {
     var d = C.levelDef(n);
     eq(d.n, n, 'n');
     eq(d.rows, 8, 'rows'); eq(d.cols, 5, 'cols');
     assert(d.fill >= 0.5 && d.fill <= 0.75, 'fill in range L' + n + ': ' + d.fill);
-    assert(d.timeLimit >= 45 && d.timeLimit <= 60, 'time in range L' + n);
+    assert(d.timeLimit >= timeMin && d.timeLimit <= timeMax, 'time within TIME_RAMP L' + n + ': ' + d.timeLimit);
+    assert(d.timeLimit >= 30 && d.timeLimit <= 60, 'time within the doc section 11 window (30-60 s) L' + n + ': ' + d.timeLimit);
     assert(d.fruits.length >= prevFruits, 'fruits cumulative L' + n);
     assert(d.fruits.length >= 2, 'at least two types L' + n);
     prevFruits = d.fruits.length;
@@ -78,9 +80,17 @@ check('config: levelDef 1..52 shape, zone bands, cumulative fruit unlock', funct
 });
 check('config: obstacle and time ramps per zone', function () {
   for (var n = 1; n <= 10; n++) { var d = C.levelDef(n); eq(d.obstacles.walls + d.obstacles.trellis + d.obstacles.pipes + d.obstacles.coconuts, 0, 'spring obstacle-free L' + n); }
-  eq(C.levelDef(1).timeLimit, 60, 'spring starts 60'); eq(C.levelDef(10).timeLimit, 50, 'spring ends 50');
-  eq(C.levelDef(11).timeLimit, 55, 'summer starts 55'); eq(C.levelDef(22).timeLimit, 45, 'summer ends 45');
-  eq(C.levelDef(52).timeLimit, 45, 'winter ends 45');
+  // time limits follow TIME_RAMP (tunable): first/last level of each zone hit the ramp ends exactly, and the ramp is monotone within a zone
+  eq(C.levelDef(1).timeLimit, C.TIME_RAMP.spring[0], 'spring starts at ramp[0]'); eq(C.levelDef(10).timeLimit, C.TIME_RAMP.spring[1], 'spring ends at ramp[1]');
+  eq(C.levelDef(11).timeLimit, C.TIME_RAMP.summer[0], 'summer starts at ramp[0]'); eq(C.levelDef(22).timeLimit, C.TIME_RAMP.summer[1], 'summer ends at ramp[1]');
+  eq(C.levelDef(23).timeLimit, C.TIME_RAMP.autumn[0], 'autumn starts at ramp[0]'); eq(C.levelDef(36).timeLimit, C.TIME_RAMP.autumn[1], 'autumn ends at ramp[1]');
+  eq(C.levelDef(37).timeLimit, C.TIME_RAMP.winter[0], 'winter starts at ramp[0]'); eq(C.levelDef(52).timeLimit, C.TIME_RAMP.winter[1], 'winter ends at ramp[1]');
+  for (var m = 2; m <= 52; m++) { var a = C.levelDef(m - 1), bb = C.levelDef(m); if (a.zone === bb.zone) assert(bb.timeLimit <= a.timeLimit, 'time never rises within a zone L' + m); }
+  // 2026-09-02 retune: the ramp must sit inside the doc's 30-60 s window and every later zone must start no later than Spring
+  assert(C.TIME_RAMP.spring[0] <= 60 && C.TIME_RAMP.winter[1] >= 30, 'ramp inside 30-60 s');
+  assert(C.TIME_RAMP.summer[0] <= C.TIME_RAMP.spring[0] && C.TIME_RAMP.autumn[0] <= C.TIME_RAMP.spring[0] && C.TIME_RAMP.winter[0] <= C.TIME_RAMP.spring[0], 'later zones start no later than spring');
+  assert(C.STAR_FRACTIONS.length === 2 && C.STAR_FRACTIONS[0] > C.STAR_FRACTIONS[1] && C.STAR_FRACTIONS[1] > 0 && C.STAR_FRACTIONS[0] < 1, 'STAR_FRACTIONS descending in (0,1)');
+  assert(B.TUNING.TIME_CAP >= B.TUNING.TIME_POWER && B.TUNING.TIME_POWER >= B.TUNING.TIME_RUN && B.TUNING.TIME_RUN > 0, 'time bonus tunables ordered');
   eq(C.levelDef(11).obstacles.walls, 1, 'summer walls 1'); eq(C.levelDef(22).obstacles.walls, 2, 'summer walls 2');
   eq(C.levelDef(23).obstacles.trellis, 1, 'autumn trellis'); eq(C.levelDef(23).obstacles.coconuts, 1, 'autumn coconuts 1'); eq(C.levelDef(36).obstacles.coconuts, 2, 'autumn coconuts 2');
   eq(C.levelDef(37).obstacles.pipes, 1, 'winter pipes 1'); eq(C.levelDef(52).obstacles.pipes, 2, 'winter pipes 2');
@@ -151,6 +161,35 @@ check('generation: obstacle counts honoured at L15 / L30 / L52 (seed 1)', functi
   var b30 = B.create(C.levelDef(30), 1); eq(count(b30, 'wall'), 2, 'L30 walls'); eq(count(b30, 'trellis'), 1, 'L30 trellis'); eq(count(b30, 'coconut'), C.levelDef(30).obstacles.coconuts, 'L30 coconuts');
   var b52 = B.create(C.levelDef(52), 1); eq(count(b52, 'wall'), 3, 'L52 walls'); eq(count(b52, 'trellis'), 2, 'L52 trellis'); eq(count(b52, 'pipe'), 2, 'L52 pipes');
   eq(count(b52, 'coconut'), Math.min(2, b52.target - 1), 'L52 coconuts capped by target-1 (generator keeps the level winnable)');
+});
+
+check('generation: CLUSTER_BIAS lengthens the lane runs a match would clear (vs bias 0) and keeps the type >= 2 rule; bias 0 is deterministic', function () {
+  function laneRunMean(bias) {
+    var saved = B.TUNING.CLUSTER_BIAS, tiles = 0, lanes = 0;
+    try {
+      B.TUNING.CLUSTER_BIAS = bias;
+      for (var n = 1; n <= 52; n++) for (var s = 1; s <= 3; s++) {
+        var b = B.create(C.levelDef(n), s);
+        var tc = typeCounts(b); Object.keys(tc).forEach(function (t) { assert(tc[t] >= 2, 'type ' + t + ' >= 2 at bias ' + bias + ' L' + n + ' s' + s); });
+        assert(B.isWinnable(b) && b.warnings.length === 0, 'winnable, no warnings at bias ' + bias + ' L' + n + ' s' + s);
+        for (var c = 0; c < b.cols; c++) {
+          var t = B.trace(b, c); if (!t.impact) continue;
+          var cell = b.cells[t.impact.row][t.impact.col]; if (cell.kind !== 'fruit') continue;
+          lanes++;
+          for (var r = t.impact.row; r >= 0; r--) { var up = b.cells[r][t.impact.col]; if (!up || up.kind !== 'fruit' || up.type !== cell.type) break; tiles++; }
+        }
+      }
+    } finally { B.TUNING.CLUSTER_BIAS = saved; }
+    return tiles / lanes;
+  }
+  var m0 = laneRunMean(0), m1 = laneRunMean(B.TUNING.CLUSTER_BIAS);
+  assert(B.TUNING.CLUSTER_BIAS > 0 && B.TUNING.CLUSTER_BIAS < 1, 'CLUSTER_BIAS in (0,1): ' + B.TUNING.CLUSTER_BIAS);
+  assert(m1 >= m0 + 0.3, 'bias ' + B.TUNING.CLUSTER_BIAS + ' lane-run mean ' + m1.toFixed(2) + ' vs uniform ' + m0.toFixed(2));
+  assert(m1 >= 1.6, 'lane-run mean at the shipped bias >= 1.6: ' + m1.toFixed(2));
+  console.log('     cluster bias: lane-run mean uniform=' + m0.toFixed(2) + ' biased=' + m1.toFixed(2));
+  var saved = B.TUNING.CLUSTER_BIAS;
+  try { B.TUNING.CLUSTER_BIAS = 0; eq(B.snapshot(B.create(C.levelDef(7), 4)), B.snapshot(B.create(C.levelDef(7), 4)), 'bias 0 deterministic'); }
+  finally { B.TUNING.CLUSTER_BIAS = saved; }
 });
 
 // ================================================================ helpers
@@ -250,7 +289,8 @@ check('match: run clears the contiguous same-type line going UP; score 10/tile; 
   var b = fx(['S  .  .  .  .', 'C  .  .  .  .', 'C  .  .  .  .', 'C  .  .  .  .', E, E, E, E], 'cherry', { queue: ['apple', 'strawberry', 'cherry'] });
   var r = B.launch(b, 0);
   eq(r.matched, true, 'matched'); eq(r.run.length, 3, 'run of 3'); eq(r.run[0].row, 3, 'run starts at impact'); eq(r.run[2].row, 1, 'run ends under the S');
-  eq(r.cleared.length, 3, 'cleared 3'); eq(r.scoreDelta, 30, 'score'); eq(r.timeBonus, 1.5, 'time bonus'); eq(r.cherryDouble, false, 'no double');
+  eq(r.cleared.length, 3, 'cleared 3'); eq(r.scoreDelta, 30, 'score'); eq(r.timeBonus, 3 * B.TUNING.TIME_RUN, 'time bonus = 3 x TIME_RUN'); eq(r.cherryDouble, false, 'no double (twin lane 1 is empty)');
+  assert(r.twin && r.twin.col === 1 && r.twin.matched === false && r.twin.impact === null, 'twin fired into empty lane 1 and returned');
   eq(b.remaining, 1, 'remaining'); eq(r.remaining, 1, 'result.remaining'); assert(b.cells[0][0].type === 'strawberry', 'S stays at top');
   // queue[0] = apple has no lane target on the remaining board (only an S), so the hand rescue swaps it for strawberry
   eq(b.held, 'strawberry', 'held rescued: apple had no lane'); eq(JSON.stringify(r.handRescue), '{"kind":"swap","queueIndex":0}', 'rescue reported');
@@ -288,18 +328,66 @@ check('hand: held is always a lane-impact type after create and after every matc
   assert(kinds.swap > 0 && kinds.redraw > 0, 'both rescue kinds exercised: ' + JSON.stringify(kinds));
   for (var n = 1; n <= 52; n += 3) for (var sd = 1; sd <= 3; sd++) { var g = B.create(C.levelDef(n), sd); assert((B.reachableTypes(g) || {})[g.held], 'held has a lane at create L' + n + ' s' + sd); }
 });
-check('cherry double: second cherry continues up past a pipe and clears the next cherry run, x2 score', function () {
-  var b = fx(['C  .  .  .  .', 'C  .  .  .  .', E, 'P  .  .  .  .', 'C  .  .  .  .', 'C  .  .  .  .', E, E], 'cherry');
+// ---- cherry pair: the twin fires into the adjacent lane (board.js header, "Cherry pair")
+check('cherry twin matches: both runs clear, whole launch x2, twin reported, primary path kept', function () {
+  var b = fx(['S  C  .  .  .', 'C  C  .  .  .', 'C  .  .  .  .', E, E, E, E, E], 'cherry');
   var r = B.launch(b, 0);
-  eq(r.matched, true, 'matched'); eq(r.run.length, 2, 'first run'); eq(r.cherryDouble, true, 'double'); eq(r.powerup.type, 'cherry', 'powerup type'); eq(r.powerup.cells.length, 2, 'second run in powerup');
-  eq(r.cleared.length, 4, 'cleared 4'); eq(r.scoreDelta, (2 * 10 + 2 * 15) * 2, 'score x2'); eq(r.timeBonus, 3, 'time'); eq(b.remaining, 0, 'remaining');
-  assert(r.effects.some(function (e) { return e.kind === 'burst'; }), 'burst effect');
+  eq(r.matched, true, 'matched'); eq(r.run.length, 2, 'primary run (0,2),(0,1)'); eq(r.cherryDouble, true, 'double');
+  eq(r.powerup.type, 'cherry', 'powerup type'); eq(r.powerup.cells.length, 2, 'twin run (1,1),(1,0) in powerup'); assert(has(r.powerup.cells, 1, 1) && has(r.powerup.cells, 1, 0), 'twin run cells');
+  eq(r.cleared.length, 4, 'cleared 4'); eq(r.scoreDelta, (2 * 10 + 2 * 15) * B.TUNING.CHERRY_MULT, 'score x2');
+  eq(r.timeBonus, Math.min(B.TUNING.TIME_CAP, 2 * B.TUNING.TIME_RUN + 2 * B.TUNING.TIME_POWER), 'time bonus counts the twin run as power-up tiles');
+  eq(b.remaining, 1, 'only the S remains'); assert(b.cells[0][0] && b.cells[0][0].type === 'strawberry', 'S untouched');
+  assert(r.twin && r.twin.col === 1 && r.twin.matched === true, 'twin lane 1 matched'); eq(JSON.stringify(r.twin.impact), '{"col":1,"row":1}', 'twin impact');
+  eq(r.twin.path[0].col, 1, 'twin path starts in lane 1'); eq(r.twin.path[0].row, 7, 'twin path starts at row 7'); eq(JSON.stringify(r.twin.path[r.twin.path.length - 1]), '{"col":1,"row":1}', 'twin path ends at its impact');
+  eq(JSON.stringify(r.path[r.path.length - 1]), '{"col":0,"row":2}', 'result.path is still the primary'); eq(JSON.stringify(r.impact), '{"col":0,"row":2}', 'result.impact is the primary');
+  assert(r.effects.some(function (e) { return e.kind === 'burst' && e.col === 1 && e.row === 1; }), 'burst effect at the twin impact');
 });
-check('cherry: no double when the next tile up is not a cherry, or a wall/trellis is in the way', function () {
-  var b = fx(['C  .  .  .  .', 'S  .  .  .  .', 'C  .  .  .  .', 'C  .  .  .  .', E, E, E, E], 'cherry');
-  var r = B.launch(b, 0); eq(r.cherryDouble, false, 'S blocks'); eq(r.cleared.length, 2, 'only the run');
-  var b2 = fx(['C  .  .  .  .', 'w> .  .  .  .', E, 'C  .  .  .  .', E, E, E, E], 'cherry');
-  var r2 = B.launch(b2, 0); eq(r2.cherryDouble, false, 'wall blocks'); eq(r2.cleared.length, 1, 'only the run');
+check('cherry twin mismatches: single run, normal score, no penalty, hand advances, twin reported as returned', function () {
+  var b = fx(['C  S  .  .  .', E, E, E, E, E, E, E], 'cherry', { queue: ['strawberry', 'strawberry', 'strawberry'] });
+  var r = B.launch(b, 0);
+  eq(r.matched, true, 'primary matched'); eq(r.cherryDouble, false, 'no double'); eq(r.powerup, null, 'no powerup cells'); eq(r.cleared.length, 1, 'only the primary');
+  eq(r.scoreDelta, 10, 'plain score'); eq(r.timeBonus, B.TUNING.TIME_RUN, 'plain time bonus'); eq(b.remaining, 1, 'S stays');
+  assert(r.twin && r.twin.col === 1 && r.twin.matched === false, 'twin returned'); eq(JSON.stringify(r.twin.impact), '{"col":1,"row":0}', 'twin hit the S');
+  eq(b.held, 'strawberry', 'hand advanced normally (a twin miss is not a mismatch)'); eq(b.moves, 1, 'one move');
+  var b2 = fx(['C  .  .  .  .', E, E, E, E, E, E, E], 'cherry');
+  var r2 = B.launch(b2, 0); assert(r2.twin && r2.twin.impact === null && r2.twin.matched === false && r2.twin.path.length === 8, 'twin into an empty lane climbs to the canopy and returns');
+  eq(r2.cherryDouble, false, 'no double'); eq(b2.remaining, 0, 'primary cleared');
+});
+check('cherry twin: primary mismatch returns the pair (twin null, board untouched)', function () {
+  var b = fx(['S  C  .  .  .', E, E, E, E, E, E, E], 'cherry');
+  var r = B.launch(b, 0); eq(r.matched, false, 'mismatch'); eq(r.twin, null, 'no twin on a primary mismatch'); eq(r.cherryDouble, false, 'no double'); eq(b.remaining, 2, 'untouched');
+});
+check('cherry twin lane choice: prefers the side whose impact is a cherry; right when both; left at the right edge', function () {
+  var left = fx(['C  C  S  .  .', E, E, E, E, E, E, E], 'cherry');
+  var r = B.launch(left, 1); eq(r.twin.col, 0, 'right is S -> left chosen'); eq(r.cherryDouble, true, 'double'); eq(left.remaining, 1, 'S stays');
+  var both = fx(['C  C  C  .  .', E, E, E, E, E, E, E], 'cherry');
+  var r2 = B.launch(both, 1); eq(r2.twin.col, 2, 'both cherries -> right (CHERRY_TWIN_SIDE)'); eq(r2.cherryDouble, true, 'double'); eq(both.remaining, 1, 'left C stays');
+  var edge = fx(['.  .  .  C  C', E, E, E, E, E, E, E], 'cherry');
+  var r3 = B.launch(edge, 4); eq(r3.twin.col, 3, 'right edge -> twin goes left'); eq(r3.cherryDouble, true, 'double at the edge'); eq(edge.remaining, 0, 'both cleared');
+  var edge0 = fx(['C  .  .  .  .', E, E, E, E, E, E, E], 'cherry');
+  var r4 = B.launch(edge0, 0); eq(r4.twin.col, 1, 'left edge -> twin goes right');
+});
+check('cherry twin through a pipe: passes vertically, matches above it, pipe intact', function () {
+  var b = fx(['C  C  .  .  .', '.  P  .  .  .', E, E, E, E, E, E], 'cherry');
+  var r = B.launch(b, 0);
+  eq(r.cherryDouble, true, 'double through the pipe'); assert(has(r.twin.path, 1, 1), 'twin path crosses the pipe cell'); eq(JSON.stringify(r.twin.impact), '{"col":1,"row":0}', 'impact above the pipe');
+  assert(b.cells[1][1] && b.cells[1][1].kind === 'pipe', 'pipe intact'); eq(b.remaining, 0, 'both cleared');
+});
+check('cherry twin blocked by a trellis: twin returns, cherry above the trellis stays, no double', function () {
+  var b = fx(['C  C  .  .  .', '.  T  .  .  .', E, E, E, E, E, E], 'cherry');
+  var r = B.launch(b, 0);
+  eq(r.cherryDouble, false, 'no double'); eq(r.twin.impact, null, 'no impact'); eq(r.twin.matched, false, 'twin returned'); eq(JSON.stringify(r.twin.path[r.twin.path.length - 1]), '{"col":1,"row":1}', 'twin stopped at the trellis');
+  assert(b.cells[0][1] && b.cells[0][1].type === 'cherry', 'C above the trellis stays'); eq(b.remaining, 1, 'remaining');
+});
+check('cherry twin and walls: deflects into the next lane and matches there; deflecting into the primary run never doubles', function () {
+  var b = fx(['C  .  C  .  .', E, '.  w> .  .  .', E, E, E, E, E], 'cherry');
+  var r = B.launch(b, 0);
+  eq(r.twin.col, 1, 'twin lane is still lane 1'); eq(r.twin.deflections.length, 1, 'bounced off the wall'); eq(JSON.stringify(r.twin.impact), '{"col":2,"row":0}', 'impact in lane 2 after the deflection');
+  eq(r.cherryDouble, true, 'double via deflection'); eq(b.remaining, 0, 'both cleared'); assert(b.cells[2][1].kind === 'wall', 'wall intact');
+  var same = fx(['C  .  .  .  .', 'C  .  .  .  .', '.  w< .  .  .', E, E, E, E, E], 'cherry');
+  var r2 = B.launch(same, 0);
+  eq(JSON.stringify(r2.twin.impact), '{"col":0,"row":1}', 'twin deflected into the primary impact cell'); eq(r2.twin.matched, false, 'already being cleared -> not a twin match');
+  eq(r2.cherryDouble, false, 'no double for hitting the same run twice'); eq(r2.cleared.length, 2, 'primary run only'); eq(r2.scoreDelta, 20, 'no x2');
 });
 check('strawberry: cross clears up/left/right/down neighbours of the impact (any tile kind), obstacles untouched', function () {
   var b = fx([E, E, E, '.  .  A  .  .', '.  K  S  w> .', E, E, E], 'strawberry');
@@ -404,10 +492,15 @@ check('compaction: obstacles bound segments (tile below a wall rests under it, n
   eq(moves.length, 1, 'only S slides'); eq(JSON.stringify(moves[0]), '{"from":{"col":0,"row":4},"to":{"col":0,"row":3}}', 'S under the wall');
   assert(b.cells[5][0].kind === 'pipe' && b.cells[2][0].kind === 'wall', 'obstacles intact'); assert(compactionOK(b), 'invariant');
 });
-check('score & time bonus: 10/run, 15/power-up, time 0.5/run + 1.0/power capped at 5', function () {
-  var b = fx(['.  .  A  .  .', '.  .  A  .  .', '.  .  A  .  .', '.  .  A  .  .', '.  .  A  .  .', '.  .  L  .  .', E, E], 'lemon');
+check('score & time bonus: 10/run, 15/power-up, time TIME_RUN/run + TIME_POWER/power capped at TIME_CAP', function () {
+  var T = B.TUNING;
+  var b = fx(['.  .  A  .  .', '.  .  A  .  .', '.  .  A  .  .', '.  .  A  .  .', '.  .  A  .  .', '.  .  A  .  .', '.  .  L  .  .', E], 'lemon');
   var r = B.launch(b, 2);
-  eq(r.scoreDelta, 10 + 5 * 15, 'score'); eq(r.timeBonus, 5, 'capped at 5 (raw 5.5)');
+  eq(r.scoreDelta, 10 + 6 * 15, 'score'); var raw = 1 * T.TIME_RUN + 6 * T.TIME_POWER;
+  assert(raw > T.TIME_CAP, 'fixture exceeds the cap (raw ' + raw + ' > ' + T.TIME_CAP + ')'); eq(r.timeBonus, T.TIME_CAP, 'capped at TIME_CAP');
+  var b2 = fx(['.  .  A  .  .', '.  .  L  .  .', E, E, E, E, E, E], 'lemon');
+  var r2 = B.launch(b2, 2); eq(r2.timeBonus, T.TIME_RUN + T.TIME_POWER, 'under the cap: 1 run + 1 power tile');
+  eq(T.TIME_RUN, 0.25, 'TIME_RUN 0.25 (2026-09-02 retune)'); eq(T.TIME_POWER, 0.5, 'TIME_POWER 0.5'); eq(T.TIME_CAP, 3, 'TIME_CAP 3');
 });
 check('level clear when remaining < target; result.levelCleared and result.remaining', function () {
   var b = fx(['S  .  .  .  C', 'C  .  .  .  .', E, E, E, E, E, E], 'cherry', { target: 2 });
@@ -453,7 +546,9 @@ check('fuzz: 2000 random launches never throw; compaction + recount + hand invar
       assert(r.path.length >= 1 && r.path[0].row === b.rows - 1 && r.path[0].col === col, 'path starts at row 7' + tag);
       eq(r.remaining, b.remaining, 'result.remaining mirrors board' + tag); eq(r.levelCleared, b.remaining < b.target, 'levelCleared' + tag);
       if (!r.matched) { eq(b.held, held, 'held unchanged on miss' + tag); eq(b.queue.join(), q, 'queue unchanged on miss' + tag); eq(b.remaining, rem, 'remaining unchanged on miss' + tag); }
-      else { matches++; assert(r.cleared.length >= 1 && rem - b.remaining === r.cleared.length, 'cleared count matches remaining delta' + tag); assert(r.scoreDelta > 0, 'score' + tag); assert(r.timeBonus > 0 && r.timeBonus <= 5, 'time bonus' + tag); }
+      else { matches++; assert(r.cleared.length >= 1 && rem - b.remaining === r.cleared.length, 'cleared count matches remaining delta' + tag); assert(r.scoreDelta > 0, 'score' + tag); assert(r.timeBonus > 0 && r.timeBonus <= B.TUNING.TIME_CAP, 'time bonus within cap' + tag); }
+      if (r.launched === 'cherry' && r.matched) { assert(r.twin && r.twin.col !== col && Math.abs(r.twin.col - col) === 1 && r.twin.path.length >= 1, 'cherry twin in an adjacent lane' + tag); eq(r.cherryDouble, r.twin.matched, 'double iff twin matched' + tag); }
+      else assert(r.twin === null, 'twin only on a matched cherry' + tag);
       if (r.levelCleared) { clears++; break; }
     }
   }

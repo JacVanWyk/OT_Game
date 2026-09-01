@@ -20,9 +20,18 @@
  *     fruit they can reach; coconuts are never cleared and keep blocking their lane. "Sealed" = every tile the
  *     simulation cannot clear (unreachable fruit + all coconuts). Winnable <=> sealed <= target-1 AND at least
  *     one fruit is directly reachable. The generator caps coconuts + wall-sealed tiles at target-1 accordingly.
- *   - Cherry pair: after the run clears, the scan continues UP the same column skipping empty cells and
- *     passing through pipes; a wall/trellis stops it. If the next tile is a cherry, that run clears too
- *     (reported in result.powerup.cells, effect {kind:'burst'}) and the launch scores x2.
+ *   - Cherry pair (redefined 2026-09-02; the old "next cherry run up the same column" was unreachable: 0 doubles in 381
+ *     launches because compaction never leaves a second run above a gap): the launched cherry fires into its lane AND
+ *     its twin fires into the ADJACENT lane - the side whose trace impact is a cherry, else right (left at the right
+ *     edge; TUNING.CHERRY_TWIN_SIDE). The twin follows the same wall/pipe/trellis rules. It resolves only when the
+ *     primary matched (a primary mismatch returns the pair together: result.twin = null, board untouched). If the twin
+ *     also hits a cherry, that run clears too (result.powerup.cells, effect {kind:'burst'}) and the whole launch scores
+ *     x2 (result.cherryDouble); if it mismatches it simply returns, no penalty. result.twin = {col, path, deflections,
+ *     impact, matched} so game.js can animate it; result.path stays the primary's path.
+ *   - CLUSTER_BIAS (generator): when a column is filled top-down, each new tile copies the type of the tile directly
+ *     above it with probability TUNING.CLUSTER_BIAS (else a uniform draw). Measured at 0 (uniform): matched runs averaged
+ *     1.1 tiles and 55% of matches needed the hand rescue. The RNG is only consumed when the bias is > 0, so bias 0
+ *     reproduces the pre-2026-09-02 boards exactly. The ">= 2 of every present type" pass and winnability are unchanged.
  *   - Pineapple breaks the first 4-adjacent obstacle in the order up, left, right, down. A broken coconut
  *     is a tile: it appears in BOTH result.broken and result.cleared (and decrements remaining).
  *   - Grape: result.run stays the vertical line; the rest of the 4-connected cluster is result.powerup.cells.
@@ -32,6 +41,11 @@
  *     held type is not the impact tile of any lane, it is swapped with the first queue entry that is (or redrawn if
  *     none is); reported as result.handRescue = null | {kind:'swap', queueIndex} | {kind:'redraw'}. Queue entries
  *     whose type has no tiles left on the board are redrawn too (result.queueRedrawn = [indices]).
+ *   - LOOKAHEAD DRAW (TUNING.DRAW_LOOKAHEAD, 2026-09-02): a queue entry is used k hands from now, but was drawn from the
+ *     lanes of the CURRENT board - the very tiles the intervening hands clear - so 48% of matches still needed the rescue
+ *     (insensitive to draw weights and CLUSTER_BIAS). Each queue entry is now drawn from the lanes of a private copy on
+ *     which the preceding hand has been played greedily (simCopy/predictBoard; the copy's draws never recurse). The held
+ *     fruit is still drawn lane-only from the real board. The real board's RNG stream is untouched by the prediction.
  */
 (function () {
   var root = (typeof window !== 'undefined') ? window : (typeof globalThis !== 'undefined' ? globalThis : this);
@@ -49,9 +63,11 @@
     ORANGE_CHAIN_MULT: 0.5,   // score x (1 + 0.5 * chain)
     ORANGE_ROUNDS: 4,         // max chain rounds
     POMEGRANATE_COUNT: 5,     // random tiles cleared elsewhere
-    TIME_RUN: 0.5,            // seconds back per run tile
-    TIME_POWER: 1.0,          // seconds back per power-up/chain tile
-    TIME_CAP: 5,              // max seconds back per launch
+    TIME_RUN: 0.25,           // seconds back per run tile (was 0.5: the bonus refunded the whole level, QA 2026-09-02)
+    TIME_POWER: 0.5,          // seconds back per power-up/chain tile (was 1.0)
+    TIME_CAP: 3,              // max seconds back per launch (was 5)
+    CLUSTER_BIAS: 0.55,       // generator: a new tile copies the type of the tile directly above it with this probability (0 = uniform draw)
+    CHERRY_TWIN_SIDE: 1,      // cherry twin lane when neither neighbour lane shows a cherry: +1 = right (left at the right edge)
     TARGET_FRACTION: 0.10,    // target = max(TARGET_MIN, round(initialFruit * fraction))
     TARGET_MIN: 2,
     GEN_TRIES: 50,            // regeneration cap
@@ -61,6 +77,8 @@
     WALL_HIGH_BIAS: 4,        // wall spot weight multiplies by this per row nearer the top (a wall seals the cells above it)
     DRAW_LOWEST_WEIGHT: 3,    // queue draw: weight per lane whose impact tile is this type
     DRAW_NEXT_WEIGHT: 1,      // queue draw: weight per lane where this type is the NEXT tile up (one clear away)
+    DRAW_LOOKAHEAD: 3,        // queue draw: a queue entry used k hands from now is drawn from the lanes of a COPY on which the
+                              // preceding hand (held, then the queue) has been played greedily, up to this many steps; 0 = current board
     HAND_RESCUE: true         // after a match, if the new held type has no lane target, swap it with a queue entry that has one
   };
 
@@ -200,9 +218,42 @@
     }
     return any ? w : null;
   }
-  // laneOnly: the HELD fruit must be the impact tile of some lane; queue entries may use the one-clear lookahead
-  function drawType(board, laneOnly) {
-    var w = (laneOnly ? reachableTypes(board) : laneWeights(board)) || presentTypes(board);
+  // Prediction copy for the queue draw: same grid/hand, its own RNG (never touches the real board's stream), flagged so
+  // its own draws never recurse into another prediction.
+  function simCopy(board) {
+    var cells = [];
+    for (var r = 0; r < board.rows; r++) cells.push(board.cells[r].slice());
+    return { cols: board.cols, rows: board.rows, seed: board.seed, levelDef: board.levelDef, cells: cells,
+             initialFruit: board.initialFruit, remaining: board.remaining, target: board.target,
+             held: board.held, queue: (board.queue || []).slice(), moves: board.moves, score: board.score, warnings: [],
+             _rng: mulberry32((board.genSeed || board.seed || 1) ^ Math.imul(board.moves + 1, 0x9E3779B9)), _sim: true };
+  }
+  // Play the next `steps` hands greedily (most tiles cleared among the lanes matching the held type) on a copy.
+  function predictBoard(board, steps) {
+    var sim = simCopy(board);
+    for (var step = 0; step < steps; step++) {
+      var best = -1, bestN = -1;
+      for (var c = 0; c < sim.cols; c++) {
+        var t = trace(sim, c);
+        if (!t.impact) continue;
+        var cell = sim.cells[t.impact.row][t.impact.col];
+        if (cell.kind !== 'fruit' || cell.type !== sim.held) continue;
+        var n = launch(simCopy(sim), c).cleared.length;
+        if (n > bestN) { bestN = n; best = c; }
+      }
+      if (best < 0) break;
+      launch(sim, best);
+      if (sim.remaining < sim.target) break;
+    }
+    return sim;
+  }
+  // laneOnly: the HELD fruit must be the impact tile of some lane on the CURRENT board.
+  // depth: how many hands are played before this entry is held (1 = next); with DRAW_LOOKAHEAD the weights come from the
+  // predicted board after those hands, falling back to the current board when the prediction has no lanes.
+  function drawType(board, laneOnly, depth) {
+    var src = board;
+    if (!laneOnly && depth > 0 && TUNING.DRAW_LOOKAHEAD > 0 && !board._sim) src = predictBoard(board, Math.min(depth, TUNING.DRAW_LOOKAHEAD));
+    var w = (laneOnly ? reachableTypes(src) : laneWeights(src)) || presentTypes(src) || laneWeights(board) || presentTypes(board);
     if (!w) {
       var fr = board.levelDef.fruits;
       return fr[rint(board._rng, fr.length)];
@@ -214,9 +265,9 @@
     return types[types.length - 1];
   }
   function refillHand(board) {
-    if (!board.held) board.held = drawType(board, true);
+    if (!board.held) board.held = drawType(board, true, 0);
     if (!board.queue) board.queue = [];
-    while (board.queue.length < 3) board.queue.push(drawType(board));
+    while (board.queue.length < 3) board.queue.push(drawType(board, false, board.queue.length + 1));
   }
 
   // ---------------------------------------------------------------- compaction
@@ -271,6 +322,20 @@
     return d;
   }
 
+  // Cherry twin lane: the neighbour lane whose trace impact is a cherry (not already being cleared), preferring
+  // TUNING.CHERRY_TWIN_SIDE; otherwise that side, or the other one at the edge. -1 on a one-column board.
+  function twinLane(board, col, excluded) {
+    var side = TUNING.CHERRY_TWIN_SIDE >= 0 ? 1 : -1, sides = [], i;
+    if (col + side >= 0 && col + side < board.cols) sides.push(col + side);
+    if (col - side >= 0 && col - side < board.cols) sides.push(col - side);
+    for (i = 0; i < sides.length; i++) {
+      var t = trace(board, sides[i]);
+      var cell = t.impact ? board.cells[t.impact.row][t.impact.col] : null;
+      if (cell && cell.kind === 'fruit' && cell.type === 'cherry' && !(excluded && excluded[key(t.impact.col, t.impact.row)])) return sides[i];
+    }
+    return sides.length ? sides[0] : -1;
+  }
+
   function launch(board, col) {
     if (!(col >= 0 && col < board.cols)) throw new Error('launch: col out of range: ' + col);
     var launched = board.held;
@@ -279,7 +344,7 @@
     var result = {
       col: col, launched: launched,
       path: t.path, deflections: t.deflections, impact: t.impact,
-      matched: false, run: [], powerup: null, chain: 0, cherryDouble: false,
+      matched: false, run: [], powerup: null, chain: 0, cherryDouble: false, twin: null,
       cleared: [], broken: [], effects: [], compaction: [],
       scoreDelta: 0, timeBonus: 0,
       remaining: board.remaining, target: board.target, levelCleared: board.remaining < board.target,
@@ -311,29 +376,28 @@
       var d = mark(ic, r);
       result.run.push({ col: ic, row: r, type: type });
     }
-    var runTop = r; // first row above the run (may be -1)
-
     // 2. power-up of the LAUNCHED fruit
     var pcells = [], eff = result.effects;
     function addP(c, r) { if (inb(board, c, r)) { var d = mark(c, r); if (d) pcells.push(d); } }
 
     switch (type) {
       case 'cherry': {
-        // second cherry of the pair continues up the column: skip empties, pass pipes, stop at wall/trellis
-        var rr = runTop;
-        while (rr >= 0) {
-          var up = board.cells[rr][ic];
-          if (!up || up.kind === 'pipe') { rr--; continue; }
-          if (up.kind === 'fruit' && up.type === 'cherry') {
+        // the twin fires into the adjacent lane (see header); it matches only a cherry that the primary is not already clearing
+        var tl = twinLane(board, col, clearedSet);
+        if (tl >= 0) {
+          var tt = trace(board, tl);
+          var tcell = tt.impact ? board.cells[tt.impact.row][tt.impact.col] : null;
+          var twinMatched = !!(tcell && tcell.kind === 'fruit' && tcell.type === 'cherry' && !clearedSet[key(tt.impact.col, tt.impact.row)]);
+          result.twin = { col: tl, path: tt.path, deflections: tt.deflections, impact: tt.impact, matched: twinMatched };
+          if (twinMatched) {
             result.cherryDouble = true;
-            eff.push({ kind: 'burst', col: ic, row: rr });
-            while (rr >= 0) {
-              var cc = board.cells[rr][ic];
+            eff.push({ kind: 'burst', col: tt.impact.col, row: tt.impact.row });
+            for (var rr = tt.impact.row; rr >= 0; rr--) {
+              var cc = board.cells[rr][tt.impact.col];
               if (!cc || cc.kind !== 'fruit' || cc.type !== 'cherry') break;
-              addP(ic, rr); rr--;
+              addP(tt.impact.col, rr);
             }
           }
-          break;
         }
         break;
       }
@@ -445,11 +509,11 @@
     // 5. compaction, then the new hand
     result.compaction = compact(board);
     board.held = board.queue.shift();
-    board.queue.push(drawType(board));
+    board.queue.push(drawType(board, false, board.queue.length + 1));
     refillHand(board);
     // queue entries whose type has no tiles left can never match again: redraw them
     var present = presentTypes(board) || {}, qi;
-    for (qi = 0; qi < board.queue.length; qi++) if (!present[board.queue[qi]]) { board.queue[qi] = drawType(board); result.queueRedrawn.push(qi); }
+    for (qi = 0; qi < board.queue.length; qi++) if (!present[board.queue[qi]]) { board.queue[qi] = drawType(board, false, qi + 1); result.queueRedrawn.push(qi); }
     // hand rescue: the held type must have a lane target (see header)
     if (TUNING.HAND_RESCUE) {
       var reach = reachableTypes(board);
@@ -457,7 +521,7 @@
         var swapAt = -1;
         for (qi = 0; qi < board.queue.length; qi++) if (reach[board.queue[qi]]) { swapAt = qi; break; }
         if (swapAt >= 0) { var tmp = board.held; board.held = board.queue[swapAt]; board.queue[swapAt] = tmp; result.handRescue = { kind: 'swap', queueIndex: swapAt }; }
-        else { board.held = drawType(board, true); result.handRescue = { kind: 'redraw' }; }
+        else { board.held = drawType(board, true, 0); result.handRescue = { kind: 'redraw' }; }
       }
     }
 
@@ -614,7 +678,10 @@
       var g = segs[i], row = g.top;
       if (g.coconut) { board.cells[row][g.col] = { kind: 'coconut' }; row++; }
       for (var k = (g.coconut ? 1 : 0); k < g.n; k++, row++) {
-        board.cells[row][g.col] = { kind: 'fruit', type: fruits[rint(rng, fruits.length)] };
+        // CLUSTER_BIAS: copy the fruit directly above with probability bias (rng consumed only when the bias is > 0)
+        var above = row > 0 ? board.cells[row - 1][g.col] : null, ty = null;
+        if (above && above.kind === 'fruit' && TUNING.CLUSTER_BIAS > 0 && rng() < TUNING.CLUSTER_BIAS) ty = above.type;
+        board.cells[row][g.col] = { kind: 'fruit', type: ty || fruits[rint(rng, fruits.length)] };
         fruitCells.push({ col: g.col, row: row });
       }
     }

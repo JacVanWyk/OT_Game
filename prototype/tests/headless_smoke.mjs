@@ -30,7 +30,7 @@ const INDEX = path.join(PROTO, 'index.html');
 const BUNDLE = path.join(PROTO, 'dist', 'OrchardToss.html');
 const SCREENS = path.join(PROTO, 'assets', 'screens');
 const RUN = path.join(homedir(), '.claude', 'tools', 'browser-harness', 'run.mjs');
-const SCRIPTS = ['js/config.js', 'js/board.js', 'js/sprites.js', 'js/assets.js', 'js/game.js'];
+const SCRIPTS = ['js/assets_manifest.js', 'js/config.js', 'js/board.js', 'js/sprites.js', 'js/assets.js', 'js/game.js'];
 const HARNESS_TIMEOUT_MS = 90000;
 
 // ─────────────────────────────────────────────────────────────── preflight
@@ -128,6 +128,8 @@ const EVAL_BOOT = `(() => {
   const G = OT.game;
   return { ready: window.__ready === true, assetsReady: window.__assetsReady === true,
            state: G && G.state, fontReady: OT.A && OT.A.fontReady, fontError: OT.A && OT.A.fontError,
+           imgStatus: OT.A && OT.A.status, imgLoaded: OT.A && OT.A.loaded, imgTotal: OT.A && OT.A.total, imgFailed: OT.A && OT.A.failed,
+           fruitOverride: !!(OT.S && OT.S._proc && OT.S.fruit !== OT.S._proc.fruit),
            hasDebug: !!(OT.debug && OT.debug.step && OT.debug.launch && OT.debug.resolve && OT.debug.skipTo),
            hasBoard: !!(OT.Board && OT.Board.create && OT.Board.launch), level: G && G.level, hearts: G && G.hearts };
 })()`;
@@ -257,6 +259,25 @@ const EVAL_PIXELS = `(() => {
   return { state: G.state, view: v, board, sky, canvas: { w: canvas.width, h: canvas.height } };
 })()`;
 
+// Real fruit art (v0.2.0): render each fruit through OT.S.fruit (possibly the
+// image override) and through the procedural snapshot OT.S._proc.fruit into two
+// offscreen canvases and count differing pixels. Imaged fruits MUST differ;
+// non-imaged fruits MUST be pixel-identical (the override delegates), which also
+// proves the differ can report zero. Also measures the opaque bbox of both
+// renders so the image FIT can be judged against the procedural size.
+const EVAL_ART = `(() => {
+  const S = OT.S, A = OT.A;
+  const N = 96, SZ = 64;
+  const render = (fn, type) => { const c = document.createElement('canvas'); c.width = N; c.height = N; const x = c.getContext('2d'); fn(x, type, N/2, N/2, SZ, 0); return x.getImageData(0, 0, N, N).data; };
+  const diff = (a, b) => { let n = 0; for (let i = 0; i < a.length; i += 4) { if (Math.abs(a[i]-b[i]) + Math.abs(a[i+1]-b[i+1]) + Math.abs(a[i+2]-b[i+2]) + Math.abs(a[i+3]-b[i+3]) > 40) n++; } return n; };
+  const bbox = (a) => { let x0 = N, y0 = N, x1 = -1, y1 = -1, n = 0; for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) { if (a[(y*N+x)*4+3] > 128) { n++; if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; } } return n ? { w: x1-x0+1, h: y1-y0+1, n } : { w: 0, h: 0, n: 0 }; };
+  const out = { status: A.status, loaded: A.loaded, total: A.total, failed: A.failed, override: !!(S._proc && S.fruit !== S._proc.fruit), imaged: {}, control: {} };
+  if (!S._proc || !S._proc.fruit) return out;
+  for (const t of Object.keys(OT.AM || {})) { const a = render(S.fruit, t), b = render(S._proc.fruit, t); out.imaged[t] = { diff: diff(a, b), img: bbox(a), proc: bbox(b) }; }
+  for (const t of ['grape', 'orange', 'watermelon']) { const a = render(S.fruit, t), b = render(S._proc.fruit, t); out.control[t] = { diff: diff(a, b), img: bbox(a) }; }
+  return out;
+})()`;
+
 // ─────────────────────────────────────────────────────────────── main
 let server = null;
 let port = null;
@@ -274,8 +295,24 @@ try {
   check('boot (http): __ready + __assetsReady, OT.debug/OT.Board surface present', () => {
     const r = harness(base + 'index.html', { wait: READY_BOTH, evalExpr: EVAL_BOOT });
     const j = r.json || {};
-    const pass = r.status === 0 && j.ready && j.assetsReady && j.hasDebug && j.hasBoard && r.pageErrors.length === 0;
+    const pass = r.status === 0 && j.ready && j.assetsReady && j.hasDebug && j.hasBoard && r.pageErrors.length === 0
+      && j.imgStatus === 'ready' && j.imgLoaded === j.imgTotal && j.imgTotal >= 5 && j.fruitOverride === true;
     return { pass, evidence: { harnessExit: r.status, ...j, pageErrors: r.pageErrors.slice(0, 3) } };
+  });
+
+  const art = harness(base + 'index.html', { wait: READY_BOTH, evalExpr: EVAL_ART });
+  const aj = art.json || {};
+  check('real fruit art: every manifest image loaded, OT.S.fruit overridden, each imaged fruit renders differently from its procedural painter', () => {
+    const keys = Object.keys(aj.imaged || {});
+    const allDiffer = keys.length >= 5 && keys.every(k => aj.imaged[k].diff > 400 && aj.imaged[k].img.n > 400);
+    const pass = art.status === 0 && aj.status === 'ready' && aj.loaded === aj.total && aj.override === true && allDiffer && art.pageErrors.length === 0;
+    return { pass, evidence: { harnessExit: art.status, status: aj.status, loaded: aj.loaded, total: aj.total, failed: aj.failed, override: aj.override, imaged: aj.imaged, pageErrors: art.pageErrors.slice(0, 3) } };
+  });
+
+  check('NEGATIVE CONTROL: non-imaged fruits (grape, orange, watermelon) render pixel-identical through the override (diff must be 0, and not because nothing was drawn)', () => {
+    const keys = Object.keys(aj.control || {});
+    const pass = art.status === 0 && keys.length === 3 && keys.every(k => aj.control[k].diff === 0 && aj.control[k].img.n > 400);
+    return { pass, evidence: { harnessExit: art.status, control: aj.control } };
   });
 
   check('title -> playing via OT.game.start()', () => {
@@ -350,10 +387,11 @@ try {
 
   if (existsSync(BUNDLE)) {
     const fileUrl = 'file://' + BUNDLE;
-    check('boot (file:// bundle dist/OrchardToss.html): __ready + __assetsReady + font', () => {
+    check('boot (file:// bundle dist/OrchardToss.html): __ready + __assetsReady + font + all fruit images from data URIs', () => {
       const r = harness(fileUrl, { wait: READY_BOTH, evalExpr: EVAL_BOOT });
       const j = r.json || {};
-      const pass = r.status === 0 && j.ready && j.assetsReady && j.hasDebug && j.hasBoard && r.pageErrors.length === 0;
+      const pass = r.status === 0 && j.ready && j.assetsReady && j.hasDebug && j.hasBoard && r.pageErrors.length === 0
+        && j.imgStatus === 'ready' && j.imgLoaded === j.imgTotal && j.imgTotal >= 5 && j.fruitOverride === true;
       return { pass, evidence: { harnessExit: r.status, bundleBytes: statSync(BUNDLE).size, ...j, pageErrors: r.pageErrors.slice(0, 3) } };
     });
   } else {

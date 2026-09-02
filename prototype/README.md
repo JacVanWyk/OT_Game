@@ -109,9 +109,9 @@ shown ONLY at zone transitions (Spring → Summer etc.), never between levels
 
 ## Tech notes
 
-- Single page: `index.html` + five plain `<script>` tags, in this order and
-  no other: `js/config.js` → `js/board.js` → `js/sprites.js` →
-  `js/assets.js` → `js/game.js`. Global namespace `window.OT`. **No ES
+- Single page: `index.html` + six plain `<script>` tags, in this order and
+  no other: `js/assets_manifest.js` → `js/config.js` → `js/board.js` →
+  `js/sprites.js` → `js/assets.js` → `js/game.js`. Global namespace `window.OT`. **No ES
   modules, no `fetch`, no CDN** — browsers block both on `file://`.
 - Logical field 480 × 854 (9:16 portrait), scaled uniformly to the viewport
   and centred; the ambient background (sky / hills / ground) is painted over
@@ -128,6 +128,15 @@ shown ONLY at zone transitions (Spring → Summer etc.), never between levels
   `document.fonts.check()` is a false green for unknown families, so
   readiness is the load promise (`window.__assetsReady`), not a check. The
   bundle embeds it as `OT.AM_DATA['Fredoka-Bold']`.
+- **Real fruit art (v0.2.0):** Ben's clay-style renders live as masters in
+  `assets/<Fruit>.png`; `python3 tools/preprocess_assets.py` alpha-crops and
+  downsizes them to 256 px into `assets/img/` and regenerates
+  `js/assets_manifest.js` (`OT.AM`, keyed by fruit type id). `js/assets.js`
+  preloads them and swaps `OT.S.fruit` for an image painter all-or-nothing;
+  fruits without a render yet (watermelon, grape, pomegranate, orange, lemon)
+  keep their procedural painter through the same call, so Summer+ boards mix
+  the two styles until the roster is complete. The bundle embeds the images
+  as `OT.AM_DATA[typeId]` data URIs.
 - Mobile-first, touch-first; designed for later Android packaging with the
   `apk_engine` Capacitor/WebView toolchain (not done yet — browser-only).
 - `tools/spritesheet.html` renders every procedural painter into one
@@ -172,15 +181,34 @@ node ~/.claude/tools/browser-harness/run.mjs http://localhost:8000/ \
 
 ```bash
 # from prototype/
+python3 tools/preprocess_assets.py  # masters assets/<Fruit>.png -> assets/img/ (256 px, alpha-cropped) + js/assets_manifest.js; fails loudly on a missing/non-RGBA master
 node tests/board_test.js            # pure-logic suite (Node, zero deps); exit 0 only if every assertion passes and nothing threw
-python3 build_bundle.py             # -> dist/OrchardToss.html; fails loudly on a missing script/font, a missing/duplicated/out-of-order <script> anchor, or a surviving external src=/href=
-python3 build_bundle.py --zip 0.1.0 # ...plus dist/OrchardToss_prototype_v0.1.0.zip of the authoring folder (index.html, js/, assets/fonts/, README.md)
+python3 build_bundle.py             # -> dist/OrchardToss.html (font + fruit images embedded); fails loudly on a missing script/font/image, a missing/duplicated/out-of-order <script> anchor, or a surviving external src=/href=
+python3 build_bundle.py --zip 0.2.0 # ...plus dist/OrchardToss_prototype_v0.2.0.zip of the authoring folder (index.html, js/, assets/fonts/, assets/img/, README.md)
 node tests/headless_smoke.mjs       # headless browser suite: starts its own http.server on a scratch port, runs each check through the browser harness, boots the file:// bundle if built, screenshots to assets/screens/, kills the server and confirms the port is free
 ```
 
 `headless_smoke.mjs` exit codes: `0` every check passed · `1` any FAIL or
 thrown error · `2` browser harness missing · `3` SKIP because the game is
 not built yet (index.html or a script file absent) — never a silent 0.
+
+## Verified (v0.2.0, 2026-09-02 — real fruit art)
+
+- `node tests/headless_smoke.mjs` → 14 passed. New: the http boot and the
+  `file://` bundle boot both reach `OT.A.status === 'ready'` with 5/5 images
+  and `OT.S.fruit` overridden; a differential probe renders each imaged
+  fruit through `OT.S.fruit` and `OT.S._proc.fruit` into offscreen canvases
+  (2 036–2 772 differing pixels of a 96² canvas at size 64) and its negative
+  control shows grape, orange and watermelon render with **0** differing
+  pixels through the override while drawing 1 400+ opaque pixels.
+- Image fit measured against the procedural painters at the same size:
+  opaque bbox 60 px tall for every real fruit vs 62–68 for the procedural
+  ones at size 64 (bodies ~0.74 × size both ways).
+- Screenshots after the change: Spring 5 (all real) and Autumn 8 (real
+  banana/strawberry/apple beside procedural grape/watermelon/pomegranate and
+  a coconut) — see `RELEASE_NOTES.md`.
+- `node tests/board_test.js` unchanged at 52/52; bundle 0.67 MB boots from
+  `file://` with every image from data URIs.
 
 ## Verified (v0.1.0, 2026-09-02 — headless, swiftshader Chromium)
 

@@ -8,6 +8,82 @@ evidence) and listing the changed files. Design source of truth:
 
 ---
 
+## 2026-09-02 — v0.2.0 — real clay fruit art (5 of 10 fruits)
+
+**STATUS: VERIFIED + DEPLOYED.** Ben supplied clay-style renders for
+apple, banana, cherry, pineapple and strawberry (`prototype/assets/<Fruit>.png`,
+600–815 px square RGBA with transparent backgrounds; the same five are in
+`OT_Assets_Clay.zip`). They now draw in every place a fruit appears: board
+tiles, the flying fruit and cherry twin, the launcher cradle, and the HELD /
+NEXT HUD slots. Live at **https://tools-app.net/hosted/orchard-toss/** —
+13 files byte-identical to source (`index.html`, 6 scripts, the font, 5
+images); anonymous requests to the page, `js/assets_manifest.js`,
+`assets/img/Apple.png` and `assets/img/Cherry.png` all 302 to login.
+
+**Pipeline (Numbat Patrol pattern).** `tools/preprocess_assets.py`
+alpha-crops each master (alpha > 16 threshold so glow halos cannot inflate
+the frame) and downsizes to 256 px on the longer side into `assets/img/`
+(340 KB for all five), then regenerates `js/assets_manifest.js` as
+`OT.AM = { apple: {src, w, h}, … }` keyed by the fruit **type id** so the
+painter looks a tile's image up by `cell.type` directly. `js/assets.js`
+preloads every manifest image (bundle data URIs first, relative paths
+otherwise), snapshots `OT.S._proc.fruit`, and installs an image-drawing
+`OT.S.fruit` **all-or-nothing** once every image has loaded; any failure
+leaves the procedural painters untouched. The override draws the image with
+its longer side at 0.95 × the painter's size (the renders carry stem and
+leaf inside the crop, so bodies land at ~0.74 × size, the procedural ball's
+0.76 diameter), with the same radial drop shadow and idle wobble, and
+**delegates** to the procedural painter for watermelon, grape, pomegranate,
+orange and lemon — so Summer+ boards mix real and procedural fruit by design
+until Ben supplies the rest. `build_bundle.py` parses `OT.AM` out of the
+manifest, embeds each PNG beside the font in `OT.AM_DATA`, and fails on a
+missing / empty / non-PNG image or a data-URI count that differs from the
+manifest. Bundle: 0.67 MB (was 0.21).
+
+**Verified (headless, swiftshader Chromium).**
+
+- `node tests/headless_smoke.mjs` → **14 passed, 0 failed, 0 errors**
+  (was 12). The http boot and the `file://` bundle boot both require
+  `OT.A.status === 'ready'`, 5/5 images loaded and `OT.S.fruit !==
+  OT.S._proc.fruit`. New differential probe: each imaged fruit rendered
+  through `OT.S.fruit` vs the procedural snapshot into 96² offscreen canvases
+  at size 64 differs by 2 036–2 772 pixels. **Negative control:** grape,
+  orange and watermelon render through the override with exactly **0**
+  differing pixels while drawing 1 462–2 284 opaque pixels — proving the
+  delegation path and that the differ can report zero.
+- Size match measured, not eyeballed: real fruit opaque bbox 60 px tall at
+  size 64 vs 62–68 for the procedural painters.
+- `node tests/board_test.js` → `SUMMARY passed=52 failed=0 errors=0`
+  (logic untouched).
+- Screenshots after the change (not before): `assets/screens/playing_390x844.png`
+  (Spring 5: all-real board, HUD slots, launcher) and
+  `assets/screens/playing_autumn_390x844.png` (Autumn 8)
+  with real banana/strawberry/apple beside procedural grape, watermelon,
+  pomegranate and a coconut.
+- Server hygiene: the smoke suite's `http.server` and the screenshot
+  server were both killed by pid and their ports confirmed free with `ss -ltn`.
+
+**For Ben to decide.** The two art styles sit side by side from Summer on
+(clay renders vs flat-outlined procedural). The remaining five renders
+(watermelon, grape, pomegranate, orange, lemon) drop in with one line each in
+`tools/preprocess_assets.py`; coconut, obstacles, Sprout, the monkey and the
+chrome are still procedural and have no pipeline entry yet. The board tile
+fit (0.95) can be nudged in `js/assets.js` (`FIT`) if the real fruit read
+as small on a phone.
+
+**Not verified.** Real-device rendering of the 256 px sprites at DPR 3
+(headless runs at DPR 1), and the hosted page past the login wall.
+
+**Changed files.** `prototype/tools/preprocess_assets.py` (new),
+`prototype/js/assets_manifest.js` (new, generated), `prototype/assets/img/*.png`
+(new, 5), `prototype/assets/{Apple,Banana,Cherry,Pineapple,Strawberry}.png`
+(new masters from Ben), `prototype/js/assets.js`, `prototype/index.html`,
+`prototype/build_bundle.py`, `prototype/tests/headless_smoke.mjs`,
+`prototype/dist/OrchardToss.html`, `prototype/ARCHITECTURE.md`,
+`prototype/README.md`, `CLAUDE.md`, `RELEASE_NOTES.md`.
+
+---
+
 ## 2026-09-02 — v0.1.0 — first playable POC
 
 **STATUS: VERIFIED + DEPLOYED.** Full-spec build (all 10 fruits, all 4

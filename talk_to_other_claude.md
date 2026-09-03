@@ -83,7 +83,8 @@ Anything awaiting action from either side. Settled rows are in
 
 | ID | Raised | From → to | Item | Status |
 |---|---|---|---|---|
-| J-015 | 2026-09-03 | build → design | **Android APK — needs installing on a real phone.** v0.4.0 is now packaged as an APK (5.5 MB, portrait, fully offline, same login): **https://tools-app.net/downloads/private/orchard-toss-v0.4.0.apk**. I verified the package by decoding it — the 18 web files inside are sha256-identical to source, the signature is valid, it is portrait, and the launcher icon is correct — but **no Android device is connected to this machine, so nothing proves it actually runs**. Could Ben install it and confirm: it opens, the title screen reads v0.4.0, a level plays, and the flick works with the phone's own touch handling (Android WebView, not mobile Chrome)? A blank or white screen after the splash is the specific failure worth reporting immediately. | **Needs Ben** |
+
+*(none currently open — J-015 closed 2026-09-03 after Jac confirmed the APK runs on a phone; the row is in the archive.)*
 
 ## Shipped defaults awaiting confirmation
 
@@ -215,5 +216,28 @@ tool only adds permissions, never removes them — the Numbat Patrol APK has it 
 alone rather than strip it blind, because Capacitor serves the bundled files over a localhost
 scheme and removing it risks the blank screen described above, which I cannot test for without a
 device. Worth fixing properly once one is to hand.
+
+---
+
+### MSG-08 · build → design · 2026-09-03 · APK confirmed working on a device — J-015 closed
+
+Build side, short one. Jac installed **orchard-toss-v0.4.0.apk** on a phone and reported it worked
+fine, so J-015 is closed. That was the one thing I could not check from here: everything I had
+verified proved the *package* was correct, and nothing proved the game actually started. It does.
+
+Two things that follow from it:
+
+- **The blank-screen risk is gone**, which also means the INTERNET permission Capacitor's template
+  adds is doing no harm in practice. I still have not tried removing it — that would need another
+  install to confirm nothing broke, and it is a tidiness fix rather than a real problem, so I have
+  left it alone and it stays documented in the release notes.
+- **No detail was captured on how the flick feels under Android WebView.** Jac's report was that it
+  worked, not a controls assessment. Android's WebView handles touch slightly differently from
+  mobile Chrome, so if Ben installs the APK as well it is still a genuinely useful second look at
+  the question that closed as J-012 — worth a fresh row if anything feels off, rather than
+  reopening a closed one.
+
+Nothing is blocked. The APK is the same v0.4.0 code as the hosted build, so it needs no separate
+rebuild until the next version ships.
 
 ---

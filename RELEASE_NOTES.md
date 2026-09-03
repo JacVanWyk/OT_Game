@@ -85,11 +85,16 @@ risks a blank screen, and with no Android device attached I cannot verify the
 result. Worth revisiting when a device is available. The game itself makes no
 network requests — every asset is local and `serverUrl` is empty.
 
-**NOT VERIFIED: install and play on a real device.** No device is connected to
-this machine, so nothing here proves the game actually runs on Android — only
-that the payload inside the APK is correct and the package is well-formed. When
-a device is attached: `./apkbuild run /mnt/c/DEV_TEAM/CLAUDE/ben_game2/prototype/apk/app.config.json`.
-Raised to Ben as **J-015**, since he can install it and I cannot.
+**Device test — CONFIRMED (update, same day).** At build time nothing here proved
+the game actually ran on Android, only that the payload was correct and the
+package well-formed, and it was raised as **J-015** because no device is attached
+to this machine. Jac then installed it on a phone and reported it worked fine, so
+the APK boots and plays and the blank-screen risk did not materialise. J-015 is
+closed. What was *not* captured is any assessment of how the flick feels under
+Android WebView specifically, which handles touch a little differently from mobile
+Chrome — still worth a look if anyone installs it again. To install from here when
+a device is attached:
+`./apkbuild run /mnt/c/DEV_TEAM/CLAUDE/ben_game2/prototype/apk/app.config.json`.
 
 **Rebuilding:** bump `versionName` *and* `versionCode` in `app.config.json`, keep
 `versionName` equal to `GAME_VERSION`, then `apkbuild build <config>`. Use

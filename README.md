@@ -16,7 +16,8 @@ time-limit loss, hearts, stars, and Sprout the apprentice as host. Ben owns the 
 - v0.3.0 landed Ben's first two decisions from `talk_to_other_claude.md`: difficulty now
   climbs through the zones instead of easing off (J-006), and the banana monkey sweep breaks
   every obstacle in its row as well as clearing it (J-008).
-- v0.4.0 wired in Ben's final five renders plus a regenerated pineapple, completing the roster.
+- v0.4.0 wired in Ben's final five renders plus a regenerated pineapple, completing the roster,
+  and packaged the game as an Android APK (5.5 MB, portrait, fully offline) behind the same login.
 - Verified headless (55 board checks, 14 browser checks) and deployed login-gated at
   `https://tools-app.net/hosted/orchard-toss/`.
 
@@ -31,6 +32,7 @@ time-limit loss, hearts, stars, and Sprout the apprentice as host. Ben owns the 
 | `prototype/dist/OrchardToss.html` | Single-file offline bundle (font + art embedded) |
 | `prototype/assets/` | Ben's master fruit renders; `assets/img/` is the processed set |
 | `prototype/tools/sim_players.js` | Player-archetype simulation — every tuning value is measured here, never eyeballed |
+| `prototype/apk/` | Android packaging: apkbuild config, staging script + its audit, launcher icon |
 | `RELEASE_NOTES.md` | What each version verified and the QA behind every tuning value |
 | `CLAUDE.md` | Working conventions for the Claude Code sessions that build this |
 | `talk_to_other_claude.md` | Channel between the build Claude and Ben's design Claude (open items + log) |

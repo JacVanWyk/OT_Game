@@ -8,6 +8,103 @@ evidence) and listing the changed files. Design source of truth:
 
 ---
 
+## 2026-09-03 — v0.4.0 packaged as an Android APK (first APK for this game)
+
+**STATUS: BUILT + DEPLOYED, NOT YET RUN ON A DEVICE.** Jac: "build an apk for
+this using the apk engine". Packaged with the existing `apk_engine` CLI
+(Capacitor + Gradle) exactly as Numbat Patrol is. 5.5 MB signed debug APK, live
+behind the router login at
+**https://tools-app.net/downloads/private/orchard-toss-v0.4.0.apk**.
+
+**The app definition is version-controlled here, not in `apk_engine`.** Numbat
+Patrol's lives in `apk_engine/apps/numbat-patrol/`, which is not a git repo, so
+its packaging config has no history and Ben cannot see it. Orchard Toss's lives
+in `prototype/apk/` (`app.config.json`, `stage.sh`, `audit_stage.py`, `icon.png`)
+with `workDir` and the staged payload pointed at `apk_engine/apps/orchard-toss/`,
+so the build artefacts stay out of this repo and the config stays reviewable.
+A README in that directory points back here.
+
+**Config:** `com.bengame.orchardtoss`, versionName 0.4.0 (kept equal to
+`GAME_VERSION`), versionCode 1, **portrait** (the design doc's §13 board is
+portrait; Numbat Patrol is landscape), minSdk 22 / target 34, background
+`#3b7d4f` to match `index.html` so there is no white flash before first paint.
+
+**Staging is glob-driven and audited.** `stage.sh` copies only the runtime
+payload — `index.html`, `js/*.js`, `assets/img/*`, the woff2 — never
+`dist/OrchardToss.html` (1.18 MB, a duplicate of everything else), `tools/`,
+`tests/`, `assets/screens/` or the 4 MB of master renders. Every list is a glob:
+an explicit filename list is exactly what shipped a Numbat Patrol build without
+two new scripts while the audit of "what was listed" stayed green.
+
+`audit_stage.py` then fails the build unless the stage is *exactly* the runtime
+payload. It is a separate file specifically so it can be run against a broken
+stage. **Five negative controls, each asserting its injection actually landed
+before trusting the result:**
+
+| Injected defect | Caught by |
+|---|---|
+| a script silently dropped | js set mismatch + index.html `<script>` tags disagree |
+| an unmanifested image staged (Coconut.png) | img set mismatch + manifest disagrees |
+| a staged file altered after copy | sha256 mismatch vs source |
+| `dist/` staged | must-not-ship list |
+| the font missing | no font staged |
+
+All five exited 1. An earlier sixth attempt reported "audit did not catch it",
+which was a **broken control, not a passing audit** — the `sed` that was meant to
+inject the defect had a delimiter clash and never ran. That is why the injections
+are now asserted before the audit's verdict is read.
+
+**APK contents audited by decoding, not by trusting the build.** `assets/public/`
+holds exactly 20 files: our 18 (index, 6 scripts, 10 images, 1 font), each
+**sha256-identical to the source**, plus Capacitor's own `cordova.js` and
+`cordova_plugins.js`. Set equality both ways against the source tree, so a
+missing *or* extra file fails. No `dist/`, `tools/`, `tests/` or `screens/`.
+`Coconut.png` explicitly absent. `GAME_VERSION` inside the APK reads 0.4.0 and
+the embedded manifest has 10 entries. `apksigner verify` passes (v1 + v2).
+`aapt dump badging` confirms package, versionCode 1, versionName 0.4.0, label
+"Orchard Toss", `android.hardware.screen.portrait`. 26 launcher icon resources,
+and the extracted `ic_launcher_round.png` was viewed to confirm it is our icon
+rather than the Capacitor default.
+
+**Icon:** Ben has supplied no logo, so it is his apple render on the game's own
+sky colour with a grass band and contact shadow. Chosen by measurement, not
+taste: the first attempt put the green apple on the game's green ground, which
+measured the *worst* contrast of all 11 fruits (72 of a possible 188 by RGB
+distance). On the sky it measures 214. The apple is scaled and positioned to sit
+inside Android's adaptive-icon safe zone (spans 20.9%–78.9% vertically against a
+17%–83% mask), so the stem is not clipped.
+
+**Honest note on permissions.** The config requests none, and the APK still
+declares `android.permission.INTERNET`. That comes from **Capacitor's own
+template manifest**, and `apkbuild`'s patcher only *adds* requested permissions,
+it never removes the template's. The Numbat Patrol APK carries it too, so the
+earlier knowledge-base claim that that build ships "zero permissions" was wrong
+and has been corrected. It is left in place deliberately: Capacitor serves the
+bundled assets over an `https://localhost` scheme handler, so stripping INTERNET
+risks a blank screen, and with no Android device attached I cannot verify the
+result. Worth revisiting when a device is available. The game itself makes no
+network requests — every asset is local and `serverUrl` is empty.
+
+**NOT VERIFIED: install and play on a real device.** No device is connected to
+this machine, so nothing here proves the game actually runs on Android — only
+that the payload inside the APK is correct and the package is well-formed. When
+a device is attached: `./apkbuild run /mnt/c/DEV_TEAM/CLAUDE/ben_game2/prototype/apk/app.config.json`.
+Raised to Ben as **J-015**, since he can install it and I cannot.
+
+**Rebuilding:** bump `versionName` *and* `versionCode` in `app.config.json`, keep
+`versionName` equal to `GAME_VERSION`, then `apkbuild build <config>`. Use
+`apkbuild update <config>` for a web-asset-only change (seconds, re-signs with
+the same debug key so it installs in place).
+
+**Changed files:** `prototype/apk/app.config.json`, `prototype/apk/stage.sh`,
+`prototype/apk/audit_stage.py`, `prototype/apk/icon.png` (all new), `README.md`,
+`CLAUDE.md`, `talk_to_other_claude.md`, this file; plus
+`apk_engine/apps/orchard-toss/README.md` and the deployed APK at
+`C:\PROD_DB\infra_router\downloads\files\private\orchard-toss-v0.4.0.apk`
+(neither in this repo).
+
+---
+
 ## 2026-09-03 — v0.4.0 — the fruit roster is complete: all 10 fruits in Ben's clay art, coconut deliberately kept out
 
 **STATUS: VERIFIED + DEPLOYED.** Ben supplied the remaining five renders plus a

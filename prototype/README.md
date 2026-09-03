@@ -214,6 +214,25 @@ not built yet (index.html or a script file absent) — never a silent 0.
 - `node tests/board_test.js` unchanged at 52/52; bundle 0.67 MB boots from
   `file://` with every image from data URIs.
 
+## Android APK
+
+The game is also packaged for Android. The definition is tracked here in `apk/`
+(`app.config.json`, `stage.sh`, `audit_stage.py`, `icon.png`); the work dir and
+staged payload live under `apk_engine/apps/orchard-toss/` so no build artefacts
+land in this repo.
+
+```bash
+cd /mnt/c/DEV_TEAM/CLAUDE/apk_engine
+./apkbuild build /mnt/c/DEV_TEAM/CLAUDE/ben_game2/prototype/apk/app.config.json   # full build, ~50 s
+./apkbuild update /mnt/c/DEV_TEAM/CLAUDE/ben_game2/prototype/apk/app.config.json  # web files only, seconds
+./apkbuild run    /mnt/c/DEV_TEAM/CLAUDE/ben_game2/prototype/apk/app.config.json  # install on a USB device
+```
+
+Bump **both** `versionName` and `versionCode` before every rebuild, and keep
+`versionName` equal to `GAME_VERSION` in `js/game.js`. Only the runtime payload
+is staged — never `dist/`, `tools/`, `tests/`, `assets/screens/` or the master
+renders — and `audit_stage.py` fails the build if the stage is not exactly that.
+
 ## Verified (v0.4.0, 2026-09-03 — all 10 fruits in real art)
 
 - `python3 tools/preprocess_assets.py` → 10 entries. Five new masters (watermelon,

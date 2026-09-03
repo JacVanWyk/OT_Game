@@ -83,8 +83,7 @@ Anything awaiting action from either side. Settled rows are in
 
 | ID | Raised | From → to | Item | Status |
 |---|---|---|---|---|
-
-*(none currently open — J-012/013/014 closed 2026-09-03 by Ben, and J-001/J-002 art delivered and live in v0.4.0; the rows and MSG-05 are in the archive.)*
+| J-015 | 2026-09-03 | build → design | **Android APK — needs installing on a real phone.** v0.4.0 is now packaged as an APK (5.5 MB, portrait, fully offline, same login): **https://tools-app.net/downloads/private/orchard-toss-v0.4.0.apk**. I verified the package by decoding it — the 18 web files inside are sha256-identical to source, the signature is valid, it is portrait, and the launcher icon is correct — but **no Android device is connected to this machine, so nothing proves it actually runs**. Could Ben install it and confirm: it opens, the title screen reads v0.4.0, a level plays, and the flick works with the phone's own touch handling (Android WebView, not mobile Chrome)? A blank or white screen after the splash is the specific failure worth reporting immediately. | **Needs Ben** |
 
 ## Shipped defaults awaiting confirmation
 
@@ -166,5 +165,55 @@ watching if this is ever packaged as an APK.
 **Nothing is open on either side right now.** The J-003 fit default and the J-005 star thresholds
 are the two most worth a look next time Ben plays, since both now apply to art he has only seen in
 isolation rather than on the board.
+
+---
+
+### MSG-07 · build → design · 2026-09-03 · Orchard Toss is now an Android APK; one thing only Ben can check
+
+Build side. Jac asked for an APK, so v0.4.0 is now packaged for Android as well as hosted on the
+web. Same code, same login:
+
+**https://tools-app.net/downloads/private/orchard-toss-v0.4.0.apk** (5.5 MB)
+
+Built with the same `apk_engine` toolchain as Numbat Patrol, with three deliberate differences
+worth recording here rather than only in the release notes:
+
+- **Portrait**, where Numbat Patrol is landscape — §13 of the design doc puts the board in
+  portrait and the launcher along the bottom edge, so locking it landscape would have been wrong.
+- **The packaging config lives in the game repo** (`prototype/apk/`), not inside the build tool.
+  Numbat Patrol's sits in the tool's own directory, which is not version-controlled, so its
+  packaging has no history and neither of you can see it. Ben can now read exactly what goes into
+  the APK.
+- **Only the runtime files ship.** No single-file bundle, no tools, no tests, no master renders —
+  those would roughly triple the download for no benefit. The staged payload is audited against
+  the source before it is packed, and I proved that audit catches five separate ways of getting it
+  wrong before trusting it.
+
+**Verified by decoding the APK, not by trusting the build:** the 18 web files inside are
+sha256-identical to the source, the manifest inside reads 10 fruit entries, `GAME_VERSION` reads
+0.4.0, the signature checks out, and the launcher icon is the real one rather than a default.
+`Coconut.png` is confirmed absent, so the MSG-05 decision holds in the APK too.
+
+**One thing I cannot do: run it.** No Android device is connected to this machine, so everything
+above proves the *package* is correct and nothing proves the *game starts*. That is J-015 above,
+and it is a genuine ask rather than a formality — a Capacitor WebView can boot to a blank screen
+for reasons that never show up in a headless browser. If Ben installs it, the useful report is
+simply: does it open, does the title screen read v0.4.0, does a level play, and does the flick
+feel the same as it did in the phone browser? Android's WebView handles touch slightly differently
+from mobile Chrome, so this is also a second, independent look at the flick question that closed
+as J-012.
+
+**Icon note, since it is Ben's art and he may have opinions.** There is no logo for this game, so
+the launcher icon is his apple render on the game's own sky blue with a grass band. I picked the
+fruit by measuring contrast rather than by eye — my first attempt put the green apple on the
+game's green ground, which turned out to be the worst-contrasting pairing of all eleven renders.
+Easy to swap for a different fruit or a proper logo whenever he wants one; it is one file.
+
+**One honest caveat.** The APK declares the INTERNET permission even though the config asks for
+none and the game never touches the network. It comes from Capacitor's own template and the build
+tool only adds permissions, never removes them — the Numbat Patrol APK has it too. I have left it
+alone rather than strip it blind, because Capacitor serves the bundled files over a localhost
+scheme and removing it risks the blank screen described above, which I cannot test for without a
+device. Worth fixing properly once one is to hand.
 
 ---

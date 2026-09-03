@@ -11,6 +11,7 @@ This document is spun out from the master "Game Concepts.md" brainstorm to focus
 | v1 | 2026-09-01 | Extracted from Game Concepts.md following the decision to focus on this concept; resolved all open questions from Game Concepts.md section 4.9 plus the differentiation risk from 4.7, via interview with Ben; added Fruit & Power-Up Roster, Zones, Obstacles, Character, and Name Candidates sections | Claude (Cowork) |
 | v2 | 2026-09-01 | Second interview pass to get the spec to prototype-ready: added Board, Screen & UI Layout (13), Win/Loss, Lives, and Scoring (14), and Prototype Build Scope (15) sections; named the Apprentice "Sprout"; confirmed Spring has 10 levels and stays obstacle-free; renumbered sections 13-17 to 16-20 and fixed a stale cross-reference in section 4 | Claude (Cowork) |
 | v3 | 2026-09-01 | Third interview pass to close every remaining open question: confirmed Summer/Autumn/Winter level counts, Sprout's full look (child/pre-teen, gender-neutral, classic gardener outfit, seed pouch/basket prop), star-rating basis (time remaining), UI chrome unified with Numbat Patrol now, and a light-touch monetisation stance (interstitial ads between zones). Open Questions section removed — none remain | Claude (Cowork) |
+| v4 | 2026-09-02 | Added a new Success Factors section (16), assessing the current spec against every point in Success Factors.md's Mobile Games list; renumbered sections 16-20 to 17-21 | Claude (Cowork) |
 
 ---
 
@@ -188,13 +189,30 @@ Control scheme decided: drag-and-flick (previously "Scheme B" in Game Concepts.m
 
 ---
 
-## 16. Open Questions (all resolved 2026-09-01)
+## 16. Success Factors (evaluated 2026-09-02)
+
+The current specification assessed against every point in Success Factors.md's "Mobile Games" list.
+
+| ID | Date Added | Success Factor | Date Evaluated | Finding | Recommendations |
+|---|---|---|---|---|---|
+| 1 | 2026-09-02 | Instant sensory feedback: every successful action must produce an immediate sound and visual response (pop, sparkle, animation) to reinforce the interaction | 2026-09-02 | Partially present. Visual feedback is a required behaviour - fruit rolls, bounces, and splashes juice/pulp on a match (section 8). No sound/audio feedback is specified anywhere in the spec. | Add an audio requirement alongside section 8's visual spec: a distinct SFX for a successful match, a per-fruit power-up sound, a mismatch fizzle, and a level-clear jingle, so sound ships with the visual splash rather than being left for a later pass. |
+| 2 | 2026-09-02 | Visible, transparent progression: advancement must be legible at a glance via a clear structure (tiers, trees, level counters, star ratings) so the player always knows what's next | 2026-09-02 | Present. Levels are grouped into 4 fixed zones with confirmed counts (52 total, section 6), the HUD shows remaining-fruit count vs. target (section 13), and levels award 1-3 stars on completion (section 14). | N/A - already addressed in sections 6, 13, and 14. |
+| 3 | 2026-09-02 | Low-stress, no-loss framing: failure must not be punishing; the game should feel relaxing and forgiving rather than competitive or high-stakes | 2026-09-02 | Absent/conflicting. A failed level costs a heart from a 5-heart pool that refills only 1 per 30 minutes, and a mismatch adds a lockout penalty (sections 11, 14). No forgiving framing (e.g. unlimited early retries, softened failure messaging) is specified anywhere. | Make Spring's 10 levels heart-free (unlimited retries) so first sessions stay low-stress, reserving the heart cost for Summer onward; and specify encouraging, non-punitive failure-screen copy (e.g. "So close - try again") in section 14. |
+| 4 | 2026-09-02 | Artificial scarcity mechanics: a limiting resource (board space, lives, boosters, timers) must create light tension that encourages return visits and purchases without feeling forced early on | 2026-09-02 | Present. The 5-heart life pool with a 30-minute refill (section 14) is a limiting resource creating light return-visit tension, and the per-level countdown timer (section 11) adds a second scarcity lever. | N/A - already addressed in sections 11 and 14. |
+| 5 | 2026-09-02 | Adaptive difficulty spikes: difficulty must ramp at specific progression points, timed to challenge invested players once they're hooked rather than at the start | 2026-09-02 | Partially present. Difficulty ramps smoothly zone by zone via obstacle density, fruit-roster growth, and increasing level counts (10/12/14/16, sections 5-7), but no deliberate spike is placed at a point timed to when a player is already invested - the ramp reads as gradual rather than spiky. | Define 1-2 deliberate difficulty spikes in section 6 or 7 - for example, a noticeably harder level at Summer's midpoint (the player's first real investment point) and another at the Autumn-to-Winter transition - rather than relying only on the smooth zone-by-zone ramp. |
+| 6 | 2026-09-02 | Narrative or collection hooks: a story, character, or collectible set must give players a reason to return beyond the core puzzle loop itself | 2026-09-02 | Present. Sprout's growth-alongside-the-orchard arc (section 9) and the progressive 10-fruit unlock structure across 4 zones (sections 5-6) both function as return-visit hooks. | N/A - already addressed in sections 5, 6, and 9. |
+| 7 | 2026-09-02 | Endless structure: the game must avoid a defined end point, always offering another tier, level, chapter, or event to sustain long-term engagement | 2026-09-02 | Absent. The spec defines a finite arc of 52 levels across 4 fixed zones (section 6) with no stated structure for what happens once Winter is cleared - no endless mode, repeating cycle, or ongoing event content is specified. | Add a post-Winter structure to section 6 or 15 - for example, a repeating "Year 2" cycle that remixes obstacle and fruit combinations at higher difficulty, or a rotating seasonal-event mode using the full unlocked roster, so the game doesn't hit a hard stop after level 52. |
+| 8 | 2026-09-02 | Strong initial onboarding: the first sessions must front-load easy wins to build habit before difficulty or monetisation pressure appears | 2026-09-02 | Present. Spring is explicitly scoped as an obstacle-free tutorial zone using only 3 of the 10 fruit types (sections 5, 7), and the monetisation stub only begins at zone transitions from Summer onward (section 15), keeping Spring pressure-free. | N/A - already addressed in sections 5, 7, and 15. |
+
+---
+
+## 17. Open Questions (all resolved 2026-09-01)
 
 None remain. All five items previously logged here were resolved via interview with Ben on 2026-09-01: Summer/Autumn/Winter level counts (section 6), Sprout's visual design (section 9), star-rating basis (section 14), UI chrome unification (section 13), and monetisation stance (section 15). Remaining fine-tuning (exact star-rating time thresholds, final concept art) is noted inline in those sections rather than tracked here.
 
 ---
 
-## 17. Name Candidates (confirmed 2026-09-01)
+## 18. Name Candidates (confirmed 2026-09-01)
 
 A spot check across app stores and general web search was run against the strongest candidates below (light spot check, not a full trademark or app-store clearance search — confirm before committing).
 
@@ -214,13 +232,13 @@ Working title going forward: **Orchard Toss**.
 
 ---
 
-## 18. Cross-Reference: Game Concepts.md
+## 19. Cross-Reference: Game Concepts.md
 
 Game Concepts.md retains the original brainstorm, the full brief-to-decision history for this concept (theme reskin options, control scheme options, and the original differentiation risk write-up), and the master document status for Concept 1's pre-numbat history. See Game Concepts.md sections 4 and 4.7-4.9 for that history.
 
 ---
 
-## 19. References
+## 20. References
 
 | # | Source | Type | Used for | Link |
 |---|---|---|---|---|
@@ -239,7 +257,7 @@ Game Concepts.md retains the original brainstorm, the full brief-to-decision his
 
 ---
 
-## 20. Changelog
+## 21. Changelog
 
 | Date | Version | Summary |
 |---|---|---|

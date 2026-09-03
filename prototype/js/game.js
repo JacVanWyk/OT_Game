@@ -24,7 +24,7 @@
   window.OT = window.OT || {};
   var OT = window.OT;
 
-  var GAME_VERSION = '0.2.0';
+  var GAME_VERSION = '0.3.0';
 
   // ---------------------------------------------------------------- tunables
   var TUNE = {

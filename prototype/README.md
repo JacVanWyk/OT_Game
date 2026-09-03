@@ -49,11 +49,15 @@ lanes, **Space** or **↑** launch.
 - **Level clear:** when `remaining < target`, where
   `target = max(2, round(initialFruit × 0.10))`. Levels start about 50–75 %
   full.
-- **Timer:** Spring 45→38 s, later zones 40→32 s per level, counting down on
-  the game clock; each clear adds time back (+0.25 s per run tile, +0.5 s per
-  power-up tile, capped at +3 s per launch — `OT.Board.TUNING.TIME_*`). Time
-  out = level failed. (Retuned 2026-09-02: the first values, 60→45 s with a
-  0.5/1.0/5 bonus, refunded the whole level for every player archetype.)
+- **Timer:** per level, counting down on the game clock — Spring 45→38 s,
+  Summer 38→32, Autumn 36→30, Winter 34→30 (`OT.CONFIG.TIME_RAMP`). Each clear
+  adds time back (+0.25 s per run tile, +0.5 s per power-up tile, capped at
+  +3 s per launch — `OT.Board.TUNING.TIME_*`), scaled per zone by
+  `TUNING.TIME_ZONE_SCALE` (Spring and Summer 1, Autumn 0.85, Winter 0.5).
+  Time out = level failed. (Retuned 2026-09-02: the first values, 60→45 s with
+  a 0.5/1.0/5 bonus, refunded the whole level for every archetype. Retuned
+  again 2026-09-03 for bridge item J-006 so difficulty climbs zone over zone
+  instead of easing off — re-measure with `node tools/sim_players.js`.)
 - **Hearts:** shared pool of 5; −1 per failed attempt; refill 1 per 30 min
   (from the timestamp of the last loss, persisted in `localStorage`). At 0
   hearts the game shows the time to the next heart.
@@ -86,7 +90,7 @@ per zone.
 | Apple | crisp, whole | clears the impact row |
 | Watermelon | bursts messily | clears the 8 neighbours of the impact (any type) |
 | Grape | grows in a bunch | clears the whole connected same-type cluster, not just the line |
-| Banana | monkeys' favourite | a monkey sweeps the impact row |
+| Banana | monkeys' favourite | a monkey sweeps the impact row, clearing every tile in it **and breaking every obstacle in that row** |
 | Pomegranate | scatters seeds | clears 5 random tiles elsewhere |
 | Pineapple | tough, spiky | breaks ONE obstacle adjacent to the impact |
 | Orange | segmented | chain reaction into touching same-type clusters (up to 4 rounds) |
@@ -209,6 +213,23 @@ not built yet (index.html or a script file absent) — never a silent 0.
   a coconut) — see `RELEASE_NOTES.md`.
 - `node tests/board_test.js` unchanged at 52/52; bundle 0.67 MB boots from
   `file://` with every image from data URIs.
+
+## Verified (v0.3.0, 2026-09-03 — Ben's answers to J-006 and J-008)
+
+- `node tests/board_test.js` → `SUMMARY passed=55 failed=0 errors=0`. Three new
+  checks: the banana sweep breaks every wall/trellis/pipe in its row (with an
+  apple negative control on the same board proving apple breaks nothing), the
+  zone-climb invariant on `TIME_RAMP` + `TIME_ZONE_SCALE`, and a launch-level
+  check that the per-zone scale actually reaches `result.timeBonus`. All three
+  were re-run against the pre-change sources and fail there, so they can detect
+  what they claim to.
+- `node tests/headless_smoke.mjs` → 14 passed; bundle 0.67 MB (671 625 B).
+- `node tools/sim_players.js --seeds 40` (10 400 simulated level attempts):
+  difficulty now climbs. Casual fail 0.25 / 1.46 / 3.57 / 5.78 %, sloppy
+  12 / 34.0 / 40.5 / 41.7 %, naive 3-star share 73 / 37 / 32 / 16 % across
+  Spring → Winter. The same tool reports NO on the pre-change tuning.
+- Banana now breaks 0.43 obstacles per match under the sensible policy; hand
+  rescue 20.9 %, cherry double 21.0 %, no soft-locks.
 
 ## Verified (v0.1.0, 2026-09-02 — headless, swiftshader Chromium)
 

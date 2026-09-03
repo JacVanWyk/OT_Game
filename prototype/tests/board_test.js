@@ -101,6 +101,34 @@ check('config: obstacle and time ramps per zone', function () {
 });
 
 // ================================================================ rng + determinism
+check('config (J-006): difficulty climbs through the zones — time limits never rise zone over zone, the time-back scale never rises, and Winter is strictly tighter than Spring', function () {
+  var zones = ['spring', 'summer', 'autumn', 'winter'];
+  for (var i = 1; i < zones.length; i++) {
+    var a = C.TIME_RAMP[zones[i - 1]], b = C.TIME_RAMP[zones[i]];
+    assert(b[0] <= a[0], 'zone-start limit never rises: ' + zones[i - 1] + ' ' + a[0] + ' -> ' + zones[i] + ' ' + b[0]);
+    assert(b[1] <= a[1], 'zone-end limit never rises: ' + zones[i - 1] + ' ' + a[1] + ' -> ' + zones[i] + ' ' + b[1]);
+    assert(B.TUNING.TIME_ZONE_SCALE[zones[i]] <= B.TUNING.TIME_ZONE_SCALE[zones[i - 1]], 'time-back scale never rises: ' + zones[i]);
+  }
+  // strict, not merely non-increasing: the old tuning (Summer-Winter all 40->32, scale all 1) satisfied "never rises"
+  // while measuring EASIER than Spring, which is exactly what Ben rejected in J-006.
+  assert(C.levelDef(52).timeLimit < C.levelDef(10).timeLimit, 'L52 limit ' + C.levelDef(52).timeLimit + ' < L10 limit ' + C.levelDef(10).timeLimit);
+  assert(B.TUNING.TIME_ZONE_SCALE.winter < B.TUNING.TIME_ZONE_SCALE.spring, 'winter time-back scale below spring');
+  // the effective per-launch budget (limit + a full-cap bonus) must fall zone over zone
+  var prev = Infinity;
+  for (i = 0; i < zones.length; i++) {
+    var last = C.TIME_RAMP[zones[i]][1] + B.TUNING.TIME_CAP * B.TUNING.TIME_ZONE_SCALE[zones[i]];
+    assert(last < prev, 'effective end-of-zone budget falls: ' + zones[i] + ' ' + last + ' vs previous ' + prev);
+    prev = last;
+  }
+});
+check('board: the per-zone time-back scale actually reaches result.timeBonus (and spring is unscaled)', function () {
+  var rows = ['C  .  .  .  .', 'C  .  .  .  .', 'C  .  .  .  .', E, E, E, E, E];
+  var spring = B.launch(fx(rows, 'cherry', { levelDef: C.levelDef(1) }), 0);
+  var winter = B.launch(fx(rows, 'cherry', { levelDef: C.levelDef(52) }), 0);
+  eq(spring.timeBonus, 3 * B.TUNING.TIME_RUN, 'spring bonus unscaled (3 run tiles)');
+  eq(winter.timeBonus, Math.round(100 * 3 * B.TUNING.TIME_RUN * B.TUNING.TIME_ZONE_SCALE.winter) / 100, 'winter bonus scaled');
+  assert(winter.timeBonus < spring.timeBonus, 'winter gives less time back than spring for the same clear');
+});
 check('rng: seeded, repeatable, in [0,1)', function () {
   var a = B.rng(42), b = B.rng(42), same = true;
   for (var i = 0; i < 100; i++) { var x = a(), y = b(); if (x !== y) same = false; assert(x >= 0 && x < 1, 'range'); }
@@ -405,11 +433,30 @@ check('apple: clears the impact row, all tile kinds, obstacles untouched', funct
   assert(r.effects.some(function (e) { return e.kind === 'appleRow' && e.row === 3; }), 'appleRow effect');
   eq(r.compaction.length, 2, 'the two S tiles (fixture left rows 0-1 empty) slide to the top'); eq(r.compaction[0].to.row, 0, 'to row 0'); eq(r.compaction[1].to.row, 0, 'to row 0');
 });
-check('banana: monkey sweeps the impact row (same as apple) with a monkey effect', function () {
+check('banana: monkey sweeps the impact row (tiles like apple) with a monkey effect; no obstacles -> broken empty', function () {
   var b = fx([E, E, E, 'S  C  B  K  A', E, E, E, E], 'banana');
   var r = B.launch(b, 2);
-  eq(r.powerup.cells.length, 4, 'whole row'); eq(b.remaining, 0, 'remaining');
+  eq(r.powerup.cells.length, 4, 'whole row'); eq(b.remaining, 0, 'remaining'); eq(r.broken.length, 0, 'nothing to break');
   assert(r.effects.some(function (e) { return e.kind === 'monkey' && e.row === 3; }), 'monkey effect');
+});
+check('banana (J-008): the sweep BREAKS every wall/trellis/pipe in its row, clears the coconut as a tile, leaves other rows alone', function () {
+  var b = fx([E, E, 'w< S  .  .  T', 'w> B  K  T  P', E, E, E, E], 'banana');
+  var r = B.launch(b, 1);
+  eq(r.matched, true, 'match'); eq(r.broken.length, 3, 'wall, trellis, pipe in the row');
+  var kinds = r.broken.map(function (x) { return x.kind; }).sort().join(','); eq(kinds, 'pipe,trellis,wall', 'kinds');
+  assert(r.broken.every(function (x) { return x.row === 3; }), 'all in row 3');
+  eq(b.cells[3][0], null, 'wall removed'); eq(b.cells[3][3], null, 'trellis removed'); eq(b.cells[3][4], null, 'pipe removed');
+  assert(has(r.cleared, 2, 3), 'coconut cleared as a tile'); assert(!r.broken.some(function (x) { return x.col === 2; }), 'coconut not in broken');
+  eq(r.powerup.cells.length, 1, 'power-up cells = the coconut'); eq(b.remaining, 1, 'S at (1,2) remains');
+  assert(b.cells[2] && b.cells[2].some(function (c) { return c && c.kind === 'wall'; }), 'row-2 wall untouched');
+  assert(b.cells[2].some(function (c) { return c && c.kind === 'trellis'; }), 'row-2 trellis untouched');
+  eq(r.effects.filter(function (e) { return e.kind === 'burst'; }).length, 3, 'one burst per broken obstacle');
+  assert(r.effects.some(function (e) { return e.kind === 'monkey' && e.row === 3; }), 'monkey effect');
+  // NEGATIVE CONTROL: the same board with an APPLE launched leaves all three obstacles standing
+  var b2 = fx([E, E, 'w< S  .  .  T', 'w> A  K  T  P', E, E, E, E], 'apple');
+  var r2 = B.launch(b2, 1);
+  eq(r2.broken.length, 0, 'apple breaks nothing'); assert(b2.cells[3][0] && b2.cells[3][0].kind === 'wall', 'wall stands under apple');
+  assert(b2.cells[3][3] && b2.cells[3][3].kind === 'trellis', 'trellis stands'); assert(b2.cells[3][4] && b2.cells[3][4].kind === 'pipe', 'pipe stands');
 });
 check('watermelon: splash clears the 8 neighbours (any kind), obstacles untouched', function () {
   var b = fx([E, E, 'S  C  A  .  .', 'K  W  T  .  .', 'A  .  S  .  .', E, E, E], 'watermelon');

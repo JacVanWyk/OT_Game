@@ -34,6 +34,9 @@
  *     reproduces the pre-2026-09-02 boards exactly. The ">= 2 of every present type" pass and winnability are unchanged.
  *   - Pineapple breaks the first 4-adjacent obstacle in the order up, left, right, down. A broken coconut
  *     is a tile: it appears in BOTH result.broken and result.cleared (and decrements remaining).
+ *   - Banana (2026-09-03, J-008): the monkey sweep clears every tile in the impact row like apple AND breaks every
+ *     wall/trellis/pipe in that row (result.broken, cell set to null, a 'burst' effect per obstacle). Coconuts in the
+ *     row are tiles and go through result.cleared as they do for apple. Apple never touches obstacles.
  *   - Grape: result.run stays the vertical line; the rest of the 4-connected cluster is result.powerup.cells.
  *   - HAND RESCUE (TUNING.HAND_RESCUE, default on): a mismatch never changes the hand, so a held type with no lane
  *     target is a soft-lock. Measured without it: 23% of fresh hands were dead and 96% of boards locked within ~4
@@ -66,6 +69,10 @@
     TIME_RUN: 0.25,           // seconds back per run tile (was 0.5: the bonus refunded the whole level, QA 2026-09-02)
     TIME_POWER: 0.5,          // seconds back per power-up/chain tile (was 1.0)
     TIME_CAP: 3,              // max seconds back per launch (was 5)
+    TIME_ZONE_SCALE: { spring: 1, summer: 1, autumn: 0.85, winter: 0.5 }, // per-zone multiplier on the whole time bonus. J-006 (2026-09-03):
+                              // the time LIMIT alone cannot make Winter harder than Autumn without going under the doc s11 30 s floor
+                              // (Winter boards are capacity-capped at ~19-21 fruit by their obstacles), so the later zones give less time
+                              // back instead. Measured with tools/sim_players.js (40 seeds); config.js TIME_RAMP carries the limits.
     CLUSTER_BIAS: 0.55,       // generator: a new tile copies the type of the tile directly above it with this probability (0 = uniform draw)
     CHERRY_TWIN_SIDE: 1,      // cherry twin lane when neither neighbour lane shows a cherry: +1 = right (left at the right edge)
     TARGET_FRACTION: 0.10,    // target = max(TARGET_MIN, round(initialFruit * fraction))
@@ -410,7 +417,16 @@
         eff.push({ kind: 'appleRow', row: ir });
         break;
       case 'banana':
-        for (var c2 = 0; c2 < board.cols; c2++) addP(c2, ir);
+        // the monkey sweeps the row: every tile (fruit/coconut) is cleared AND every obstacle in the row is broken
+        // (Ben's decision 2026-09-03, bridge item J-008; OrchardToss.md v5 s5). Apple stays a plain row clear.
+        for (var c2 = 0; c2 < board.cols; c2++) {
+          var bc = board.cells[ir][c2];
+          if (isObstacle(bc)) {
+            result.broken.push({ col: c2, row: ir, kind: bc.kind });
+            board.cells[ir][c2] = null;
+            eff.push({ kind: 'burst', col: c2, row: ir });
+          } else addP(c2, ir);
+        }
         eff.push({ kind: 'monkey', row: ir });
         break;
       case 'watermelon':
@@ -504,7 +520,8 @@
     score = Math.round(score);
     board.score += score;
     result.scoreDelta = score;
-    result.timeBonus = Math.min(TUNING.TIME_CAP, runN * TUNING.TIME_RUN + powerN * TUNING.TIME_POWER);
+    var zscale = (TUNING.TIME_ZONE_SCALE && board.levelDef && typeof TUNING.TIME_ZONE_SCALE[board.levelDef.zone] === 'number') ? TUNING.TIME_ZONE_SCALE[board.levelDef.zone] : 1;
+    result.timeBonus = Math.round(100 * Math.min(TUNING.TIME_CAP, runN * TUNING.TIME_RUN + powerN * TUNING.TIME_POWER) * zscale) / 100;
 
     // 5. compaction, then the new hand
     result.compaction = compact(board);

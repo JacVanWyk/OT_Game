@@ -42,11 +42,16 @@
   // time limit in seconds over the zone, [first level, last level]
   // 2026-09-02 pacing retune (QA finding A): was Spring 60->50, others 55->45, under which the time bonus refunded the
   // whole level and every archetype cleared with 90-100% time left. See TUNING.TIME_* in board.js and STAR_FRACTIONS.
+  // 2026-09-03 (bridge item J-006, Ben's decision): difficulty must CLIMB through the zones. With Summer-Winter all at
+  // 40->32 the later zones measured easier than Spring (casual fail 0.5/0.4/0.7/0 %, tools/sim_players.js, 20 seeds)
+  // because Winter boards are capacity-capped at ~19 fruit by their obstacles and the later power-ups refund more time.
+  // Mildest step-down that climbs on the casual, sloppy AND child archetypes (20-seed grid sweep, 36 candidates):
+  // casual fail 0.5/1.7/3.2/6.3 %, sloppy 12/35/39/47 %. Re-measure with `node tools/sim_players.js` before changing.
   var TIME_RAMP = {
     spring: [45, 38],
-    summer: [40, 32],
-    autumn: [40, 32],
-    winter: [40, 32]
+    summer: [38, 32],
+    autumn: [36, 30],
+    winter: [34, 30]
   };
 
   // obstacle counts per zone as a function of indexInZone (0-based) and zone length

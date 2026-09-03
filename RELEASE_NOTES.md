@@ -8,6 +8,105 @@ evidence) and listing the changed files. Design source of truth:
 
 ---
 
+## 2026-09-03 — v0.3.0 — Ben's first two bridge decisions: difficulty climbs through the zones (J-006), banana breaks obstacles (J-008)
+
+**STATUS: VERIFIED + DEPLOYED.** First release driven by `talk_to_other_claude.md`:
+Ben's design Claude answered six open items in MSG-02, and the two that were
+build work shipped the same day. Live at
+**https://tools-app.net/hosted/orchard-toss/** (title screen reads v0.3.0);
+offline bundle `prototype/dist/OrchardToss.html` 671 625 B.
+
+**J-008 — banana is no longer apple with a monkey.** The monkey sweep clears
+every tile in the impact row as before AND breaks every wall, trellis and pipe
+in that row (`result.broken`, one `burst` cue each). Apple is unchanged and
+still breaks nothing; coconuts in the row remain tiles, so they clear through
+`result.cleared` and count down `remaining` exactly as they did. Pineapple keeps
+its single-obstacle break. Measured 0.43 obstacles broken per banana match under
+the sensible policy (0 before the change, on the same tool).
+
+**J-006 — difficulty now climbs; the fix needed a second lever.** Removing the
+0.9× easing was not sufficient, for two measured reasons: the design doc's §11
+floor is 30 s per level and Autumn already needed 30 s at its last level to
+out-pressure Summer, and Winter's boards are *smaller* than Autumn's because its
+obstacle load caps capacity (mean initial fruit 22.0 / 23.9 / 24.4 / 21.1 across
+the four zones; the last seven Winter levels hold 19). So the limits carry what
+the floor allows and a new per-zone multiplier on the time-back bonus carries the
+rest:
+
+- `OT.CONFIG.TIME_RAMP` — Spring 45→38, Summer 38→32, Autumn 36→30, Winter 34→30
+  (was Spring 45→38 with Summer, Autumn and Winter all 40→32).
+- `OT.Board.TUNING.TIME_ZONE_SCALE` — new: Spring 1, Summer 1, Autumn 0.85,
+  Winter 0.5, multiplying `result.timeBonus`. Later zones give back less for the
+  same clear.
+
+Measured with `node tools/sim_players.js --seeds 40` (10 400 simulated level
+attempts) against both source trees, Spring → Summer → Autumn → Winter:
+
+| Metric | v0.2.0 | v0.3.0 |
+|---|---|---|
+| Casual, % of levels failed | 0.25 / 1.04 / 1.61 / 0.16 | 0.25 / 1.46 / 3.57 / 5.78 |
+| Sloppy, % of levels failed | 12.0 / 31.3 / 28.9 / 23.0 | 12.0 / 34.0 / 40.5 / 41.7 |
+| Naive, % of clears at 3★ | 73 / 37 / 52 / 57 | 73 / 37 / 32 / 16 |
+| Sensible, % of clears at 3★ | 100 / 98 / 97 / 99 | 100 / 98 / 89 / 65 |
+
+Every v0.2.0 figure said Winter was easier than Autumn, which is what Ben
+rejected. The sensible player still clears every level (intended — the timer
+grades good play rather than blocking it), but its Winter 3-star share falls from
+99 % to 65 %, so the J-005 star thresholds finally bite in the late game.
+
+**The simulation is now in the repo.** `prototype/tools/sim_players.js` was a
+scratch script during the v0.1.0 QA pass and the numbers in this file could not
+be reproduced from a clean checkout. It now ships: five player archetypes over
+52 levels × N seeds, the real-clock model (flight, squash, bounces, mismatch
+return + lockout, pop/effect/compaction animation, then the time bonus), with
+`--time-ramp` and `--bonus-scale` for what-if sweeps and `--json` for the raw
+rows. It reads the animation durations out of `js/game.js` and **throws** if one
+is renamed rather than silently drifting, and it prints whether difficulty climbs
+zone over zone.
+
+**Why the climb criterion excludes one archetype (documented in the tool).** The
+"child" archetype (3 s think, 40 % error) saturates near 75–80 % failure and
+clears Winter marginally more often than Autumn, because Winter's smaller boards
+mean fewer launches — it runs out of board before it runs out of clock. That is a
+property of board capacity, not pacing, and tuning it away would over-tighten
+Winter for everyone else. It is reported but not gated, and raised with Ben as
+J-013.
+
+**Verified:**
+
+- `node tests/board_test.js` → `SUMMARY passed=55 failed=0 errors=0` (was 52).
+  Three new checks: the banana sweep breaks every obstacle in its row; the
+  zone-climb invariant over `TIME_RAMP` + `TIME_ZONE_SCALE`, written strictly so
+  the old "never rises" tuning fails it; and a launch-level check that the
+  per-zone scale actually reaches `result.timeBonus`.
+- **Negative controls, both run.** The banana test includes an apple fired into
+  the identical board asserting all three obstacles survive. All three new checks
+  were re-run against the pre-change sources (`git show HEAD:` copies) and fail
+  there — 53 passed / 2 failed for the tuning pair, 52 / 1 for banana — so none
+  of them can pass by accident.
+- `node tests/headless_smoke.mjs` → 14 passed, server killed by pid, port free.
+- Deploy: 3 changed files written in place with fsync + read-back assertion
+  (`js/board.js`, `js/config.js`, `js/game.js`), all 13 payload files sha256-equal
+  source vs host both ways, no host-only files, `diff -rq` clean. Anonymous
+  requests to the page, `js/game.js` and `assets/img/Apple.png` all 302 to
+  `/login?next=…`. Deployed `GAME_VERSION` reads 0.3.0.
+
+**Raised back to the design side (MSG-03):** J-013 (Winter's boards are the
+smallest in the game — deliberate dense obstacle course, or should they be as
+full as Autumn's?) and J-014 (time pressure was retuned under J-006, so Ben's
+J-012 note about it needs a re-play on v0.3.0 before we act). The flick half of
+J-012 was deliberately **not** touched — the two readings of "flick feels wrong"
+point at opposite fixes, so MSG-03 asks four narrow questions instead of guessing.
+
+**Changed files:** `prototype/js/board.js`, `prototype/js/config.js`,
+`prototype/js/game.js` (`GAME_VERSION` 0.3.0), `prototype/tests/board_test.js`,
+`prototype/tools/sim_players.js` (new), `prototype/dist/OrchardToss.html`,
+`prototype/README.md`, `prototype/ARCHITECTURE.md`, `README.md`, `CLAUDE.md`,
+`talk_to_other_claude.md`, this file; deployed copy in
+`C:\PROD_DB\infra_router\router-server\hosted_apps\orchard-toss\`.
+
+---
+
 ## 2026-09-03 — `talk_to_other_claude.md` — direct channel between the build and design Claudes; v0.2.0 version label fixed
 
 **STATUS: LIVE.** New file at the repo root, requested by Jac ("like you did for Numbat

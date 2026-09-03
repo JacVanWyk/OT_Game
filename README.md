@@ -7,25 +7,29 @@ line and fires that fruit's power-up. Ten fruits across four seasonal zones (52 
 time-limit loss, hearts, stars, and Sprout the apprentice as host. Ben owns the design
 (`OrchardToss.md`); Jac owns the prototype and its build/deploy pipeline.
 
-## Current state — prototype v0.2.0 (2026-09-02)
+## Current state — prototype v0.3.0 (2026-09-03)
 
 - Full-spec POC: all 10 fruits and power-ups, all 4 zones with generated obstacles from
   Summer on, drag-and-flick controls, timer/hearts/stars, orchard meta-progression.
 - Ben's clay-style renders are live for 5 of the 10 fruits (apple, banana, cherry,
   pineapple, strawberry); the other five use the procedural painters until he supplies them.
-- Verified headless (52 board checks, 14 browser checks) and deployed login-gated at
+- v0.3.0 landed Ben's first two decisions from `talk_to_other_claude.md`: difficulty now
+  climbs through the zones instead of easing off (J-006), and the banana monkey sweep breaks
+  every obstacle in its row as well as clearing it (J-008).
+- Verified headless (55 board checks, 14 browser checks) and deployed login-gated at
   `https://tools-app.net/hosted/orchard-toss/`.
 
 ## Where things are
 
 | Path | What |
 |---|---|
-| `OrchardToss.md` | The design doc — single source of truth for every decision (v3) |
+| `OrchardToss.md` | The design doc — single source of truth for every decision (v5) |
 | `prototype/` | The playable web prototype: open `prototype/index.html` (double-click works) |
 | `prototype/README.md` | How to run, test, build the bundle and deploy |
 | `prototype/ARCHITECTURE.md` | Module contract (`OT.CONFIG`, `OT.Board`, `OT.S`, `OT.game`) |
 | `prototype/dist/OrchardToss.html` | Single-file offline bundle (font + art embedded) |
 | `prototype/assets/` | Ben's master fruit renders; `assets/img/` is the processed set |
+| `prototype/tools/sim_players.js` | Player-archetype simulation — every tuning value is measured here, never eyeballed |
 | `RELEASE_NOTES.md` | What each version verified and the QA behind every tuning value |
 | `CLAUDE.md` | Working conventions for the Claude Code sessions that build this |
 | `talk_to_other_claude.md` | Channel between the build Claude and Ben's design Claude (open items + log) |

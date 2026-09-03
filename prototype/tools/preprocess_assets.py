@@ -40,10 +40,21 @@ FRUITS = {
     'Cherry': 'cherry',
     'Pineapple': 'pineapple',
     'Strawberry': 'strawberry',
-    # not yet supplied by Ben (procedural painter stays in use for these):
-    # 'Watermelon': 'watermelon', 'Grape': 'grape', 'Pomegranate': 'pomegranate',
-    # 'Orange': 'orange', 'Lemon': 'lemon',
+    # completed 2026-09-03 (bridge item J-001, MSG-05): Ben supplied the remaining five renders,
+    # so all 10 fruits of the OrchardToss.md s5 roster now have real art and the procedural
+    # painters in js/sprites.js become the loading/failure fallback only.
+    'Watermelon': 'watermelon',
+    'Grape': 'grape',
+    'Pomegranate': 'pomegranate',
+    'Orange': 'orange',
+    'Lemon': 'lemon',
 }
+
+# DELIBERATELY NOT IN FRUITS: assets/Coconut.png. Ben's decision, MSG-05 (2026-09-03) - the
+# coconut is a tougher-tile mechanic (OT.Board kind 'coconut', never matchable), not an 11th
+# fruit in the s5 roster, so it must not get a manifest entry or reach OT.S.fruit. The art is
+# kept in assets/ for whenever that mechanic is built. Adding it here would make coconuts
+# render as a matchable fruit type; see tests/board_test.js for the rule that they never match.
 
 
 def die(msg):

@@ -214,6 +214,25 @@ not built yet (index.html or a script file absent) — never a silent 0.
 - `node tests/board_test.js` unchanged at 52/52; bundle 0.67 MB boots from
   `file://` with every image from data URIs.
 
+## Verified (v0.4.0, 2026-09-03 — all 10 fruits in real art)
+
+- `python3 tools/preprocess_assets.py` → 10 entries. Five new masters (watermelon,
+  grape, pomegranate, orange, lemon) plus a regenerated `Pineapple.png`, which
+  really did change (master 364 472 → 339 502 B, different hash; processed
+  62 265 → 61 954 B) so it was not a no-op.
+- `node tests/headless_smoke.mjs` → **15 passed** (was 14). The differential probe
+  now covers all 10 and asserts the manifest key set equals the roster exactly.
+- The negative control was **rebuilt**: it used to lean on grape/orange/watermelon
+  having no art, which is no longer true, so it now renders `coconut` and a bogus
+  type id and asserts both are pixel-identical through the override with a
+  non-trivial opaque count. A new check asserts `coconut` is absent from the
+  manifest, guarding Ben's decision that `assets/Coconut.png` is the tougher-tile
+  mechanic and not an 11th matchable fruit.
+- **Both were proven able to fail:** adding `'Coconut': 'coconut'` to `FRUITS` in a
+  scratch copy and re-running turned 15 passed into 10 passed / 4 failed.
+- `node tests/board_test.js` unchanged at 55/55. Bundle grew 0.67 → **1.18 MB**
+  (10 embedded images, 720 970 B) and still boots from `file://`.
+
 ## Verified (v0.3.0, 2026-09-03 — Ben's answers to J-006 and J-008)
 
 - `node tests/board_test.js` → `SUMMARY passed=55 failed=0 errors=0`. Three new

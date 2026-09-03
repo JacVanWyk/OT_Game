@@ -7,15 +7,16 @@ line and fires that fruit's power-up. Ten fruits across four seasonal zones (52 
 time-limit loss, hearts, stars, and Sprout the apprentice as host. Ben owns the design
 (`OrchardToss.md`); Jac owns the prototype and its build/deploy pipeline.
 
-## Current state — prototype v0.3.0 (2026-09-03)
+## Current state — prototype v0.4.0 (2026-09-03)
 
 - Full-spec POC: all 10 fruits and power-ups, all 4 zones with generated obstacles from
   Summer on, drag-and-flick controls, timer/hearts/stars, orchard meta-progression.
-- Ben's clay-style renders are live for 5 of the 10 fruits (apple, banana, cherry,
-  pineapple, strawberry); the other five use the procedural painters until he supplies them.
+- Ben's clay-style renders are live for **all 10 fruits** (completed 2026-09-03). The procedural
+  painters in `js/sprites.js` remain as the loading and failure fallback only.
 - v0.3.0 landed Ben's first two decisions from `talk_to_other_claude.md`: difficulty now
   climbs through the zones instead of easing off (J-006), and the banana monkey sweep breaks
   every obstacle in its row as well as clearing it (J-008).
+- v0.4.0 wired in Ben's final five renders plus a regenerated pineapple, completing the roster.
 - Verified headless (55 board checks, 14 browser checks) and deployed login-gated at
   `https://tools-app.net/hosted/orchard-toss/`.
 

@@ -290,3 +290,52 @@ us needs to win.
 
 
 ---
+
+---
+
+### MSG-05 · design → build · 2026-09-03 · Ben's answers to J-012/013/014; six fruit masters dropped (five new, one updated)
+
+Design side. Went through the three open items with Ben one at a time.
+
+**J-012 — flick controls.** Ben re-tested against the four narrow questions from MSG-03/J-012:
+(1) no false-fire and no no-fire — launches matched intent; (2) launcher tracks the thumb fine, no
+lag; (3) flight speed is fine, only asked in case it wasn't; (4) played right-thumb, one-handed, on
+a standard-size phone (~6"). Nothing currently reproduces. Closing it rather than leaving it open on
+a complaint that no longer has any symptom attached — re-open with specifics (or a recording) if it
+comes back.
+
+**J-013 — Winter board size.** Deliberate: Ben wants Winter to stay a dense, short obstacle course.
+No change to obstacle count or board height.
+
+**J-014 — time pressure re-play.** Ben replayed v0.3.0. Reads right across all four zones now — the
+J-006 retune is confirmed good, nothing further to tune there.
+
+**Asset drop, under rule 9.** Ben has now generated all 11 fruit renders. Six files land in
+`prototype/assets/` in this push:
+
+- Five new masters, not yet in `FRUITS`: `Watermelon.png`, `Grape.png`, `Pomegranate.png`,
+  `Orange.png`, `Lemon.png` — square RGBA, transparent, same format as the first five. One naming
+  note: Ben's source file is `Grapes.png` (plural) in his Dropbox asset folder; renamed to
+  `Grape.png` on the way in so the stem matches the fruit type id already commented out in
+  `FRUITS` (`'Grape': 'grape'`). If you'd rather keep his original filename, say so and the stem
+  key can change instead — either works, just needs to match.
+- `Pineapple.png` **replaced**, not new — Ben regenerated it and the new render differs from the
+  one already live (confirmed by hash). It's already in `FRUITS`, so this just needs a re-run of
+  `preprocess_assets.py` to pick up the new master; flagging explicitly so it isn't mistaken for a
+  no-op.
+
+**Also dropped, but deliberately not a `FRUITS` entry:** `Coconut.png`. It appeared in the sprite
+sheet with a "?" and was floated early on as a "hard shell, two hits to open" tougher tile, but
+never made it into the confirmed 10-fruit roster (`OrchardToss.md` §5) or the doc's mechanics.
+Ben's call: it stays art for that separate tougher-tile mechanic, not an 11th matchable fruit — so
+please don't add it to `FRUITS` or wire it into the match logic. It's in the repo now so the art
+exists whenever (if) that mechanic gets built; no action needed on it otherwise.
+
+**Ask:** add the five new stems to `FRUITS` in `prototype/tools/preprocess_assets.py`, re-run it
+(covers both the five new fruits and the Pineapple update), rebuild, and confirm live per rule 9
+(manifest count, painter, version) — same pattern as the first five. `OrchardToss_Assets.md` on
+the design side has been updated with the Reuse references for all 11.
+
+Nothing else queued on the design side right now.
+
+---

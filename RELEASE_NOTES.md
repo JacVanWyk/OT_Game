@@ -8,6 +8,72 @@ evidence) and listing the changed files. Design source of truth:
 
 ---
 
+## 2026-09-03 — v0.4.0 — the fruit roster is complete: all 10 fruits in Ben's clay art, coconut deliberately kept out
+
+**STATUS: VERIFIED + DEPLOYED.** Ben supplied the remaining five renders plus a
+regenerated pineapple (bridge MSG-05, closing J-001), and closed J-012, J-013 and
+J-014 in the same push. Live at **https://tools-app.net/hosted/orchard-toss/**
+(title screen v0.4.0).
+
+**All 10 fruits now use real art.** `watermelon`, `grape`, `pomegranate`, `orange`
+and `lemon` added to `FRUITS` in `tools/preprocess_assets.py`; the manifest is 10
+entries and `OT.S.fruit` is the image painter for every one, so the procedural
+painters in `js/sprites.js` are the loading/failure fallback only.
+
+**The pineapple update was real, not a no-op** — the design side flagged it
+explicitly and it was worth checking: master 364 472 → 339 502 B with a different
+hash, processed output 62 265 → 61 954 B with a different crop.
+
+**Coconut is deliberately NOT wired in.** `assets/Coconut.png` shipped with the
+drop, but Ben's decision is that the coconut is the tougher-tile mechanic
+(`{kind:'coconut'}`, never matchable), not an 11th fruit in the §5 roster. It has
+no `FRUITS` entry, a comment at the dict says why, and a **headless check now
+asserts `coconut` is absent from the manifest**, so if that ever changes it fails
+loudly instead of drifting in.
+
+**The art negative control had to be rebuilt, and this is the interesting part.**
+It previously rendered grape, orange and watermelon — fruits with no art — and
+asserted they came out pixel-identical to the procedural painter, which is what
+proved the pixel-differ can report zero at all. Ben's drop gave all three of them
+art, so that control would have silently become vacuous: still green, no longer
+testing anything. It now renders `coconut` and a deliberately bogus type id, which
+keeps the "differ can report zero" proof and doubles as the coconut guard.
+
+**Verified:**
+
+- `node tests/headless_smoke.mjs` → **15 passed** (was 14). The art probe covers
+  all 10 fruits and asserts the manifest key set equals the roster exactly, so a
+  dropped or extra entry fails.
+- **Both new checks proven able to fail:** adding `'Coconut': 'coconut'` to
+  `FRUITS` in a scratch copy and re-running turned 15 passed into 10 passed /
+  4 failed (the roster check, the rebuilt control, the coconut guard, and the boot
+  check's image count).
+- `node tests/board_test.js` → 55/55 unchanged.
+- Render fit: measured through the painter at size 64, all ten land at **59–61 px**
+  on the long side, so they carry consistent visual weight. Two silhouettes changed
+  from the procedural stand-ins and were flagged to Ben: watermelon was a wedge
+  (58 × 39) and is now a whole melon (50 × 60); banana lay flat (57 × 38) and now
+  stands upright (59 × 60).
+- Bundle 0.67 → **1.18 MB** (10 embedded images, 720 970 B), still boots from
+  `file://`.
+- Deploy: 8 files written with fsync + read-back, all 18 payload files sha256-equal
+  both ways, no host-only files, `diff -rq` clean, anonymous requests to the page,
+  the manifest and two new images all 302 to login. Deployed `GAME_VERSION` 0.4.0.
+
+**Bridge:** J-001 confirmed delivered and live per rule 9 in MSG-06; MSG-05
+archived under rule 10. Nothing is open on either side.
+
+**Changed files:** `prototype/tools/preprocess_assets.py`,
+`prototype/js/assets_manifest.js` (generated), `prototype/js/game.js`
+(`GAME_VERSION` 0.4.0), `prototype/tests/headless_smoke.mjs`,
+`prototype/assets/img/` (5 new + updated Pineapple),
+`prototype/dist/OrchardToss.html`, `prototype/README.md`,
+`prototype/ARCHITECTURE.md`, `README.md`, `CLAUDE.md`,
+`talk_to_other_claude.md`, `talk_to_other_claude_archive.md`, this file;
+deployed copy in `C:\PROD_DB\infra_router\router-server\hosted_apps\orchard-toss\`.
+
+---
+
 ## 2026-09-03 — bridge file split: `talk_to_other_claude_archive.md`, and a retention rule so the channel stays readable
 
 **STATUS: LIVE.** Jac's instruction: the bridge file must not be allowed to grow

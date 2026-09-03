@@ -18,14 +18,39 @@ OT.AM = {
   "w": 252,
   "h": 256
  },
+ "grape": {
+  "src": "assets/img/Grape.png",
+  "w": 233,
+  "h": 256
+ },
+ "lemon": {
+  "src": "assets/img/Lemon.png",
+  "w": 256,
+  "h": 249
+ },
+ "orange": {
+  "src": "assets/img/Orange.png",
+  "w": 224,
+  "h": 256
+ },
  "pineapple": {
   "src": "assets/img/Pineapple.png",
   "w": 164,
   "h": 256
  },
+ "pomegranate": {
+  "src": "assets/img/Pomegranate.png",
+  "w": 230,
+  "h": 256
+ },
  "strawberry": {
   "src": "assets/img/Strawberry.png",
   "w": 201,
+  "h": 256
+ },
+ "watermelon": {
+  "src": "assets/img/Watermelon.png",
+  "w": 214,
   "h": 256
  }
 };

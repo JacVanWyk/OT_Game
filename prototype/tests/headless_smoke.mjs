@@ -262,9 +262,16 @@ const EVAL_PIXELS = `(() => {
 // Real fruit art (v0.2.0): render each fruit through OT.S.fruit (possibly the
 // image override) and through the procedural snapshot OT.S._proc.fruit into two
 // offscreen canvases and count differing pixels. Imaged fruits MUST differ;
-// non-imaged fruits MUST be pixel-identical (the override delegates), which also
-// proves the differ can report zero. Also measures the opaque bbox of both
-// renders so the image FIT can be judged against the procedural size.
+// A type with NO image in OT.AM must render pixel-identical through the override
+// (it delegates to the procedural painter), which also proves the differ can report
+// zero. Until 2026-09-03 the control used grape/orange/watermelon, which had no art;
+// Ben has now supplied all 10 fruits, so the control uses 'coconut' and a bogus id
+// instead. 'coconut' is not an accident: assets/Coconut.png EXISTS in the repo but is
+// deliberately excluded from FRUITS (Ben's decision, MSG-05) because the coconut is a
+// tougher-tile mechanic, not an 11th matchable fruit. Asserting it still renders
+// procedurally is therefore also the regression guard on that decision.
+// Also measures the opaque bbox of both renders so the image FIT can be judged
+// against the procedural size.
 const EVAL_ART = `(() => {
   const S = OT.S, A = OT.A;
   const N = 96, SZ = 64;
@@ -274,7 +281,9 @@ const EVAL_ART = `(() => {
   const out = { status: A.status, loaded: A.loaded, total: A.total, failed: A.failed, override: !!(S._proc && S.fruit !== S._proc.fruit), imaged: {}, control: {} };
   if (!S._proc || !S._proc.fruit) return out;
   for (const t of Object.keys(OT.AM || {})) { const a = render(S.fruit, t), b = render(S._proc.fruit, t); out.imaged[t] = { diff: diff(a, b), img: bbox(a), proc: bbox(b) }; }
-  for (const t of ['grape', 'orange', 'watermelon']) { const a = render(S.fruit, t), b = render(S._proc.fruit, t); out.control[t] = { diff: diff(a, b), img: bbox(a) }; }
+  out.manifestKeys = Object.keys(OT.AM || {}).sort();
+  out.coconutInManifest = !!(OT.AM && OT.AM.coconut);
+  for (const t of ['coconut', '__nosuchfruit__']) { const a = render(S.fruit, t), b = render(S._proc.fruit, t); out.control[t] = { diff: diff(a, b), img: bbox(a) }; }
   return out;
 })()`;
 
@@ -296,23 +305,30 @@ try {
     const r = harness(base + 'index.html', { wait: READY_BOTH, evalExpr: EVAL_BOOT });
     const j = r.json || {};
     const pass = r.status === 0 && j.ready && j.assetsReady && j.hasDebug && j.hasBoard && r.pageErrors.length === 0
-      && j.imgStatus === 'ready' && j.imgLoaded === j.imgTotal && j.imgTotal >= 5 && j.fruitOverride === true;
+      && j.imgStatus === 'ready' && j.imgLoaded === j.imgTotal && j.imgTotal === 10 && j.fruitOverride === true;
     return { pass, evidence: { harnessExit: r.status, ...j, pageErrors: r.pageErrors.slice(0, 3) } };
   });
 
   const art = harness(base + 'index.html', { wait: READY_BOTH, evalExpr: EVAL_ART });
   const aj = art.json || {};
-  check('real fruit art: every manifest image loaded, OT.S.fruit overridden, each imaged fruit renders differently from its procedural painter', () => {
+  const ROSTER = ['cherry', 'strawberry', 'apple', 'watermelon', 'grape', 'banana', 'pomegranate', 'pineapple', 'orange', 'lemon'].sort();
+  check('real fruit art: all 10 roster fruits imaged and loaded, OT.S.fruit overridden, each renders differently from its procedural painter', () => {
     const keys = Object.keys(aj.imaged || {});
-    const allDiffer = keys.length >= 5 && keys.every(k => aj.imaged[k].diff > 400 && aj.imaged[k].img.n > 400);
+    const rosterComplete = JSON.stringify((aj.manifestKeys || []).slice()) === JSON.stringify(ROSTER);
+    const allDiffer = keys.length === 10 && rosterComplete && keys.every(k => aj.imaged[k].diff > 400 && aj.imaged[k].img.n > 400);
     const pass = art.status === 0 && aj.status === 'ready' && aj.loaded === aj.total && aj.override === true && allDiffer && art.pageErrors.length === 0;
-    return { pass, evidence: { harnessExit: art.status, status: aj.status, loaded: aj.loaded, total: aj.total, failed: aj.failed, override: aj.override, imaged: aj.imaged, pageErrors: art.pageErrors.slice(0, 3) } };
+    return { pass, evidence: { harnessExit: art.status, status: aj.status, loaded: aj.loaded, total: aj.total, failed: aj.failed, override: aj.override, manifestKeys: aj.manifestKeys, imaged: aj.imaged, pageErrors: art.pageErrors.slice(0, 3) } };
   });
 
-  check('NEGATIVE CONTROL: non-imaged fruits (grape, orange, watermelon) render pixel-identical through the override (diff must be 0, and not because nothing was drawn)', () => {
+  check('NEGATIVE CONTROL: a type with no manifest image (coconut, bogus id) renders pixel-identical through the override — diff must be 0, and not because nothing was drawn', () => {
     const keys = Object.keys(aj.control || {});
-    const pass = art.status === 0 && keys.length === 3 && keys.every(k => aj.control[k].diff === 0 && aj.control[k].img.n > 400);
+    const pass = art.status === 0 && keys.length === 2 && keys.every(k => aj.control[k].diff === 0 && aj.control[k].img.n > 400);
     return { pass, evidence: { harnessExit: art.status, control: aj.control } };
+  });
+
+  check("Ben's decision (MSG-05): assets/Coconut.png is NOT wired in — 'coconut' has no manifest entry, so coconuts never render as a matchable fruit", () => {
+    const pass = art.status === 0 && aj.coconutInManifest === false && (aj.manifestKeys || []).indexOf('coconut') === -1;
+    return { pass, evidence: { harnessExit: art.status, coconutInManifest: aj.coconutInManifest, manifestKeys: aj.manifestKeys } };
   });
 
   check('title -> playing via OT.game.start()', () => {
@@ -391,7 +407,7 @@ try {
       const r = harness(fileUrl, { wait: READY_BOTH, evalExpr: EVAL_BOOT });
       const j = r.json || {};
       const pass = r.status === 0 && j.ready && j.assetsReady && j.hasDebug && j.hasBoard && r.pageErrors.length === 0
-        && j.imgStatus === 'ready' && j.imgLoaded === j.imgTotal && j.imgTotal >= 5 && j.fruitOverride === true;
+        && j.imgStatus === 'ready' && j.imgLoaded === j.imgTotal && j.imgTotal === 10 && j.fruitOverride === true;
       return { pass, evidence: { harnessExit: r.status, bundleBytes: statSync(BUNDLE).size, ...j, pageErrors: r.pageErrors.slice(0, 3) } };
     });
   } else {

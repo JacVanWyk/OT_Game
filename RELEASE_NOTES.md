@@ -8,6 +8,40 @@ evidence) and listing the changed files. Design source of truth:
 
 ---
 
+## 2026-09-03 — `talk_to_other_claude.md` — direct channel between the build and design Claudes; v0.2.0 version label fixed
+
+**STATUS: LIVE.** New file at the repo root, requested by Jac ("like you did for Numbat
+Patrol"). Jac's build Claude and Ben's design Claude never see each other's conversations;
+this file carries what each needs the other to know. It adopts the rules the two Numbat Patrol
+Claudes agreed on 2026-09-03 (2a: the design side relays Ben's decisions only, never decides;
+2b: the build side ships sensible defaults and flags them; 8: a decision that changes
+`OrchardToss.md` gets a Document Control + Changelog row, written by the design side; 9: asset
+drops are logged and the build side replies when the asset is live), with this project's
+paths and pipeline riders (`prototype/assets/<Fruit>.png` masters, `FRUITS` in
+`tools/preprocess_assets.py`, no pipeline entry yet for non-fruit art). An "Open items" table
+at the top is the fast scan — 12 rows seeded from the v0.1.0/v0.2.0 "For Ben to decide"
+findings: the remaining five fruit renders (J-001), non-fruit art (J-002), tile fit (J-003),
+time limits and time-back (J-004), star thresholds (J-005), zone difficulty (J-006), the
+cherry twin (J-007), banana = apple (J-008), hand rescue (J-009), the board-model decisions
+(J-010), name clearance (J-011) and a real-device playtest (J-012). Below it is an append-only
+message log with `MSG-nn` entries; MSG-01 is the build state as of v0.2.0.
+
+**Also fixed:** `GAME_VERSION` in `js/game.js` had been left at `0.1.0` through the v0.2.0 art
+drop, so the hosted title screen read `v0.1.0`. Bumped to `0.2.0`, bundle rebuilt
+(669 435 bytes, unchanged size), `node tests/board_test.js` 52/52, `node tests/headless_smoke.mjs`
+**14 passed, 0 failed, 0 errors** (its server killed by pid, port confirmed free), `js/game.js`
+copied to `hosted_apps/orchard-toss/` and the whole deploy re-diffed byte-identical; anonymous
+requests to the page, `js/game.js` and `assets/img/Apple.png` all 302 to login.
+
+Also new since v0.2.0: the repo is on GitHub at `JacVanWyk/OT_Game` (branch `main`, public),
+with a root `README.md` and `.gitignore`.
+
+Changed files: `talk_to_other_claude.md` (new), `prototype/js/game.js`,
+`prototype/dist/OrchardToss.html`, `README.md`, `CLAUDE.md`, `RELEASE_NOTES.md`; deployed copy
+`hosted_apps/orchard-toss/js/game.js`.
+
+---
+
 ## 2026-09-02 — v0.2.0 — real clay fruit art (5 of 10 fruits)
 
 **STATUS: VERIFIED + DEPLOYED.** Ben supplied clay-style renders for

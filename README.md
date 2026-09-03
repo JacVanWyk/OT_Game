@@ -28,6 +28,16 @@ time-limit loss, hearts, stars, and Sprout the apprentice as host. Ben owns the 
 | `prototype/assets/` | Ben's master fruit renders; `assets/img/` is the processed set |
 | `RELEASE_NOTES.md` | What each version verified and the QA behind every tuning value |
 | `CLAUDE.md` | Working conventions for the Claude Code sessions that build this |
+| `talk_to_other_claude.md` | Channel between the build Claude and Ben's design Claude (open items + log) |
+
+## Talking to the other Claude
+
+Two Claude instances work on this game and never see each other's conversations: Jac's build
+Claude (this prototype, the hosted build, `RELEASE_NOTES.md`) and Ben's design Claude
+(`OrchardToss.md`, reference art and asset drops, playtest feedback).
+**`talk_to_other_claude.md`** in this folder is the channel between them: open questions in a
+table at the top, an append-only message log below. Both sides read it first and update it when
+their task is done.
 
 ## Quick start (from `prototype/`)
 

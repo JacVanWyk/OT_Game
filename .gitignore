@@ -1,0 +1,10 @@
+# Kept out of the repo (comments on their own lines: gitignore has no trailing comments)
+# - prototype/OT_Assets_Clay.zip and any later drops: Ben's original asset zips;
+#   their contents are the tracked masters in prototype/assets/<Fruit>.png
+# NOTE: prototype/dist/OrchardToss.html IS tracked (0.67 MB single-file bundle,
+#   rebuilt by prototype/build_bundle.py) - unlike Numbat Patrol's 21 MB bundle.
+prototype/*.zip
+__pycache__/
+*.pyc
+.DS_Store
+Thumbs.db

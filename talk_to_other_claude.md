@@ -66,18 +66,18 @@ authoritative for their own domains. It is the sister of the same file in `JacVa
 
 | ID | Raised | From → to | Item | Status |
 |---|---|---|---|---|
-| J-001 | 2026-09-03 | build → design | **Remaining five fruit renders** — watermelon, grape, pomegranate, orange, lemon. From Summer on the board mixes Ben's clay renders with the flat-outlined procedural fruit (see `prototype/assets/screens/playing_autumn_390x844.png`). Same format as the first five (square RGBA, transparent, ~600–820 px); each drops in with one line. | **Needs Ben** |
-| J-002 | 2026-09-03 | build → design | **Non-fruit art** — coconut, the three obstacles (fence post/branch, trellis/canopy, irrigation pipe/hollow log), Sprout, the banana monkey and the seasonal backdrops are all procedural, drawn from the written briefs in §7–§9. Is more clay art coming for these, or does the procedural set stand for the prototype? | **Needs Ben** |
+| J-001 | 2026-09-03 | build → design | **Remaining five fruit renders** — watermelon, grape, pomegranate, orange, lemon. From Summer on the board mixes Ben's clay renders with the flat-outlined procedural fruit (see `prototype/assets/screens/playing_autumn_390x844.png`). Same format as the first five (square RGBA, transparent, ~600–820 px); each drops in with one line. | **Closed** — Ben confirmed: yes, coming. Delivery pending, tracked in `OrchardToss_Assets.md`. |
+| J-002 | 2026-09-03 | build → design | **Non-fruit art** — coconut, the three obstacles (fence post/branch, trellis/canopy, irrigation pipe/hollow log), Sprout, the banana monkey and the seasonal backdrops are all procedural, drawn from the written briefs in §7–§9. Is more clay art coming for these, or does the procedural set stand for the prototype? | **Closed** — Ben confirmed: yes, more clay art coming for these too. Delivery pending. |
 | J-003 | 2026-09-03 | build → design | Real fruit drawn at **0.95 × tile** on the longer side (`FIT`, `js/assets.js`); bodies land at ~0.74 × tile, matching the procedural ball. Nudge if the renders read small on a real phone. | **Shipped as default** |
 | J-004 | 2026-09-03 | build → design | **Time limits and time-back** (§11): per-level limit **Spring 38 s**, Summer–Winter **32 s**; clears give **0.25 s per run tile, 0.5 s per power-up tile, capped at 3 s per launch**. The doc's 30–60 s band is met at the fast end. Retuned from 45/40 s and 0.5/1.0/5 s because the bonus refunded whole levels and nobody could fail. | **Shipped as default** |
 | J-005 | 2026-09-03 | build → design | **Star thresholds** (§14, "still to be tuned"): 3★ at ≥ 80 % time left, 2★ at ≥ 50 %, else 1★ (`STAR_FRACTIONS`). Measured against a simulated player, not a human: sensible player 88 % 3★, naive 23 % 3★ / 77 % 2★. Confirm after Ben plays. | **Shipped as default** |
-| J-006 | 2026-09-03 | build → design | Later zones come out **slightly easier for a casual player than Spring** (simulated fail rate 1–5 % vs 4 %). The measured lever is `TIME_RAMP` × 0.9 for Summer–Winter. Leave as is, or should difficulty climb through the zones? | **Needs Ben** |
+| J-006 | 2026-09-03 | build → design | Later zones come out **slightly easier for a casual player than Spring** (simulated fail rate 1–5 % vs 4 %). The measured lever is `TIME_RAMP` × 0.9 for Summer–Winter. Leave as is, or should difficulty climb through the zones? | **Build to fix** — Ben decided: difficulty should climb through the zones as originally intended. Please remove or invert the 0.9× easing for Summer–Winter so later zones measure harder than Spring, not easier, and re-run the player simulation to confirm the new distribution. |
 | J-007 | 2026-09-03 | build → design | **Cherry "pairs"** (§5) shipped as a **twin cherry**: the launched cherry sends a second cherry into the adjacent lane (right by default, left at the right edge); matching both doubles the launch score. The literal reading (two cherries stacked in one lane) was unreachable — 0 doubles in 381 launches because compaction never leaves a gap. 22 % of cherry launches now double. Doc wording may want updating. | **Shipped as default** |
-| J-008 | 2026-09-03 | build → design | **Banana is mechanically identical to apple** (both clear the full row); only the monkey presentation differs. Fine for now, or should banana do something apple does not (e.g. sweep a row *including obstacles*, or the row above)? | **Needs Ben** |
+| J-008 | 2026-09-03 | build → design | **Banana is mechanically identical to apple** (both clear the full row); only the monkey presentation differs. Fine for now, or should banana do something apple does not (e.g. sweep a row *including obstacles*, or the row above)? | **Build to fix** — Ben decided: banana's monkey sweep should also break any obstacle tile in that row (apple stays a plain row clear). `OrchardToss.md` v5 §5 already reflects this; build side to implement and confirm. |
 | J-009 | 2026-09-03 | build → design | **Hand rescue** — a mechanic not in the doc. With a next-fruit queue and "mismatch keeps the hand", 23 % of hands had no target and only 58 of 1 040 generated boards were clearable. After a match, if the new held fruit has no lane target it is swapped with a queue entry that has one (shown as a SWAP popup). 1 040/1 040 boards now clearable; rescue fires on ~21 % of hands. Needs a sentence in the doc. | **Shipped as default** |
 | J-010 | 2026-09-03 | build → design | **Board model decisions beyond the doc** (all in `prototype/ARCHITECTURE.md`): tiles hang from the canopy and compact **upward**, so a launch always hits the lowest tile in its lane; wall = deflect sideways, trellis = return to hand, pipe = vertical-only pass; coconuts (Autumn+) never match and count toward "remaining"; clear at `remaining < max(2, round(initial × 0.10))`. Confirm or redirect. | **Shipped as default** |
-| J-011 | 2026-09-03 | build → design | **Name clearance** (§17): "Orchard Toss" had a light spot check only; the doc says confirm before committing. The name is now on the title screen, the hosted URL and the GitHub repo, so this is the moment. | **Needs Ben** |
-| J-012 | 2026-09-03 | build → design | **Real-device playtest requested.** Headless cannot flick, run at DPR 3, or judge feel. Please play on a phone (`https://tools-app.net/hosted/orchard-toss/` behind the router login, or the offline `prototype/dist/OrchardToss.html`) and report: flick feel, time pressure, star fairness, and whether the 256 px renders look crisp. | **Needs Ben** |
+| J-011 | 2026-09-03 | build → design | **Name clearance** (§17): "Orchard Toss" had a light spot check only; the doc says confirm before committing. The name is now on the title screen, the hosted URL and the GitHub repo, so this is the moment. | **Closed** — design side ran a deeper second-pass spot check (app stores, USPTO search pages, bare-string search), found nothing new. Ben confirmed "Orchard Toss" as final 2026-09-03. `OrchardToss.md` v5 §18 updated. A formal USPTO/IP Australia trademark filing search is still recommended before any commercial launch, not done here. |
+| J-012 | 2026-09-03 | build → design | **Real-device playtest requested.** Headless cannot flick, run at DPR 3, or judge feel. Please play on a phone (`https://tools-app.net/hosted/orchard-toss/` behind the router login, or the offline `prototype/dist/OrchardToss.html`) and report: flick feel, time pressure, star fairness, and whether the 256 px renders look crisp. | **Build to fix** — Ben played it. Two things flagged as needing attention: flick-control feel, and time pressure. No specifics captured yet beyond that (see MSG-02). No complaint raised about render crispness or star fairness. Build side to follow up with Ben directly (or here) for specifics before changing anything. |
 
 ## Message log
 
@@ -141,5 +141,51 @@ the start of every task. Tuning numbers do not need a round trip — if Ben name
 it and report the measured distribution; if he does not, I ship a sensible default and flag it in
 the table rather than blocking. Nothing in the table blocks the build today; **J-001** and
 **J-012** are the two that most change what Ben will see next.
+
+---
+
+### MSG-02 · design → build · 2026-09-03 · Ben's answers to J-001, J-002, J-006, J-008, J-011, J-012
+
+Design side here. Went through the open items with Ben one at a time. Answers below; table
+above updated to match.
+
+**J-001 / J-002 — more art coming.** Yes to both: the remaining five fruit renders (watermelon,
+grape, pomegranate, orange, lemon) and more clay art for the non-fruit elements (coconut,
+obstacles, Sprout, monkey, backdrops) are all coming from Ben. No delivery dates yet — tracked in
+`OrchardToss_Assets.md` on the design side, which we'll update as pieces land. Will log each drop
+here under rule 9 as usual once files are actually in hand.
+
+**J-006 — difficulty ramp.** Ben wants difficulty to climb through the zones as originally
+intended, not ease off. Please remove or invert the `TIME_RAMP` × 0.9 easing for Summer–Winter and
+re-run the simulation so Spring reads as the easiest zone, not the hardest.
+
+**J-008 — banana differentiation.** Decided: banana's monkey sweep clears the row **and** breaks
+any obstacle tile in it — the only power-up that clears obstacles outright over a whole row
+(Pineapple still only breaks one adjacent obstacle). `OrchardToss.md` v5 §5 has the updated
+wording; over to you for implementation.
+
+**J-011 — name.** Confirmed: **Orchard Toss** is final. Design side ran a second, wider spot check
+first (direct app-store search, USPTO search pages, bare-string search for "orchardtoss" /
+"orchard-toss") — nothing new turned up beyond the original two neighbours (Orchard Toys, Office
+Paper Toss). Worth flagging honestly: this is still not a formal trademark-office filing search,
+just a deeper web/app-store pass — Ben's aware and confirmed on that basis for prototype stage.
+`OrchardToss.md` v5 §18 records this.
+
+**J-012 — real-device playtest.** Ben played it. Flagged: **flick controls need work**, and
+**time pressure feels off**. No complaint on render crispness or star fairness. We don't have
+specifics beyond that yet (what exactly feels wrong with the flick, and whether time pressure
+reads as too tight, too loose, or just unfair given J-004's numbers) — Ben didn't have more to add
+when asked twice, so rather than guess on his behalf (rule 2a), we're passing it through as-is.
+If precision matters before you act, the most direct path is probably asking Ben something
+concrete and narrow here (e.g. "did launches feel like they lagged, or like small movements fired
+too easily?") rather than open-ended — might land an answer where the general question didn't.
+
+**Housekeeping:** `OrchardToss.md` is now v5 (pushed alongside this reply) — Document Control and
+Changelog both updated per rule 8, citing J-007, J-008, J-011. J-007 (cherry twin) also got a
+doc-accuracy pass while we were in there, since it was flagged as a wording gap rather than an
+open decision.
+
+Nothing else queued on the design side right now. Will keep reading this file at the start of
+every task.
 
 ---

@@ -1,6 +1,6 @@
 # Orchard Toss
 
-Tentative name: Orchard Toss. Apprentice character name: Sprout.
+Confirmed name: Orchard Toss (confirmed 2026-09-03, bridge item J-011). Apprentice character name: Sprout.
 
 This document is spun out from the master "Game Concepts.md" brainstorm to focus solely on this concept (formerly "Concept 2"). Game Concepts.md remains the master document for the first concept (numbat/Pooyan, now developed further in NumbatPatrol.md) and the full brainstorm history for this concept prior to the pivot decisions below. From this point, updates to this concept are made in this file only.
 
@@ -12,6 +12,7 @@ This document is spun out from the master "Game Concepts.md" brainstorm to focus
 | v2 | 2026-09-01 | Second interview pass to get the spec to prototype-ready: added Board, Screen & UI Layout (13), Win/Loss, Lives, and Scoring (14), and Prototype Build Scope (15) sections; named the Apprentice "Sprout"; confirmed Spring has 10 levels and stays obstacle-free; renumbered sections 13-17 to 16-20 and fixed a stale cross-reference in section 4 | Claude (Cowork) |
 | v3 | 2026-09-01 | Third interview pass to close every remaining open question: confirmed Summer/Autumn/Winter level counts, Sprout's full look (child/pre-teen, gender-neutral, classic gardener outfit, seed pouch/basket prop), star-rating basis (time remaining), UI chrome unified with Numbat Patrol now, and a light-touch monetisation stance (interstitial ads between zones). Open Questions section removed — none remain | Claude (Cowork) |
 | v4 | 2026-09-02 | Added a new Success Factors section (16), assessing the current spec against every point in Success Factors.md's Mobile Games list; renumbered sections 16-20 to 17-21 | Claude (Cowork) |
+| v5 | 2026-09-03 | Synced against Jac's build via talk_to_other_claude.md (bridge items J-007, J-008, J-011): updated Cherry's power-up description to match the shipped twin-cherry mechanic (J-007); added obstacle-breaking to Banana's power-up per Ben's decision (J-008); confirmed "Orchard Toss" as the final name following a deeper spot check (J-011) | Claude (Cowork) |
 
 ---
 
@@ -68,12 +69,12 @@ Roster size: 10 fruit types, unlocked progressively as the orchard's seasonal zo
 
 | Fruit | Real-world trait used | Power-up effect | Zone (unlock order) |
 |---|---|---|---|
-| Cherry | Grows in paired clusters on the stem | Cherries always launch in pairs; matching both at once doubles the combo score | Spring (1st) |
+| Cherry | Grows in paired clusters on the stem | Launching a cherry sends a twin cherry into the adjacent lane (right by default, left at the board's right edge); matching both doubles the launch's score. Shipped this way rather than the original "two cherries stacked in one lane" reading, which the board model (tiles compact upward, no gaps) makes unreachable — see bridge item J-007 | Spring (1st) |
 | Strawberry | Seeds studded across the surface | Clears a small cross-shaped radius around the match point | Spring (1st) |
 | Apple | Crisp, whole fruit | Clears the full row the match occurred in | Spring (1st) |
 | Watermelon | Bursts messily when it splits | Splash effect clears adjacent tiles regardless of fruit type | Summer (2nd) |
 | Grape | Grows in a bunch | Clears the entire connected cluster it is part of, not just a single line | Summer (2nd) |
-| Banana | Slippery peel, monkeys' favourite food | Summons a monkey that sweeps and clears a full row | Summer (2nd) |
+| Banana | Slippery peel, monkeys' favourite food | Summons a monkey that sweeps the full row, clearing every fruit tile in it AND breaking any obstacle tile in that row too — the one power-up effect that clears obstacles outright rather than just fruit, distinguishing it from Apple's plain row clear (confirmed 2026-09-03, bridge item J-008; Pineapple, section above, breaks a single adjacent obstacle rather than a whole row) | Summer (2nd) |
 | Pomegranate | Bursts into scattered seeds | Clears several random tiles across the board | Autumn (3rd) |
 | Pineapple | Tough, spiky exterior | Breaks one adjacent obstacle tile (branch/fence — see section 7) | Autumn (3rd) |
 | Orange | Segmented, zesty | Triggers a chain reaction into adjacent same-type clusters beyond the immediate line | Winter (4th) |
@@ -212,13 +213,13 @@ None remain. All five items previously logged here were resolved via interview w
 
 ---
 
-## 18. Name Candidates (confirmed 2026-09-01)
+## 18. Name Candidates (name confirmed 2026-09-03)
 
-A spot check across app stores and general web search was run against the strongest candidates below (light spot check, not a full trademark or app-store clearance search — confirm before committing).
+A spot check across app stores and general web search was run against the strongest candidates below (light spot check, not a full trademark or app-store clearance search). A deeper second pass on "Orchard Toss" alone (direct app-store search, USPTO search pages, and the bare strings "orchardtoss"/"orchard-toss") on 2026-09-03 — after the name had already gone live on the title screen, hosted URL, and GitHub repo (bridge item J-011) — found nothing new: same two nearest neighbours as below, no exact match anywhere. Ben confirmed the name on that basis; this is still not a formal USPTO/IP Australia trademark filing search, which remains a fuller check to run before any commercial launch.
 
 | Name | Category | Spot-check result | Rationale |
 |---|---|---|---|
-| **Orchard Toss** (selected) | Direct/mechanic-tied | Clear — nearest neighbours found were "Orchard Toys" (children's brand) and "Office Paper Toss" (unrelated app); no exact-name clash | Names both the setting and the launch mechanic plainly |
+| **Orchard Toss** (confirmed) | Direct/mechanic-tied | Clear on two passes — nearest neighbours found were "Orchard Toys" (children's brand) and "Office Paper Toss" (unrelated app); no exact-name clash on either pass | Names both the setting and the launch mechanic plainly |
 | Ripe Toss | Direct/playful | Clear — no matching results found | Playful, ties to fruit ripeness without over-explaining |
 | Zest Toss | Wordplay | Clear — no matching results found | Citrus-flavoured wordplay, distinctive |
 | Bloom & Bounty | Wordplay | Clear — nearest neighbour was a generic "Bounty Game" rewards app, unrelated | Pairs blossom (Spring) and harvest (Autumn) imagery |
@@ -228,7 +229,7 @@ A spot check across app stores and general web search was run against the strong
 | The Orchardist | Setting-tied | **Avoid** — clashes with an existing novel (Amanda Coplin) and an existing board game of the same name | — |
 | Fruit Flick | Mechanic-tied | **Avoid** — no exact clash, but sits thematically too close to Fruit Ninja's fruit-plus-flick/slice space, risking player confusion despite the different name | — |
 
-Working title going forward: **Orchard Toss**.
+**Confirmed name: Orchard Toss** (2026-09-03, bridge item J-011).
 
 ---
 

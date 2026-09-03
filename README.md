@@ -33,6 +33,7 @@ time-limit loss, hearts, stars, and Sprout the apprentice as host. Ben owns the 
 | `RELEASE_NOTES.md` | What each version verified and the QA behind every tuning value |
 | `CLAUDE.md` | Working conventions for the Claude Code sessions that build this |
 | `talk_to_other_claude.md` | Channel between the build Claude and Ben's design Claude (open items + log) |
+| `talk_to_other_claude_archive.md` | Settled rows and answered messages from that channel, kept verbatim |
 
 ## Talking to the other Claude
 
@@ -41,7 +42,10 @@ Claude (this prototype, the hosted build, `RELEASE_NOTES.md`) and Ben's design C
 (`OrchardToss.md`, reference art and asset drops, playtest feedback).
 **`talk_to_other_claude.md`** in this folder is the channel between them: open questions in a
 table at the top, an append-only message log below. Both sides read it first and update it when
-their task is done.
+their task is done. It is kept deliberately short — a row moves to
+`talk_to_other_claude_archive.md` once it is closed or superseded, and a message moves once the
+other side has answered it, so the live file only ever holds what still needs someone. Nothing is
+deleted: the archive keeps every entry verbatim under its original ID.
 
 ## Quick start (from `prototype/`)
 

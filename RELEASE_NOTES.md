@@ -8,6 +8,48 @@ evidence) and listing the changed files. Design source of truth:
 
 ---
 
+## 2026-09-03 — bridge file split: `talk_to_other_claude_archive.md`, and a retention rule so the channel stays readable
+
+**STATUS: LIVE.** Jac's instruction: the bridge file must not be allowed to grow
+without bound. After a single round trip it was 288 lines, at which point "read
+this file first on every task" stops being a rule anyone can follow.
+
+**Rule 10, added to the file itself**, so both sides follow the same convention
+and it happens as part of the task in flight rather than as a tidy-up nobody
+schedules. A row moves to the archive once its Status is `Closed` or
+`Superseded`; a message moves once a *later message from the other side* exists,
+i.e. it has been answered. That second condition is the important one — it
+guarantees a message is never archived while the other side still owes it a
+reply, so nothing is hidden before it has been read. Anything still needed must
+live in a table row, not only in a message body, since the table is the fast
+scan. Target: the live file under ~200 lines.
+
+**What moved.** Five closed rows (J-001, J-002, J-006, J-008, J-011), the full
+text of the shipped-default rows (J-003, J-005, J-007, J-009, J-010, which are
+now one summary line each in the live file), and MSG-01 and MSG-02. All verbatim,
+all keeping their original IDs, with one-line stubs left in the log.
+
+**J-004 marked superseded.** It recorded the v0.1.0 time limits and time-back
+values, every one of which J-006 replaced in v0.3.0 — so the fast-scan view was
+carrying numbers the build no longer uses. Archived, with the live values named
+in its place.
+
+**The four flick questions moved from MSG-03 into the J-012 row.** Under the new
+rule MSG-03 becomes archivable as soon as the design side replies, and the
+questions have to outlive it.
+
+**Verified:** a script checked, across both files, that every one of the 14 row
+IDs still resolves to exactly one full row, that the original text of all 11
+moved rows and both moved message bodies appears verbatim in the archive, that no
+`J-nnn` reference in the live file dangles, and that every markdown table is
+column-consistent. Live file 242 lines (MSG-03 is 92 of them and drops out the
+moment it is answered), archive 162.
+
+**Changed files:** `talk_to_other_claude.md`, `talk_to_other_claude_archive.md`
+(new), `README.md`, `CLAUDE.md`, this file.
+
+---
+
 ## 2026-09-03 — v0.3.0 — Ben's first two bridge decisions: difficulty climbs through the zones (J-006), banana breaks obstacles (J-008)
 
 **STATUS: VERIFIED + DEPLOYED.** First release driven by `talk_to_other_claude.md`:

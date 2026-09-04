@@ -13,6 +13,7 @@ This document is spun out from the master "Game Concepts.md" brainstorm to focus
 | v3 | 2026-09-01 | Third interview pass to close every remaining open question: confirmed Summer/Autumn/Winter level counts, Sprout's full look (child/pre-teen, gender-neutral, classic gardener outfit, seed pouch/basket prop), star-rating basis (time remaining), UI chrome unified with Numbat Patrol now, and a light-touch monetisation stance (interstitial ads between zones). Open Questions section removed — none remain | Claude (Cowork) |
 | v4 | 2026-09-02 | Added a new Success Factors section (16), assessing the current spec against every point in Success Factors.md's Mobile Games list; renumbered sections 16-20 to 17-21 | Claude (Cowork) |
 | v5 | 2026-09-03 | Synced against Jac's build via talk_to_other_claude.md (bridge items J-007, J-008, J-011): updated Cherry's power-up description to match the shipped twin-cherry mechanic (J-007); added obstacle-breaking to Banana's power-up per Ben's decision (J-008); confirmed "Orchard Toss" as the final name following a deeper spot check (J-011) | Claude (Cowork) |
+| v6 | 2026-09-04 | First Sprout reference art supplied: 4 mood renders (Idle, Aim, Cheer, Sad) at growth Stage 3 (the mature/grown end of the meta-progression arc); Stages 0-2 still to come. Section 8's "no reference art" note updated to reflect the fruit and Sprout renders now supplied; section 9 records the drop; asset list (OrchardToss_Assets.md) rows 074-077 updated. Logged on the bridge as MSG-09 | Claude (Cowork) |
 
 ---
 
@@ -115,12 +116,12 @@ Flipull's original field features (walls, ceilings, pipes) are translated into t
 - Style: colourful, glossy, physics-driven mobile-casual illustration — matches the direction chosen for Concept 1 (referencing Cook & Merge and Match Factory!), applied here specifically to give this concept visual and tactile distance from the flat, rigid block movement of the existing commercial template flagged in section 4;
 - Physics behaviour: fruit rolls and bounces naturally when it lands or is deflected by an obstacle, and splashes juice/pulp on a successful match — this is a required behaviour, not a polish pass, per section 4;
 - Palette: bright, saturated, season-appropriate — soft pastels/blossom tones for Spring, vivid warm tones for Summer, deep amber/burgundy for Autumn, cool blue-green with citrus brights for Winter;
-- Reference art: none supplied yet (unlike Concept 1's numbat reference photos); this section stands as a written brief for Jac to work from until reference material is available; and
+- Reference art: fruit masters (all 11, section 5) and the first Sprout renders (section 9, growth Stage 3) are now supplied via `OrchardToss/Assets`; obstacles, the banana monkey, and seasonal backdrops are still written-brief only, per section 2 of `talk_to_other_claude.md` rule 9; and
 - UI treatment: to be aligned with Concept 1's chunky glossy button/banner language once both concepts are further along, for visual consistency across the two games if both proceed.
 
 ---
 
-## 9. Character: Sprout the Apprentice (confirmed 2026-09-01, named 2026-09-01, look confirmed 2026-09-01)
+## 9. Character: Sprout the Apprentice (confirmed 2026-09-01, named 2026-09-01, look confirmed 2026-09-01, first reference art supplied 2026-09-04)
 
 Host character direction: a young, enthusiastic orchardist's apprentice who grows and learns alongside the orchard itself — as the player clears zones and the orchard flourishes, the character's confidence/skill visibly develops in step, giving the meta-progression layer (section 6) a face rather than being a purely visual orchard-growth mechanic.
 
@@ -129,7 +130,8 @@ Host character direction: a young, enthusiastic orchardist's apprentice who grow
 - Age: child/pre-teen — a young apprentice look, leaning cute and matching common casual-mobile mascot conventions;
 - Gender presentation: gender-neutral/ambiguous — the design does not read clearly as either, for the broadest appeal;
 - Outfit: classic gardener — overalls, a sun hat, and an apron with pockets, reading immediately as "tends an orchard"; and
-- Signature prop: a seed pouch/basket, tying Sprout to the fruit being launched rather than to the launch motion itself (the launcher UI element carries that visual job instead). This is still a written brief only — no reference art yet, per section 8.
+- Signature prop: a seed pouch/basket, tying Sprout to the fruit being launched rather than to the launch motion itself (the launcher UI element carries that visual job instead); and
+- Reference art (added 2026-09-04): the first four Sprout renders are supplied in `OrchardToss/Assets` and pushed to the repo as `prototype/assets/Sprout_Stage3_{Idle,Aim,Cheer,Sad}.png` — the four mood states from the asset list's Sprout Character rows, at growth **Stage 3**, the mature/grown end of the arc described above. Stages 0-2 (the earlier, less-developed looks) are still to come from Ben; until they land, the game keeps its current placeholder for those stages. See `OrchardToss_Assets.md` rows 074-077 and `talk_to_other_claude.md` MSG-09.
 
 ---
 
@@ -264,3 +266,4 @@ Game Concepts.md retains the original brainstorm, the full brief-to-decision his
 |---|---|---|
 | 2026-09-01 | v1 | Document created, extracted from Game Concepts.md; resolved the differentiation risk (made core, not optional) and every open question from section 4.9 via interview with Ben; confirmed fruit/power-up roster, seasonal zone structure, obstacles, art direction, host character direction, control scheme, pacing, and working title with name-clash spot check |
 | 2026-09-01 | v2 | Second interview pass to reach prototype-ready detail: added Board, Screen & UI Layout, Win/Loss/Lives/Scoring, and Prototype Build Scope sections (13-15); confirmed portrait orientation, 5-lane board, bottom launcher firing upward, next-fruit preview, bonus-time-on-clear, remaining-count clear condition, ~70%-fill/~10%-target board fill, 5-heart life system (30-minute refill), 1-3 star rating, randomly-generated obstacles (Spring exempt, 10 levels), full-scope prototype build on the same hosted web tooling as Numbat Patrol, and named the Apprentice "Sprout" |
+| 2026-09-04 | v6 | First Sprout reference art supplied: 4 mood renders (Idle, Aim, Cheer, Sad) at growth Stage 3; updated section 8's stale "no reference art" note and added a reference-art bullet to section 9; asset list rows 074-077 updated. Note: this Changelog table was not kept current for v3-v5 in earlier sessions - their changes are recorded in Document Control above but not mirrored here |

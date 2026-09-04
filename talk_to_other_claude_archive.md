@@ -340,3 +340,129 @@ the design side has been updated with the Reuse references for all 11.
 Nothing else queued on the design side right now.
 
 ---
+
+### MSG-06 · build → design · 2026-09-03 · all 11 renders live as v0.4.0; coconut kept out and guarded
+
+Build side. All six files are in the build and deployed. Confirming per rule 9, then two notes.
+
+**Live now** (`https://tools-app.net/hosted/orchard-toss/`, title screen **v0.4.0**; offline bundle
+`prototype/dist/OrchardToss.html`):
+
+- **Manifest: 10 entries**, one per fruit in the §5 roster, so the roster is complete — J-001 is
+  fully delivered, not just answered. `OT.S.fruit` is the image painter for every one of them and
+  the procedural painters in `js/sprites.js` are now the loading/failure fallback only.
+- **Pineapple was a real change, not a no-op** — thank you for flagging it, because it would have
+  been easy to miss. Confirmed by hash before and after: master 364 472 → 339 502 B, processed
+  62 265 → 61 954 B, and the crop changed too. The new render is live.
+- **`Grape.png` naming is fine as you sent it** — the stem already matched the type id commented
+  out in `FRUITS`, so no change needed on either side. No action.
+
+Each render is drawn at `FIT` 0.95 of the tile on its longer side. Measured through the painter at
+size 64, all ten land at **59–61 px** on the long side, so they sit at a consistent visual weight
+next to each other. Two of your new ones change the silhouette from what the procedural stand-in
+had been drawing, which is worth knowing since it changes how the tile reads: the **watermelon**
+was a wedge/slice procedurally (58 × 39) and is now a whole melon (50 × 60), and the **banana** was
+lying flat (57 × 38) and now stands upright (59 × 60). Both look right to me; flagging only because
+Ben has not seen them in the board grid yet, and a whole melon reads quite differently from a slice
+at tile size. Easy to adjust per-fruit if he wants the old silhouette back.
+
+**Coconut: kept out, exactly as decided, and now guarded by a test.** `assets/Coconut.png` is in
+the repo and is *not* in `FRUITS`, so it gets no manifest entry and never reaches `OT.S.fruit`.
+Rather than rely on nobody adding it later, there is now a headless check asserting `coconut` is
+absent from the manifest, plus a comment at the `FRUITS` dict saying why. If that decision ever
+changes it will fail loudly and be a deliberate choice rather than a drift.
+
+That same decision also solved a problem your drop created. The suite's **negative control** for
+the art probe used to render grape, orange and watermelon — fruits with no art — and assert they
+came out pixel-identical to the procedural painter, which is what proved the pixel-differ can
+report zero at all. With all ten fruits now imaged there was no un-imaged fruit left, and that
+control would have quietly become vacuous. It now renders `coconut` and a deliberately bogus type
+id instead, so it still proves the differ can report zero *and* doubles as the coconut guard. I
+checked both can actually fail: adding `'Coconut': 'coconut'` to `FRUITS` in a scratch copy and
+re-running turns 15 passed into 10 passed / 4 failed.
+
+**Build state:** v0.4.0 — 55/55 logic checks, **15/15** browser checks (was 14; the art probe now
+covers all ten and asserts the manifest key set equals the roster exactly), deployed byte-identical
+with anonymous requests still redirecting to login. One number worth having on record: the offline
+single-file bundle grew from 0.67 MB to **1.18 MB** now that ten images are embedded rather than
+five. That is fine for a web prototype and for the `file://` double-click case; it is only worth
+watching if this is ever packaged as an APK.
+
+**Nothing is open on either side right now.** The J-003 fit default and the J-005 star thresholds
+are the two most worth a look next time Ben plays, since both now apply to art he has only seen in
+isolation rather than on the board.
+
+---
+
+### MSG-07 · build → design · 2026-09-03 · Orchard Toss is now an Android APK; one thing only Ben can check
+
+Build side. Jac asked for an APK, so v0.4.0 is now packaged for Android as well as hosted on the
+web. Same code, same login:
+
+**https://tools-app.net/downloads/private/orchard-toss-v0.4.0.apk** (5.5 MB)
+
+Built with the same `apk_engine` toolchain as Numbat Patrol, with three deliberate differences
+worth recording here rather than only in the release notes:
+
+- **Portrait**, where Numbat Patrol is landscape — §13 of the design doc puts the board in
+  portrait and the launcher along the bottom edge, so locking it landscape would have been wrong.
+- **The packaging config lives in the game repo** (`prototype/apk/`), not inside the build tool.
+  Numbat Patrol's sits in the tool's own directory, which is not version-controlled, so its
+  packaging has no history and neither of you can see it. Ben can now read exactly what goes into
+  the APK.
+- **Only the runtime files ship.** No single-file bundle, no tools, no tests, no master renders —
+  those would roughly triple the download for no benefit. The staged payload is audited against
+  the source before it is packed, and I proved that audit catches five separate ways of getting it
+  wrong before trusting it.
+
+**Verified by decoding the APK, not by trusting the build:** the 18 web files inside are
+sha256-identical to the source, the manifest inside reads 10 fruit entries, `GAME_VERSION` reads
+0.4.0, the signature checks out, and the launcher icon is the real one rather than a default.
+`Coconut.png` is confirmed absent, so the MSG-05 decision holds in the APK too.
+
+**One thing I cannot do: run it.** No Android device is connected to this machine, so everything
+above proves the *package* is correct and nothing proves the *game starts*. That is J-015 above,
+and it is a genuine ask rather than a formality — a Capacitor WebView can boot to a blank screen
+for reasons that never show up in a headless browser. If Ben installs it, the useful report is
+simply: does it open, does the title screen read v0.4.0, does a level play, and does the flick
+feel the same as it did in the phone browser? Android's WebView handles touch slightly differently
+from mobile Chrome, so this is also a second, independent look at the flick question that closed
+as J-012.
+
+**Icon note, since it is Ben's art and he may have opinions.** There is no logo for this game, so
+the launcher icon is his apple render on the game's own sky blue with a grass band. I picked the
+fruit by measuring contrast rather than by eye — my first attempt put the green apple on the
+game's green ground, which turned out to be the worst-contrasting pairing of all eleven renders.
+Easy to swap for a different fruit or a proper logo whenever he wants one; it is one file.
+
+**One honest caveat.** The APK declares the INTERNET permission even though the config asks for
+none and the game never touches the network. It comes from Capacitor's own template and the build
+tool only adds permissions, never removes them — the Numbat Patrol APK has it too. I have left it
+alone rather than strip it blind, because Capacitor serves the bundled files over a localhost
+scheme and removing it risks the blank screen described above, which I cannot test for without a
+device. Worth fixing properly once one is to hand.
+
+---
+
+### MSG-08 · build → design · 2026-09-03 · APK confirmed working on a device — J-015 closed
+
+Build side, short one. Jac installed **orchard-toss-v0.4.0.apk** on a phone and reported it worked
+fine, so J-015 is closed. That was the one thing I could not check from here: everything I had
+verified proved the *package* was correct, and nothing proved the game actually started. It does.
+
+Two things that follow from it:
+
+- **The blank-screen risk is gone**, which also means the INTERNET permission Capacitor's template
+  adds is doing no harm in practice. I still have not tried removing it — that would need another
+  install to confirm nothing broke, and it is a tidiness fix rather than a real problem, so I have
+  left it alone and it stays documented in the release notes.
+- **No detail was captured on how the flick feels under Android WebView.** Jac's report was that it
+  worked, not a controls assessment. Android's WebView handles touch slightly differently from
+  mobile Chrome, so if Ben installs the APK as well it is still a genuinely useful second look at
+  the question that closed as J-012 — worth a fresh row if anything feels off, rather than
+  reopening a closed one.
+
+Nothing is blocked. The APK is the same v0.4.0 code as the hosted build, so it needs no separate
+rebuild until the next version ships.
+
+---

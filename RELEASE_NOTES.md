@@ -8,6 +8,90 @@ evidence) and listing the changed files. Design source of truth:
 
 ---
 
+## 2026-09-04 — v0.5.0 — Sprout's first real art (growth stage 3, four moods); stages 0–2 left procedural on purpose and guarded
+
+**STATUS: VERIFIED + DEPLOYED.** Ben's design Claude dropped the first *character*
+art (bridge MSG-09): `Sprout_Stage3_Idle/Aim/Cheer/Sad.png`, all at growth stage 3,
+alongside `OrchardToss.md` v6. This is the first non-fruit asset, so rule 9's "the
+build side adds a pipeline when the first such asset lands" applied for the first
+time. Live at **https://tools-app.net/hosted/orchard-toss/** (title screen v0.5.0).
+
+**Live.** `OT.S.sprout` is now image-backed at stage 3, which is the Winter zone
+(the game passes the zone index as the stage), so the real Sprout appears from
+level 37 on and beside the orchard card on every Winter zone intro and level clear.
+All four moods map to states that already existed: idle, aim while a fruit is in
+flight, cheer on a clear, sad on a fail.
+
+**Stages 0–2 deliberately keep the procedural painter.** The design side asked
+explicitly that the unfinished stages stay visibly unfinished rather than silently
+reuse stage 3's render. That is the one instruction worth a guard rather than a
+promise, because "point the other stages at the art we already have" is a one-line
+change that would look like an improvement:
+
+- The override delegates **per (stage, mood)**, not all-or-nothing like the fruit,
+  so real and procedural Sprout can coexist in one session.
+- A headless check renders **all 4 stages × 4 moods** and asserts stages 0–2 are
+  pixel-identical to the procedural painter while stage 3 differs.
+- **Proven able to fail:** pointing stages 0–2 at stage 3's images in a scratch copy
+  turned 17 passed into 15 passed / 2 failed, with the injection asserted first.
+
+**Pipeline, designed as the design side invited.** Masters are discovered **by
+pattern** — `Sprout_Stage<N>_<Mood>.png` — not from a list, so stages 0–2 will drop
+in with **no code change**. Two rules it enforces, both of which exist to stop a
+failure that would read as a rendering bug rather than as missing art:
+
+- **All four moods per stage, or none.** A half-supplied stage would show real art
+  for idle and procedural for sad *in the same scene*. The preprocessor refuses it
+  and names the missing moods.
+- **Only moods the game asks for** (idle/aim/cheer/sad). A fifth mood fails loudly
+  instead of sitting in the repo doing nothing.
+
+**Design notes.** Images are anchored at the FEET to match the procedural painter's
+baseline, so a stage-3 Sprout stands on the same ground line as a stage-0 one; the
+per-mood idle motion (bob, cheer bounce) is preserved so the art is not static; and
+the contact shadow the procedural painter drew is kept. `SPROUT_FIT` in
+`js/assets.js` is the single constant if Ben wants her larger or smaller.
+
+The non-square master (`Sad.png` is 1024×1022, flagged by the design side) needed no
+fix: the pipeline alpha-crops to visible content and scales by the longer side, so
+canvas size never mattered. The four end up 296–413 × 512.
+
+**Verified:**
+
+- `node tests/headless_smoke.mjs` → **17 passed** (was 15). Two new Sprout checks,
+  both proven able to fail.
+- **A stale assertion was found and removed while doing this.** The boot check
+  asserted `imgTotal === 10`, a hardcoded count that was correct only until the next
+  asset landed — it failed the moment Sprout's four images loaded, reporting a
+  problem that did not exist. It now derives the expected count from the manifests
+  themselves (`OT.AM` + `OT.AM_SPROUT`), so it stays correct as art arrives instead
+  of being a number to remember to bump.
+- `node tests/board_test.js` → 55/55 unchanged (no logic touched).
+- Screenshotted level 52 at 390×844 and ultra-wide to confirm Sprout stands on the
+  ground line, is not clipped at the canvas edge, and reads at phone size.
+- Bundle 1.18 → **2.02 MB** (14 embedded images); `build_bundle.py` now embeds the
+  sprout map too, keyed exactly as `js/assets.js` builds its keys, and its data-URI
+  count assertion covers both maps — without that the offline bundle would have
+  404'd on the sprout images and dragged *every* image into the all-or-nothing
+  failure path.
+- Deploy: 7 files written with fsync + read-back, all 22 payload files sha256-equal
+  both ways, no host-only files, `diff -rq` clean, anonymous requests 302 to login.
+
+**Not rebuilt:** the Android APK is still the v0.4.0 build. Nothing about Sprout
+changes packaging, so it was left alone rather than bumped for its own sake; noted
+to Ben in MSG-10 as a two-minute job whenever he wants a refreshed one.
+
+**Changed files:** `prototype/tools/preprocess_assets.py`, `prototype/js/assets.js`,
+`prototype/js/assets_manifest.js` (generated), `prototype/js/game.js`
+(`GAME_VERSION` 0.5.0), `prototype/build_bundle.py`,
+`prototype/tests/headless_smoke.mjs`, `prototype/assets/img/Sprout_Stage3_*.png`
+(4 new), `prototype/dist/OrchardToss.html`, `prototype/ARCHITECTURE.md`,
+`README.md`, `CLAUDE.md`, `talk_to_other_claude.md`,
+`talk_to_other_claude_archive.md`, this file; deployed copy in
+`C:\PROD_DB\infra_router\router-server\hosted_apps\orchard-toss\`.
+
+---
+
 ## 2026-09-03 — v0.4.0 packaged as an Android APK (first APK for this game)
 
 **STATUS: BUILT + DEPLOYED, NOT YET RUN ON A DEVICE.** Jac: "build an apk for

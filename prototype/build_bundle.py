@@ -80,6 +80,26 @@ def load_manifest(src):
     return manifest
 
 
+def load_sprout_manifest(src):
+    """Parse `OT.AM_SPROUT = {...};` (stage -> mood -> {src,w,h}) out of the manifest.
+
+    Absent or empty is legitimate - it just means no Sprout art has been supplied yet
+    and the procedural painter is used for every stage. Present but unparseable is an
+    error, because that would silently ship a bundle whose Sprout images 404 on
+    file:// and drag every image into the all-or-nothing failure path.
+    """
+    m = re.search(r"OT\.AM_SPROUT\s*=\s*(\{.*?\})\s*;", src, re.DOTALL)
+    if not m:
+        return {}
+    try:
+        sprout = json.loads(m.group(1))
+    except json.JSONDecodeError as e:
+        die(f"{MANIFEST_REL}: OT.AM_SPROUT is not valid JSON ({e})")
+    if not isinstance(sprout, dict):
+        die(f"{MANIFEST_REL}: OT.AM_SPROUT must be an object")
+    return sprout
+
+
 def build(zip_version=None):
     # ---- read sources (fail loudly, by name, if any is missing) ------------
     missing_src = [rel for rel in ["index.html"] + SCRIPTS if not (ROOT / rel).exists()]
@@ -120,6 +140,33 @@ def build(zip_version=None):
             die(f"manifest key collides with the font key: {key!r}")
         am_data[key] = "data:image/png;base64," + base64.b64encode(b).decode("ascii")
         image_bytes[key] = len(b)
+    # ---- Sprout images (OT.AM_SPROUT) -> data URIs, keyed exactly as js/assets.js
+    # builds them ('sprout:<stage>:<mood>'), so the bundle and the served build load
+    # through the identical code path.
+    sprout = load_sprout_manifest(sources[MANIFEST_REL])
+    n_sprout = 0
+    for stage, moods in sprout.items():
+        if not isinstance(moods, dict):
+            die(f"OT.AM_SPROUT[{stage!r}] is not an object")
+        for mood, entry in moods.items():
+            rel = entry.get("src") if isinstance(entry, dict) else None
+            if not rel:
+                die(f"OT.AM_SPROUT[{stage!r}][{mood!r}] has no src")
+            p = ROOT / rel
+            if not p.exists():
+                die(f"sprout image missing from disk: {rel} (stage {stage}, mood {mood})")
+            b = p.read_bytes()
+            if len(b) == 0:
+                die(f"sprout image is empty: {rel}")
+            if b[:8] != b"\x89PNG\r\n\x1a\n":
+                die(f"sprout image is not a PNG (bad magic {b[:8]!r}): {rel}")
+            key = f"sprout:{stage}:{mood}"
+            if key in am_data:
+                die(f"sprout key collides with an existing data-URI key: {key!r}")
+            am_data[key] = "data:image/png;base64," + base64.b64encode(b).decode("ascii")
+            image_bytes[key] = len(b)
+            n_sprout += 1
+
     am_data_payload = json.dumps(am_data, separators=(",", ":"))
     am_data_script = ("<script>window.OT=window.OT||{};OT.AM_DATA="
                       + am_data_payload + ";</script>")
@@ -184,8 +231,9 @@ def build(zip_version=None):
     if n_font != 1:
         die(f"bundle has {n_font} embedded font URIs, expected exactly 1")
     n_img = html.count("data:image/png;base64,")
-    if n_img != len(manifest):
-        die(f"bundle has {n_img} embedded image URIs, expected {len(manifest)} (one per manifest entry)")
+    if n_img != len(manifest) + n_sprout:
+        die(f"bundle has {n_img} embedded image URIs, expected {len(manifest) + n_sprout} "
+            f"({len(manifest)} fruit + {n_sprout} sprout, one per manifest entry)")
     if f"OT.AM_DATA=" not in html:
         die("OT.AM_DATA injection missing from output")
     if html.index("OT.AM_DATA=") > html.index(sources[SCRIPTS[0]]):

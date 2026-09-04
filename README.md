@@ -7,7 +7,7 @@ line and fires that fruit's power-up. Ten fruits across four seasonal zones (52 
 time-limit loss, hearts, stars, and Sprout the apprentice as host. Ben owns the design
 (`OrchardToss.md`); Jac owns the prototype and its build/deploy pipeline.
 
-## Current state — prototype v0.4.0 (2026-09-03)
+## Current state — prototype v0.5.0 (2026-09-04)
 
 - Full-spec POC: all 10 fruits and power-ups, all 4 zones with generated obstacles from
   Summer on, drag-and-flick controls, timer/hearts/stars, orchard meta-progression.
@@ -18,6 +18,8 @@ time-limit loss, hearts, stars, and Sprout the apprentice as host. Ben owns the 
   every obstacle in its row as well as clearing it (J-008).
 - v0.4.0 wired in Ben's final five renders plus a regenerated pineapple, completing the roster,
   and packaged the game as an Android APK (5.5 MB, portrait, fully offline) behind the same login.
+- v0.5.0 added Ben's first character art: Sprout at growth **stage 3**, all four moods. Stages 0–2
+  deliberately keep the procedural Sprout until Ben supplies them, so what is unfinished still looks it.
 - Verified headless (55 board checks, 14 browser checks) and deployed login-gated at
   `https://tools-app.net/hosted/orchard-toss/`.
 
@@ -25,7 +27,7 @@ time-limit loss, hearts, stars, and Sprout the apprentice as host. Ben owns the 
 
 | Path | What |
 |---|---|
-| `OrchardToss.md` | The design doc — single source of truth for every decision (v5) |
+| `OrchardToss.md` | The design doc — single source of truth for every decision (v6) |
 | `prototype/` | The playable web prototype: open `prototype/index.html` (double-click works) |
 | `prototype/README.md` | How to run, test, build the bundle and deploy |
 | `prototype/ARCHITECTURE.md` | Module contract (`OT.CONFIG`, `OT.Board`, `OT.S`, `OT.game`) |

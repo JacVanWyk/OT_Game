@@ -45,12 +45,28 @@
   var OT = window.OT;
   var S = OT.S;
   var AM = OT.AM || {};
+  var AMS = OT.AM_SPROUT || {};
   var DATA = OT.AM_DATA || null;
 
-  var names = [];
-  for (var k in AM) { if (AM.hasOwnProperty(k) && AM[k] && AM[k].src) { names.push(k); } }
+  var names = [];        // every image key to load
+  var fruitNames = [];   // fruit type ids only
+  var sproutKeys = [];   // 'sprout:<stage>:<mood>' keys only
+  for (var k in AM) { if (AM.hasOwnProperty(k) && AM[k] && AM[k].src) { names.push(k); fruitNames.push(k); } }
+  // Sprout art is keyed 'sprout:<stage>:<mood>' so it shares one loader, one settle
+  // counter and one data-URI map with the fruit, while never colliding with a fruit
+  // type id (OT.S.fruit looks up IMG[type] and a type is never 'sprout:...').
+  var SPROUT_SRC = {};
+  for (var st in AMS) {
+    if (!AMS.hasOwnProperty(st)) { continue; }
+    for (var md in AMS[st]) {
+      if (!AMS[st].hasOwnProperty(md) || !AMS[st][md] || !AMS[st][md].src) { continue; }
+      var sk = 'sprout:' + st + ':' + md;
+      SPROUT_SRC[sk] = AMS[st][md];
+      names.push(sk); sproutKeys.push(sk);
+    }
+  }
 
-  var IMG = {};   // typeId -> HTMLImageElement (successfully loaded only)
+  var IMG = {};   // image key -> HTMLImageElement (successfully loaded only)
 
   var A = OT.A = {
     fontReady: false, fontError: null,
@@ -58,10 +74,14 @@
     get: function (name) { return IMG[name] || null; }
   };
 
-  /* Snapshot the procedural painter BEFORE any override. */
+  /* Snapshot the procedural painters BEFORE any override. */
   if (S && typeof S.fruit === 'function') {
     S._proc = S._proc || {};
     S._proc.fruit = S.fruit;
+  }
+  if (S && typeof S.sprout === 'function') {
+    S._proc = S._proc || {};
+    S._proc.sprout = S.sprout;
   }
 
   var fontSettled = false, imagesSettled = false;
@@ -99,6 +119,9 @@
   // stem/leaf to ~0.85): the clay renders carry their stem/leaf inside the
   // crop, so 0.95 puts their bodies at ~0.74*size - same visual weight.
   var FIT = 0.95;
+  // Sprout: fraction of `size` the render's HEIGHT occupies. The procedural Sprout
+  // stands about 1.0*size tall from feet to hat inside its unit box, so 1.0 matches it.
+  var SPROUT_FIT = 1.0;
 
   function installOverrides() {
     var proc = S._proc.fruit;
@@ -132,7 +155,57 @@
       ctx.restore();
     };
     S.fruit.isImage = true;
-    S.fruitImages = names.slice();
+    S.fruitImages = fruitNames.slice();
+
+    /* ---- Sprout: delegate PER (stage, mood), never all-or-nothing --------
+       Ben supplied stage 3 only (bridge MSG-09) and asked explicitly that the
+       other stages stay visibly unfinished rather than silently reuse stage 3's
+       art. So a stage with no image keeps the procedural painter and the two
+       can appear in the same session. */
+    if (sproutKeys.length && S._proc && typeof S._proc.sprout === 'function') {
+      var procSprout = S._proc.sprout;
+      S.sprout = function (ctx, x, y, size, stage, mood, t) {
+        var st = Math.max(0, Math.min(3, Math.round(Number(stage) || 0)));
+        var md = mood || 'idle';
+        var img = IMG['sprout:' + st + ':' + md];
+        if (!img) { procSprout(ctx, x, y, size, stage, mood, t); return; }
+        t = (typeof t === 'number' && isFinite(t)) ? t : 0;
+        size = (typeof size === 'number' && isFinite(size) && size > 0) ? size : 120;
+        var iw = img.naturalWidth || img.width, ih = img.naturalHeight || img.height;
+        // The procedural Sprout is drawn in a unit box scaled by `size` with the
+        // pivot AT THE FEET (sprites.js translates by 0.5 then draws upward), so
+        // the image is anchored to the same baseline rather than centred - keeping
+        // stage 3 standing on the same ground line as the procedural stages.
+        var sc = SPROUT_FIT * size / ih;
+        var dw = iw * sc, dh = ih * sc;
+        ctx.save();
+        ctx.translate(x, y);
+        // same contact shadow the procedural painter draws (unit space cy 0.5, rx 0.3)
+        var rx = 0.30 * size, ry = 0.06 * size;
+        var g = ctx.createRadialGradient(0, 0, 0, 0, 0, rx);
+        g.addColorStop(0, 'rgba(30,15,5,0.28)');
+        g.addColorStop(1, 'rgba(30,15,5,0)');
+        ctx.save();
+        ctx.translate(0, 0.5 * size * SPROUT_FIT);
+        ctx.scale(1, ry / rx);
+        ctx.beginPath();
+        ctx.arc(0, 0, rx, 0, Math.PI * 2);
+        ctx.fillStyle = g;
+        ctx.fill();
+        ctx.restore();
+        // the procedural painter's per-mood idle motion, so the art is not static
+        var bob = 0;
+        if (md === 'cheer') { bob = -Math.abs(Math.sin(t * 9)) * 0.06; }
+        else if (md === 'aim') { bob = Math.sin(t * 3) * 0.008; }
+        else if (md === 'sad') { bob = Math.sin(t * 1.5) * 0.006 + 0.02; }
+        else { bob = Math.sin(t * 2.5) * 0.012; }
+        ctx.translate(0, bob * size);
+        ctx.drawImage(img, -dw / 2, 0.5 * size * SPROUT_FIT - dh, dw, dh);
+        ctx.restore();
+      };
+      S.sprout.isImage = true;
+      S.sproutImages = sproutKeys.slice();
+    }
   }
 
   var settled = 0, anyFailed = false;
@@ -167,7 +240,7 @@
         };
         img.onerror = function () { anyFailed = true; A.failed.push(name); onSettled(); };
         try {
-          img.src = (DATA && DATA[name]) || AM[name].src;
+          img.src = (DATA && DATA[name]) || (AM[name] ? AM[name].src : SPROUT_SRC[name].src);
         } catch (e) { anyFailed = true; A.failed.push(name); onSettled(); }
       })(names[i]);
     }

@@ -131,7 +131,7 @@ OT.S.pipe(ctx, x, y, size, season)           // irrigation pipe / hollow log, op
 OT.S.background(ctx, w, h, season, t)        // AMBIENT ONLY: sky gradient, distant hills, ground band; tileable, may spill into bars
 OT.S.landmarks(ctx, W, H, season, progress, t) // ONE orchard tree (grows with progress 0..1 through the zone: sapling → blossom → fruiting), fence, sun/moon; drawn once inside the field, behind the board
 OT.S.boardFrame(ctx, x, y, w, h, season)     // trellis frame around the play grid, canopy strip across the top
-OT.S.sprout(ctx, x, y, size, stage, mood, t) // stage 0..3 (grows with zones: bigger, more confident pose), mood 'idle'|'aim'|'cheer'|'sad'; child, gender-neutral, overalls + sun hat + apron, seed basket
+OT.S.sprout(ctx, x, y, size, stage, mood, t) // stage 0..3 (grows with zones: bigger, more confident pose), mood 'idle'|'aim'|'cheer'|'sad'; child, gender-neutral, overalls + sun hat + apron, seed basket. IMAGE-BACKED per (stage, mood) since 2026-09-04 - see below
 OT.S.launcher(ctx, x, y, w, heldType, locked, t) // basket/slingshot cradle at the bottom; heldType drawn in the cradle; locked = greyed + wobble
 OT.S.monkey(ctx, x, y, size, t)              // banana power-up sweeper
 OT.S.splash(ctx, x, y, type, p)              // juice splash burst, p = 0..1
@@ -143,6 +143,8 @@ OT.S.panel(ctx, x, y, w, h, color)           // rounded glossy HUD panel
 OT.S.text(ctx, txt, x, y, size, color, align, outline) // Fredoka stack helper with optional outline
 OT.S.font(size) -> string                    // "bold 24px Fredoka, …"
 ```
+
+**Sprout art (2026-09-04, bridge MSG-09).** `js/assets_manifest.js` carries a second generated map, `OT.AM_SPROUT[stage][mood] = {src, w, h}`. `js/assets.js` loads those alongside the fruit under keys `sprout:<stage>:<mood>` (one loader, one settle counter, one data-URI map; the key shape can never collide with a fruit type id) and installs an `OT.S.sprout` override that falls back to `OT.S._proc.sprout` for any stage or mood with no image. Unlike the fruit, which installs **all-or-nothing**, Sprout delegates **per stage** — deliberately: Ben supplied stage 3 only and asked that stages 0–2 stay visibly unfinished rather than silently reuse stage 3's render, so real and procedural Sprout can appear in the same session. Masters are `prototype/assets/Sprout_Stage<N>_<Mood>.png`, **discovered by pattern** so a new stage needs no code change, downsized to 512 px, and the preprocessor **refuses a stage that supplies some moods but not all four** (one scene would otherwise mix real and procedural Sprout and read as a rendering bug). The image is anchored at the FEET, matching the procedural painter's baseline, so a stage-3 Sprout stands on the same ground line as a stage-0 one.
 
 `tools/spritesheet.html` renders every painter (all 10 fruits at 3 sizes, coconut, 3 obstacles × 4 seasons, Sprout 4 stages × 4 moods, launcher, monkey, splash frames, hearts/stars, banner/button/panel, 4 backgrounds + landmarks at progress 0/0.5/1) into one labelled canvas so the whole art set can be screenshot-reviewed in one image.
 

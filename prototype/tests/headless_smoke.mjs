@@ -129,6 +129,11 @@ const EVAL_BOOT = `(() => {
   return { ready: window.__ready === true, assetsReady: window.__assetsReady === true,
            state: G && G.state, fontReady: OT.A && OT.A.fontReady, fontError: OT.A && OT.A.fontError,
            imgStatus: OT.A && OT.A.status, imgLoaded: OT.A && OT.A.loaded, imgTotal: OT.A && OT.A.total, imgFailed: OT.A && OT.A.failed,
+           // expected image count derived from the manifests themselves, so this stays
+           // correct as art lands instead of being a number to remember to bump
+           imgExpected: Object.keys(OT.AM || {}).length
+             + Object.keys(OT.AM_SPROUT || {}).reduce(function (n, st) { return n + Object.keys(OT.AM_SPROUT[st]).length; }, 0),
+           fruitCount: Object.keys(OT.AM || {}).length,
            fruitOverride: !!(OT.S && OT.S._proc && OT.S.fruit !== OT.S._proc.fruit),
            hasDebug: !!(OT.debug && OT.debug.step && OT.debug.launch && OT.debug.resolve && OT.debug.skipTo),
            hasBoard: !!(OT.Board && OT.Board.create && OT.Board.launch), level: G && G.level, hearts: G && G.hearts };
@@ -282,6 +287,23 @@ const EVAL_ART = `(() => {
   if (!S._proc || !S._proc.fruit) return out;
   for (const t of Object.keys(OT.AM || {})) { const a = render(S.fruit, t), b = render(S._proc.fruit, t); out.imaged[t] = { diff: diff(a, b), img: bbox(a), proc: bbox(b) }; }
   out.manifestKeys = Object.keys(OT.AM || {}).sort();
+  // ---- Sprout (bridge MSG-09): stage 3 has real art, stages 0-2 must NOT.
+  // Ben asked explicitly that the unfinished stages stay visibly unfinished rather
+  // than silently reuse stage 3's render, so this measures every stage x mood.
+  const MOODS = ['idle', 'aim', 'cheer', 'sad'];
+  out.sproutStages = Object.keys(OT.AM_SPROUT || {}).sort();
+  out.sproutOverride = !!(S._proc && S._proc.sprout && S.sprout !== S._proc.sprout);
+  out.sprout = {};
+  for (const st of [0, 1, 2, 3]) {
+    out.sprout[st] = {};
+    for (const md of MOODS) {
+      const a = (() => { const c = document.createElement('canvas'); c.width = N; c.height = N;
+        const x = c.getContext('2d'); S.sprout(x, N/2, N*0.75, SZ, st, md, 0); return x.getImageData(0,0,N,N).data; })();
+      const b = (() => { const c = document.createElement('canvas'); c.width = N; c.height = N;
+        const x = c.getContext('2d'); S._proc.sprout(x, N/2, N*0.75, SZ, st, md, 0); return x.getImageData(0,0,N,N).data; })();
+      out.sprout[st][md] = { diff: diff(a, b), img: bbox(a) };
+    }
+  }
   out.coconutInManifest = !!(OT.AM && OT.AM.coconut);
   for (const t of ['coconut', '__nosuchfruit__']) { const a = render(S.fruit, t), b = render(S._proc.fruit, t); out.control[t] = { diff: diff(a, b), img: bbox(a) }; }
   return out;
@@ -305,7 +327,7 @@ try {
     const r = harness(base + 'index.html', { wait: READY_BOTH, evalExpr: EVAL_BOOT });
     const j = r.json || {};
     const pass = r.status === 0 && j.ready && j.assetsReady && j.hasDebug && j.hasBoard && r.pageErrors.length === 0
-      && j.imgStatus === 'ready' && j.imgLoaded === j.imgTotal && j.imgTotal === 10 && j.fruitOverride === true;
+      && j.imgStatus === 'ready' && j.imgLoaded === j.imgTotal && j.imgTotal === j.imgExpected && j.imgExpected > 0 && j.fruitCount === 10 && j.fruitOverride === true;
     return { pass, evidence: { harnessExit: r.status, ...j, pageErrors: r.pageErrors.slice(0, 3) } };
   });
 
@@ -324,6 +346,28 @@ try {
     const keys = Object.keys(aj.control || {});
     const pass = art.status === 0 && keys.length === 2 && keys.every(k => aj.control[k].diff === 0 && aj.control[k].img.n > 400);
     return { pass, evidence: { harnessExit: art.status, control: aj.control } };
+  });
+
+  check('Sprout stage 3 (MSG-09): all four moods render from Ben\'s art, visibly different from the procedural Sprout', () => {
+    const s3 = (aj.sprout || {})['3'] || {};
+    const moods = Object.keys(s3);
+    const pass = art.status === 0 && aj.sproutOverride === true
+      && JSON.stringify((aj.sproutStages || [])) === JSON.stringify(['3'])
+      && moods.length === 4
+      && moods.every(m => s3[m].diff > 400 && s3[m].img.n > 400);
+    return { pass, evidence: { harnessExit: art.status, sproutOverride: aj.sproutOverride, sproutStages: aj.sproutStages, stage3: s3 } };
+  });
+
+  check("Sprout stages 0-2 (MSG-09): NO art supplied, so each must render pixel-identical to the procedural painter - not silently reuse stage 3", () => {
+    const rows = {};
+    let ok = true;
+    for (const st of ['0', '1', '2']) {
+      const g = (aj.sprout || {})[st] || {};
+      rows[st] = g;
+      for (const m of Object.keys(g)) { if (g[m].diff !== 0 || g[m].img.n <= 400) ok = false; }
+      if (Object.keys(g).length !== 4) ok = false;
+    }
+    return { pass: art.status === 0 && ok, evidence: { harnessExit: art.status, stages012: rows } };
   });
 
   check("Ben's decision (MSG-05): assets/Coconut.png is NOT wired in — 'coconut' has no manifest entry, so coconuts never render as a matchable fruit", () => {
@@ -407,7 +451,7 @@ try {
       const r = harness(fileUrl, { wait: READY_BOTH, evalExpr: EVAL_BOOT });
       const j = r.json || {};
       const pass = r.status === 0 && j.ready && j.assetsReady && j.hasDebug && j.hasBoard && r.pageErrors.length === 0
-        && j.imgStatus === 'ready' && j.imgLoaded === j.imgTotal && j.imgTotal === 10 && j.fruitOverride === true;
+        && j.imgStatus === 'ready' && j.imgLoaded === j.imgTotal && j.imgTotal === j.imgExpected && j.imgExpected > 0 && j.fruitCount === 10 && j.fruitOverride === true;
       return { pass, evidence: { harnessExit: r.status, bundleBytes: statSync(BUNDLE).size, ...j, pageErrors: r.pageErrors.slice(0, 3) } };
     });
   } else {

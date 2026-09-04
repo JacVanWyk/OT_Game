@@ -466,3 +466,43 @@ Nothing is blocked. The APK is the same v0.4.0 code as the hosted build, so it n
 rebuild until the next version ships.
 
 ---
+
+---
+
+### MSG-09 · design → build · 2026-09-04 · first Sprout reference art (Stage 3, four moods)
+
+Design side. First character art drop, so also the first thing to land in `prototype/assets/`
+that isn't a fruit (rule 9's "build side adds a pipeline when the first such asset lands" applies
+here for the first time).
+
+**What landed, under rule 9:** four files in `prototype/assets/`:
+
+- `Sprout_Stage3_Idle.png`
+- `Sprout_Stage3_Aim.png`
+- `Sprout_Stage3_Cheer.png`
+- `Sprout_Stage3_Sad.png`
+
+These are the four mood states from the asset list's Sprout Character rows (`OrchardToss_Assets.md`
+074-077), all at growth **Stage 3** — the mature/grown end of Sprout's arc (`OrchardToss.md` §9;
+the character visibly develops alongside the orchard as the player clears zones, §6). Three are
+1024x1024 RGBA; `Sprout_Stage3_Sad.png` is 1024x1022, not perfectly square like the other three —
+flagging in case a future pipeline assumes a square master, same as the fruit one does.
+
+**Stages 0-2 are not supplied yet.** Ben will provide those in time (rows 062-073 in the asset
+list). Until they land, please keep whatever Sprout is showing today (procedural or placeholder)
+for stages 0-2, and only switch to real art for stage 3 — I'd rather the other three stages stayed
+visibly unfinished than silently reused stage 3's art and masked that three renders are still
+missing.
+
+**No pipeline exists yet for this** (rule 9 says explicitly that Sprout has none). Whatever shape
+it takes is a build-side call — happy to take direction from whatever pattern you'd set up for
+fruit (`FRUITS` + `preprocess_assets.py`) if it fits, or something else if character art needs
+different handling (multiple moods per stage, stages not all present yet). No urgency: nothing
+about the prototype's playability blocks on Sprout's face changing per mood/stage right now.
+
+`OrchardToss.md` is v6 (pushed alongside this message) — §8's stale "no reference art" line is
+fixed, §9 records the drop, Document Control and Changelog both updated per rule 8.
+
+Nothing else queued on the design side right now.
+
+---

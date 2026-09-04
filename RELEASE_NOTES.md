@@ -8,6 +8,60 @@ evidence) and listing the changed files. Design source of truth:
 
 ---
 
+## 2026-09-04 — Android APK refreshed to v0.5.1 (versionCode 2): Sprout, all 10 fruits and the new lane snapping
+
+**STATUS: BUILT + DEPLOYED, NOT YET RUN ON A DEVICE.** Jac: "build the apk with
+this". Second APK for this game, carrying everything since the first one:
+**https://tools-app.net/downloads/private/orchard-toss-v0.5.1.apk** (6.1 MB, up
+from 5.5 MB — the four Sprout renders).
+
+**Version fields bumped together**, per the rule in `CLAUDE.md`: `versionName`
+0.4.0 → **0.5.1** (kept equal to `GAME_VERSION`, asserted by the bump script
+reading it out of `js/game.js`) and `versionCode` 1 → **2**. Same debug key as
+v0.4.0, so it installs over the existing one as an update rather than side by side.
+
+**What is in it that was not in v0.4.0:** the completed 10-fruit art roster was
+already there, so the new content is Sprout's stage-3 art (four moods) and the
+lane-snapping drag control. Both confirmed present by decoding rather than assumed:
+`LANE_SNAP_DRAG` reads `true` inside the packaged `game.js`, and the packaged
+manifest carries 10 fruit entries plus sprout stage 3.
+
+**Audited by decoding, same recipe as last time:** `assets/public/` holds 24 files —
+our 22 (index, 6 scripts, 14 images, 1 font), each **sha256-identical to source**,
+plus Capacitor's `cordova.js` and `cordova_plugins.js`. Set equality both ways
+against the source tree. No `dist/`, `tools/`, `tests/`, `apk/` or `screens/`.
+`Coconut.png` still absent. `apksigner verify` passes; `aapt dump badging` confirms
+`com.bengame.orchardtoss`, versionCode 2, versionName 0.5.1, portrait.
+
+The staging audit needed no change for Sprout: it globs `assets/img/*` and compares
+the staged set against **the generated manifest's own entries**, and because the
+sprout map uses the same `assets/img/` src paths it was picked up automatically —
+14 images matched on both sides. That is the payoff for comparing sets against a
+derived source of truth rather than counting a hardcoded number.
+
+**Signing warnings are expected and unchanged.** `apksigner` prints ~36 warnings
+about `META-INF/*.version` entries not being covered by the v1 JAR signature. They
+come from AndroidX/Capacitor library metadata, appear identically on the v0.4.0
+build, and do not affect the v2 signature that Android actually enforces on modern
+devices.
+
+**Still true from v0.4.0:** the APK declares `android.permission.INTERNET` from
+Capacitor's template even though the game never uses the network, and `apkbuild`
+only adds permissions rather than removing them. Left alone deliberately.
+
+**NOT VERIFIED: install and play.** No Android device is attached to this machine.
+v0.4.0 was confirmed working on a phone by Jac (J-015), and nothing in v0.5.1
+changes packaging, but the lane-snapping control is exactly the kind of change worth
+feeling under a real thumb — and `OT.debug.laneSnap(false)` flips it at runtime
+inside the APK too, so both feels can be compared without a rebuild.
+
+**Changed files:** `prototype/apk/app.config.json`, this file,
+`talk_to_other_claude.md`; plus the deployed APK at
+`C:\PROD_DB\infra_router\downloads\files\private\orchard-toss-v0.5.1.apk`
+(not in this repo).
+
+---
+
 ## 2026-09-04 — v0.5.1 — the launcher snaps to a lane for the whole drag (one constant reverts it)
 
 **STATUS: VERIFIED + DEPLOYED.** Jac, after playing on a phone: *"ensure that when

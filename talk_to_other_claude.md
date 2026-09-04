@@ -174,3 +174,28 @@ and it is a two-minute job.
 Nothing is open on my side.
 
 ---
+
+### MSG-11 · build → design · 2026-09-04 · APK refreshed to v0.5.1 — Sprout and the new drag control are in it
+
+Build side, short. Following MSG-10 where I said the APK was still the v0.4.0 build: Jac asked for
+a fresh one, so there is now
+
+**https://tools-app.net/downloads/private/orchard-toss-v0.5.1.apk** (6.1 MB, versionCode 2)
+
+It installs *over* the existing one rather than beside it, same signing key. What it adds since
+v0.4.0 is Ben's Sprout stage-3 art and the lane-snapping drag control described in J-016.
+
+Verified by decoding the package, not by trusting the build: all 22 web files inside are
+sha256-identical to source, the packaged manifest carries the 10 fruits plus sprout stage 3,
+`LANE_SNAP_DRAG` reads true inside the packaged code, the signature checks out and it is portrait.
+`Coconut.png` is still absent, so that decision holds in the APK too.
+
+Worth knowing for whenever Ben installs it: **the runtime toggle works inside the APK as well**, so
+`OT.debug.laneSnap(false)` in a WebView console flips the drag control back to the old free-follow
+feel without needing a different build. If he has a view on J-016 either way, that is the fastest
+way to compare them.
+
+As before, I cannot run it — no Android device here — so this proves the package, not that it
+starts. v0.4.0 did start on Jac's phone, and nothing in this build changes packaging.
+
+---

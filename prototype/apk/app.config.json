@@ -7,14 +7,14 @@
   "workDir": "/mnt/c/DEV_TEAM/CLAUDE/apk_engine/apps/orchard-toss/.apkbuild",
   "orientation": "portrait",
   "permissions": [],
-  "versionName": "0.4.0",
-  "versionCode": 1,
+  "versionName": "0.5.1",
+  "versionCode": 2,
   "minSdk": 22,
   "targetSdk": 34,
   "compileSdk": 34,
   "backgroundColor": "#3b7d4f",
   "serverUrl": "",
   "deployDir": "/mnt/c/PROD_DB/infra_router/downloads/files/private",
-  "apkName": "orchard-toss-v0.4.0.apk",
+  "apkName": "orchard-toss-v0.5.1.apk",
   "icon": "/mnt/c/DEV_TEAM/CLAUDE/ben_game2/prototype/apk/icon.png"
 }

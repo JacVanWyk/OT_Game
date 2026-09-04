@@ -24,7 +24,7 @@
   window.OT = window.OT || {};
   var OT = window.OT;
 
-  var GAME_VERSION = '0.5.1';
+  var GAME_VERSION = '0.5.2';
 
   // ---------------------------------------------------------------- tunables
   var TUNE = {
@@ -54,6 +54,20 @@
     // resting near a boundary cannot flicker the launcher between two lanes. 0 = snap
     // at the exact midpoint (flickery), 0.5 = never change lane.
     LANE_SNAP_HYST: 0.15,
+    // Lane LOCK once the gesture turns upward (Jac, 2026-09-04: "when I flick upward
+    // the player must not move sideways; for sideways it needs to be a clear sideways
+    // drag or flick"). A one-handed thumb arcs as it flicks up, so without this the
+    // lane kept tracking that sideways drift and the fruit could leave from a lane the
+    // player had not chosen. Once the gesture reads as upward the lane freezes for the
+    // rest of it; it unfreezes only if the finger comes back down, so repositioning
+    // after a half-started flick still works without lifting off.
+    // TO REVERT: set LANE_LOCK_ON_FLICK to false - that is the whole change. It can
+    // also be flipped at runtime with OT.debug.laneLock(false).
+    LANE_LOCK_ON_FLICK: true,
+    LANE_LOCK_DY: 14,        // upward px since touch-down before the lane locks
+    LANE_LOCK_RATIO: 1.0,    // ...and the move must be at least this vertical vs horizontal,
+                             // so a deliberate sideways drag that drifts up a little never locks
+    LANE_UNLOCK_FRAC: 0.5,   // unlock once back below LANE_LOCK_DY * this (hysteresis, no chatter)
     // flight / impact
     RETURN_SPEED_MUL: 1.3,      // mismatch return speed vs FLIGHT_SPEED
     BOUNCE_S: 0.10,             // squash at a wall deflection
@@ -1086,7 +1100,8 @@
     if (drag) return;   // one finger owns the launcher
     var onLauncher = Math.abs(p.x - launcherX) <= TUNE.LAUNCHER_W / 2 + 10 && Math.abs(p.y - LAUNCH_Y) <= 60;
     if (p.y > TUNE.LAUNCH_ZONE_Y || onLauncher) {
-      drag = { id: id, startY: p.y, x: p.x, y: p.y, samples: [{ t: nowMs(), y: p.y }], lane: null };
+      drag = { id: id, startX: p.x, startY: p.y, x: p.x, y: p.y,
+               samples: [{ t: nowMs(), y: p.y }], lane: null, laneLocked: false };
       if (TUNE.LANE_SNAP_DRAG) {
         drag.lane = dragLane(p.x, null);
         launcherX = launcherTargetX = cellX(drag.lane);
@@ -1099,11 +1114,26 @@
     if (!drag || drag.id !== id) return;
     var p = toLogical(cx, cy);
     drag.x = p.x; drag.y = p.y;
-    if (TUNE.LANE_SNAP_DRAG) {
-      drag.lane = dragLane(p.x, drag.lane);
-      launcherX = launcherTargetX = cellX(drag.lane);
-    } else {
-      launcherX = launcherTargetX = clamp(p.x, LANE0_X, LANE_MAX_X);
+    // Is this gesture going upward? Measured from touch-down, not frame to frame, so a
+    // slow arc accumulates the same way a fast flick does.
+    if (TUNE.LANE_LOCK_ON_FLICK) {
+      var dy = drag.startY - p.y;               // up = positive
+      var adx = Math.abs(p.x - drag.startX);
+      if (!drag.laneLocked) {
+        if (dy >= TUNE.LANE_LOCK_DY && dy >= adx * TUNE.LANE_LOCK_RATIO) drag.laneLocked = true;
+      } else if (dy < TUNE.LANE_LOCK_DY * TUNE.LANE_UNLOCK_FRAC) {
+        drag.laneLocked = false;                // came back down: steering again
+      }
+    }
+    // While locked the launcher does not move sideways at all, in either mode, so the
+    // fruit always leaves the lane the player aimed at before starting the flick.
+    if (!drag.laneLocked) {
+      if (TUNE.LANE_SNAP_DRAG) {
+        drag.lane = dragLane(p.x, drag.lane);
+        launcherX = launcherTargetX = cellX(drag.lane);
+      } else {
+        launcherX = launcherTargetX = clamp(p.x, LANE0_X, LANE_MAX_X);
+      }
     }
     var t = nowMs();
     drag.samples.push({ t: t, y: p.y });
@@ -1821,6 +1851,11 @@
       return TUNE.LANE_SNAP_DRAG;
     },
     dragLane: function () { return drag ? drag.lane : null; },
+    laneLocked: function () { return drag ? !!drag.laneLocked : false; },
+    laneLock: function (v) {
+      if (typeof v === 'boolean') { TUNE.LANE_LOCK_ON_FLICK = v; if (drag && !v) drag.laneLocked = false; }
+      return TUNE.LANE_LOCK_ON_FLICK;
+    },
     lastLaunchCol: function () { return lastLaunchCol; },
     anim: function () { return anim; },
     render: function () { render(); return true; },  // force a frame now (pixel probes in tests)

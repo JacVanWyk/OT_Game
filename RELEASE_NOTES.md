@@ -8,6 +8,90 @@ evidence) and listing the changed files. Design source of truth:
 
 ---
 
+## 2026-09-04 — v0.5.2 — an upward flick can no longer drag the launcher sideways; APK refreshed (versionCode 3)
+
+**STATUS: VERIFIED + DEPLOYED.** Jac: *"ensure that when I flick upward the player
+does not move sideways. For sideways it needs to be a clear sideways drag or
+flick."* Hosted build and a fresh APK:
+**https://tools-app.net/downloads/private/orchard-toss-v0.5.2.apk** (6.1 MB,
+versionCode 3).
+
+**The bug, reproduced and measured.** A one-handed thumb arcs sideways as it flicks
+up, and the drag handler was still steering on every move event. Driving a realistic
+arc — rising 96 px while drifting 130 px sideways — the launcher walked from lane 2
+to lane **4** during the flick, so the fruit left from a lane the player never chose.
+This is the same thumb-arc risk raised with the design side back in MSG-03; it turned
+out to be real.
+
+**The fix.** The lane **freezes once the gesture reads as upward**: at least
+`LANE_LOCK_DY` (14 px) of rise *and* more vertical than horizontal by
+`LANE_LOCK_RATIO`. Both conditions matter — the ratio is what lets a deliberate
+sideways drag that drifts up a little keep steering, which is exactly the "clear
+sideways drag" half of the request. Coming back down below `LANE_UNLOCK_FRAC` of the
+threshold releases the lock, so a half-started flick can be re-aimed without lifting
+off. While locked the launcher does not move horizontally **in either mode**, so the
+fix is independent of the v0.5.1 snapping.
+
+Measured, same arc, lock on: lane held at **2** throughout, locked after the second
+sample, fired lane 2.
+
+**Reversible like the last one:** `LANE_LOCK_ON_FLICK: false`, or
+`OT.debug.laneLock(false)` at runtime to compare on a phone without a rebuild.
+
+**A real flake was found and fixed on the way — worth reading.** Adding one more
+check turned two long-standing pixel probes red. The investigation:
+
+1. The failure reported only `harnessExit: 1` with an empty result, which says
+   nothing. **The harness helper now surfaces the spawn error, signal and stderr tail
+   on any non-zero exit**, which is what made the rest of this possible.
+2. That revealed `net::ERR_NETWORK_CHANGED` and `page.goto: Timeout 90000ms exceeded`
+   navigating to the suite's own server — while a curl of that server *at that exact
+   moment* returned 200 in 2 ms, and the same probe passed standalone 4/4 at the same
+   viewport on both this build and the previous one. So: not the game, not the server.
+3. A retry did not help, nor did a 5 s pause before it, so it was not transient
+   exhaustion — it was deterministic at that point in the run. The trigger was simply
+   the **number of Chromium launches**: the suite starts a fresh browser per check and
+   had reached the limit WSL would reliably navigate.
+4. **Fixed at the root rather than patched:** the two lane checks now share a single
+   page load, returning the launch count to what it was. 19 checks, 19 browser
+   launches down to 18, green twice in a row.
+
+Two guards were added on the way and kept: the pixel probe now calls `D.render()`
+before sampling (it was reading whatever the animation loop happened to have painted
+— a race that had simply not bitten yet), and a single retry on a navigation-only
+error signature that **prints and records** when it fires, so it can never hide a
+real failure. Neither is load-bearing for this fix; both are latent problems this
+hunt exposed.
+
+**Verified:**
+
+- `node tests/headless_smoke.mjs` → **19 passed** (was 18), green on two consecutive
+  runs. The new check drives the arc with the lock on and off and asserts the bug
+  reproduces without it, that a sideways drag still steers and never locks, and that
+  a half-flick can be re-aimed.
+- A deliberate note in that check: **do not assert on `lastLaunchCol` across two
+  gestures** — the first flick's animation makes the second launch a no-op, so the
+  value goes stale and would read as a false pass. The lane at release is the honest
+  signal.
+- `node tests/board_test.js` → 55/55 unchanged.
+- Deployed: `js/game.js` written with read-back, all 22 payload files sha256-equal
+  both ways, hosted page 302s, deployed `GAME_VERSION` 0.5.2 with
+  `LANE_LOCK_ON_FLICK: true`.
+- APK rebuilt and audited by decoding: 22 web files sha256-identical to source, both
+  control flags read `true` inside the packaged code, portrait, versionCode 3,
+  download 302s. Installs over v0.5.1.
+
+**Not verified:** the feel under a real thumb, as before. The 14 px rise threshold is
+a first sensible default; if the lane locks too eagerly (a slow deliberate diagonal
+re-aim getting stuck) or too late, that is the number to move.
+
+**Changed files:** `prototype/js/game.js` (`GAME_VERSION` 0.5.2),
+`prototype/tests/headless_smoke.mjs`, `prototype/apk/app.config.json`,
+`prototype/dist/OrchardToss.html`, `prototype/README.md`, `README.md`, `CLAUDE.md`,
+`talk_to_other_claude.md`, this file; deployed web copy and the APK outside the repo.
+
+---
+
 ## 2026-09-04 — Android APK refreshed to v0.5.1 (versionCode 2): Sprout, all 10 fruits and the new lane snapping
 
 **STATUS: BUILT + DEPLOYED, NOT YET RUN ON A DEVICE.** Jac: "build the apk with

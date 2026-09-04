@@ -62,15 +62,44 @@ function record(name, pass, evidence) {
   console.log(`${pass ? 'PASS' : 'FAIL'}  ${name}  ${JSON.stringify(evidence)}`);
 }
 
+// Transient WSL loopback failures - `net::ERR_NETWORK_CHANGED`, or `page.goto` timing
+// out against our own http.server while every other call to it succeeds - showed up
+// once the suite grew past ~16 browser launches. They are infrastructure, not the game:
+// the same probe passes standalone at the same viewport. Retry ONCE, and only for that
+// signature, so a genuine page error or a failing assertion is never retried away. Any
+// retry is recorded in the result and printed, so it can never pass silently.
+const NAV_FLAKE = /ERR_NETWORK_CHANGED|ERR_CONNECTION_|page\.goto: Timeout|net::ERR_EMPTY_RESPONSE/;
+
 function harness(url, { wait = 'window.__ready===true', evalExpr = null, viewport = '390x844', screenshot = null } = {}) {
   const args = [RUN, url, '--wait', wait, '--viewport', viewport, '--timeout', String(HARNESS_TIMEOUT_MS), '--console'];
   if (evalExpr) args.push('--eval', evalExpr);
   if (screenshot) args.push('--screenshot', screenshot);
-  const r = spawnSync(process.execPath, args, { encoding: 'utf8', timeout: HARNESS_TIMEOUT_MS + 30000 });
+  let r = spawnSync(process.execPath, args, { encoding: 'utf8', timeout: HARNESS_TIMEOUT_MS + 30000 });
+  let retried = false;
+  if (r.status !== 0 && NAV_FLAKE.test(r.stderr || '')) {
+    retried = true;
+    console.log(`  [harness] navigation flake, pausing then retrying once: ${(r.stderr || '').trim().split('\n').pop().slice(0, 120)}`);
+    // Pause before retrying. The failure is not random: it appears at the same point in
+    // a long run, after ~16 back-to-back Chromium launches, and an immediate retry hits
+    // the same exhausted state. Give the previous browser's sockets and file handles
+    // time to be released.
+    spawnSync('sleep', ['5']);
+    r = spawnSync(process.execPath, args, { encoding: 'utf8', timeout: HARNESS_TIMEOUT_MS + 30000 });
+  }
   let json;
   try { json = r.stdout.trim() ? JSON.parse(r.stdout) : undefined; } catch { json = undefined; }
   const pageErrors = (r.stderr || '').split('\n').filter(l => l.startsWith('[pageerror]'));
-  return { status: r.status, stdout: r.stdout, stderr: r.stderr, json, pageErrors };
+  // When the harness itself fails (non-zero exit, timeout, crash) the checks used to
+  // report only `harnessExit: 1` with an empty result, which says nothing about why.
+  // Surface the tail of its stderr and the spawn error so a failure is diagnosable
+  // from the suite output alone.
+  const why = r.status === 0 ? null : {
+    spawnError: r.error ? String(r.error.message || r.error) : null,
+    signal: r.signal || null,
+    stderrTail: (r.stderr || '').trim().split('\n').slice(-4).join(' | ').slice(0, 500) || null,
+    stdoutHead: (r.stdout || '').trim().slice(0, 200) || null
+  };
+  return { status: r.status, stdout: r.stdout, stderr: r.stderr, json, pageErrors, why, retried };
 }
 
 // Runs one named check; a throw or a harness failure counts as FAIL and an error.
@@ -252,6 +281,12 @@ const PROBE_FN = `
 const EVAL_PIXELS = `(() => {
   ${PRELUDE}
   D.skipTo(5); D.step(0.5);
+  // Force a frame before sampling. Without this the probe reads whatever the rAF loop
+  // happened to have painted, which is a RACE: it passed standalone 4/4 on two builds
+  // but failed inside the full suite, because each extra browser launch slows the
+  // headless loop and the board had not been drawn yet by the time getImageData ran.
+  // A pixel probe must never sample a canvas it has not proven was painted.
+  D.render();
   ${PROBE_FN}
   const v = D.view(), C = OT.CONFIG;
   // logical -> device. Headless dpr is 1, so this holds whether view.scale is
@@ -319,7 +354,7 @@ const EVAL_LANE = `(() => {
   // Read the SHIPPED default before the sweep flips it, and restore it at the end -
   // this probe must not leave the game in a state later checks would inherit.
   const defaultSnap = OT.debug.laneSnap();
-  const C = OT.CONFIG, CELL = C.CELL, X0 = C.BOARD_X + CELL/2;
+  const C = OT.CONFIG, CELL = C.CELL, X0 = C.BOARD_X + CELL/2, Y = C.LAUNCH_Y;
   const centres = []; for (let i=0;i<C.COLS;i++) centres.push(X0 + i*CELL);
   const off = (x) => Math.min.apply(null, centres.map(c => Math.abs(x - c)));
   function sweep(snap) {
@@ -353,7 +388,38 @@ const EVAL_LANE = `(() => {
   OT.debug.pointer('up', 0, 0);
   const firedLane = OT.debug.lastLaunchCol();
   OT.debug.laneSnap(defaultSnap);
-  return { maxOffOn: Math.max.apply(null, on.map(s => s.off)),
+  // ---- lane LOCK measurements share this page load (see the note above EVAL_LANE) ----
+  function arcFlick(lock) {
+    OT.debug.laneLock(lock);
+    OT.debug.pointer('down', X0 + CELL*2, Y);
+    const startLane = OT.debug.dragLane();
+    const seen = []; let lockedAt = 0;
+    for (let i = 1; i <= 12; i++) {
+      const dy = i * 8, dx = i * i * 0.9;
+      OT.debug.pointer('move', X0 + CELL*2 + dx, Y - dy);
+      if (seen.indexOf(OT.debug.dragLane()) < 0) seen.push(OT.debug.dragLane());
+      if (!lockedAt && OT.debug.laneLocked()) lockedAt = i;
+    }
+    const laneAtRelease = OT.debug.dragLane();
+    OT.debug.pointer('up', 0, 0);
+    return { startLane, laneAtRelease, lanesSeen: seen.length, lockedAt };
+  }
+  const defaultLock = OT.debug.laneLock();
+  const withLock = arcFlick(true), withoutLock = arcFlick(false);
+  OT.debug.laneLock(true);
+  OT.debug.pointer('down', X0, Y);
+  for (let i = 1; i <= 20; i++) OT.debug.pointer('move', X0 + i*16, Y - i*0.4);
+  const sideways = { lane: OT.debug.dragLane(), locked: OT.debug.laneLocked() };
+  OT.debug.pointer('up', 0, 0);
+  OT.debug.pointer('down', X0 + CELL*2, Y);
+  OT.debug.pointer('move', X0 + CELL*2, Y - 30);  const midLocked = OT.debug.laneLocked();
+  OT.debug.pointer('move', X0 + CELL*2, Y - 2);   const backLocked = OT.debug.laneLocked();
+  OT.debug.pointer('move', X0 + CELL*4, Y - 2);   const reaimed = OT.debug.dragLane();
+  OT.debug.pointer('up', 0, 0);
+  OT.debug.laneLock(defaultLock);
+  return { lock: { withLock, withoutLock, sideways, relock: { midLocked, backLocked, reaimed },
+                   defaultLock, restoredLockTo: OT.debug.laneLock() },
+           maxOffOn: Math.max.apply(null, on.map(s => s.off)),
            maxOffOff: Math.max.apply(null, offS.map(s => s.off)),
            laneCount: lanes.length, lanes: lanes,
            hyst: { atLeft, justPast, wellPast, backJustPast },
@@ -427,9 +493,9 @@ try {
     return { pass, evidence: { harnessExit: art.status, coconutInManifest: aj.coconutInManifest, manifestKeys: aj.manifestKeys } };
   });
 
+  const lane = harness(base + 'index.html', { wait: READY_BOTH, evalExpr: EVAL_LANE });
   check('lane snap (Jac 2026-09-04): with snapping ON a drag keeps the launcher exactly on a lane centre, every lane is reachable, the boundary does not flicker, and the shot matches the shown lane; with it OFF the launcher follows the finger (control). Reports the shipped default rather than gating on it, so the documented revert stays green', () => {
-    const r = harness(base + 'index.html', { wait: READY_BOTH, evalExpr: EVAL_LANE });
-    const j = r.json || {};
+    const r = lane, j = lane.json || {};
     const snapped = j.maxOffOn === 0;                       // on a centre for the whole drag
     const controlDiffers = j.maxOffOff > 20;                // flag off: follows the finger, ~half a cell off
     const allLanes = j.laneCount === 5;                     // no lane unreachable
@@ -443,6 +509,25 @@ try {
     // stays visible.
     const pass = r.status === 0 && snapped && controlDiffers && allLanes && noFlicker && firedShown
                  && j.restoredTo === j.defaultSnap && r.pageErrors.length === 0;
+    return { pass, evidence: { harnessExit: r.status, ...j, pageErrors: r.pageErrors.slice(0, 3) } };
+  });
+
+  check('lane lock (Jac 2026-09-04): an upward flick cannot drag the launcher sideways, while a deliberate sideways drag still steers and a half-flick can be re-aimed', () => {
+    // shares the lane page load above - a fresh browser per check is what pushed this
+    // suite past the number of Chromium launches WSL would reliably navigate
+    const r = lane, j = (lane.json && lane.json.lock) || {};
+    const w = j.withLock || {}, wo = j.withoutLock || {};
+    // the arc holds its lane with the lock on...
+    const holds = w.laneAtRelease === w.startLane && w.lanesSeen === 1 && w.lockedAt > 0;
+    // ...and demonstrably would NOT without it (this is the reported bug, reproduced)
+    const bugReproduced = wo.laneAtRelease !== wo.startLane && wo.lanesSeen > 1 && wo.lockedAt === 0;
+    // a clear sideways drag still steers and never locks
+    const steers = j.sideways && j.sideways.locked === false && j.sideways.lane === 4;
+    // half-flick then back down releases the lock, so you can re-aim without lifting off
+    const reaimable = j.relock && j.relock.midLocked === true && j.relock.backLocked === false
+                      && j.relock.reaimed === 4;
+    const pass = r.status === 0 && holds && bugReproduced && steers && reaimable
+                 && j.restoredLockTo === j.defaultLock && r.pageErrors.length === 0;
     return { pass, evidence: { harnessExit: r.status, ...j, pageErrors: r.pageErrors.slice(0, 3) } };
   });
 
@@ -507,7 +592,7 @@ try {
 
   check('rendered-pixel probe: board region is not the ambient sky colour', () => {
     const b = pj.board || {};
-    return { pass: pix.status === 0 && pj.state === 'playing' && b.looksRendered === true, evidence: { harnessExit: pix.status, state: pj.state, view: pj.view, canvas: pj.canvas, board: b, pageErrors: pix.pageErrors.slice(0, 3) } };
+    return { pass: pix.status === 0 && pj.state === 'playing' && b.looksRendered === true, evidence: { harnessExit: pix.status, why: pix.why, state: pj.state, view: pj.view, canvas: pj.canvas, board: b, pageErrors: pix.pageErrors.slice(0, 3) } };
   });
 
   check('NEGATIVE CONTROL: the same probe on a known-sky corner reports NOT rendered', () => {

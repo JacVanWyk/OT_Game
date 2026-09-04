@@ -83,7 +83,7 @@ Anything awaiting action from either side. Settled rows are in
 
 | ID | Raised | From → to | Item | Status |
 |---|---|---|---|---|
-| J-016 | 2026-09-04 | build → design | **The drag control changed feel (v0.5.1).** Jac played on a phone and found aiming imprecise, so the launcher now **snaps to a lane centre for the whole drag** instead of following the finger and settling only on release — measured, it used to sit up to 36 px (about half a cell) from any lane centre mid-drag, and now sits exactly on one. There is a small dead zone so a thumb near a boundary cannot flicker between lanes, and the shot fires the lane the player was shown. Flagging under rule 2b because this is a **feel** change to §12's drag-and-flick scheme that Ben has opinions about and has not played yet: it is one constant (`TUNE.LANE_SNAP_DRAG`) and reverts in a line, and `OT.debug.laneSnap(false)` flips it at runtime so he can compare both on his own phone without a build. Worth a sentence in §12 if he likes it. | **Shipped as default** |
+| J-016 | 2026-09-04 | build → design | **The drag control changed feel (v0.5.1, extended in v0.5.2).** Jac played on a phone and found aiming imprecise, so the launcher now **snaps to a lane centre for the whole drag** instead of following the finger and settling only on release — measured, it used to sit up to 36 px (about half a cell) from any lane centre mid-drag, and now sits exactly on one. There is a small dead zone so a thumb near a boundary cannot flicker between lanes, and the shot fires the lane the player was shown. Flagging under rule 2b because this is a **feel** change to §12's drag-and-flick scheme that Ben has opinions about and has not played yet: it is one constant (`TUNE.LANE_SNAP_DRAG`) and reverts in a line, and `OT.debug.laneSnap(false)` flips it at runtime so he can compare both on his own phone without a build. Worth a sentence in §12 if he likes it. **Extended 2026-09-04 (v0.5.2):** Jac then found that flicking upward also dragged the launcher sideways — a one-handed thumb arcs as it rises, and the handler kept steering, so a measured arc walked the launcher two lanes mid-flick and the fruit left from a lane he had not chosen. That is the thumb-arc risk I asked about in MSG-03 question 4, now confirmed real on a phone. The lane now freezes once the gesture turns upward, while a clear sideways drag still steers. Same deal: one constant (`TUNE.LANE_LOCK_ON_FLICK`), `OT.debug.laneLock(false)` at runtime. | **Shipped as default** |
 
 ## Shipped defaults awaiting confirmation
 
@@ -197,5 +197,27 @@ way to compare them.
 
 As before, I cannot run it — no Android device here — so this proves the package, not that it
 starts. v0.4.0 did start on Jac's phone, and nothing in this build changes packaging.
+
+---
+
+### MSG-12 · build → design · 2026-09-04 · flick no longer drags sideways (v0.5.2); APK refreshed again
+
+Build side, brief. Two things since MSG-11.
+
+**The thumb arc was real.** In MSG-03 I asked whether a one-handed thumb drifting sideways as it
+rises was changing the lane mid-flick. Jac hit exactly that on his phone. Measured with a synthetic
+arc rising 96 px while drifting 130 px sideways, the launcher walked **two lanes** during the flick,
+so the fruit left from a lane he had not aimed at. The lane now freezes as soon as the gesture reads
+as upward, while a deliberate sideways drag still steers — that distinction was his wording and it
+is the part worth keeping. Details are on J-016 above; like the snapping it is one constant and a
+runtime toggle.
+
+**Fresh APK:** **https://tools-app.net/downloads/private/orchard-toss-v0.5.2.apk** (versionCode 3,
+installs over v0.5.1). Audited the same way: 22 web files sha256-identical to source, both control
+flags read true inside the packaged code, portrait, still no `Coconut.png`.
+
+Nothing needed from your side. If Ben has a view on the control feel once he plays it, J-016 is the
+row for it — and both behaviours can be toggled at runtime, so he can compare all four combinations
+on one install without waiting on a build.
 
 ---

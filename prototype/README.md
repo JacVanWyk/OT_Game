@@ -30,7 +30,7 @@ Drag-and-flick, one continuous gesture (design doc section 12):
 | Input | Action |
 |---|---|
 | Touch down in the launcher zone (bottom band) and drag sideways | Launcher **snaps to the nearest lane centre for the whole drag**, so what you see is exactly the lane that will fire (`TUNE.LANE_SNAP_DRAG`, on since v0.5.1) |
-| Flick upward in the same motion (upward velocity > 500 px/s over the last 100 ms, or > 40 px upward travel) | Launches the held fruit into the lane the launcher is over |
+| Flick upward in the same motion (upward velocity > 500 px/s over the last 100 ms, or > 40 px upward travel) | Launches the held fruit into the lane the launcher is over. **The lane freezes as soon as the gesture turns upward** (`TUNE.LANE_LOCK_ON_FLICK`), so a thumb arcing sideways during the flick cannot change it |
 | Release without a flick | Just repositions the launcher |
 | Pause button (HUD) | Freezes the game clock, dims the scene, RESUME to continue |
 
@@ -46,7 +46,19 @@ cell) around the lane you already hold means a thumb resting near a boundary can
 flicker the launcher between two lanes, and the launch fires the lane you were
 shown rather than re-deriving one from the finger position.
 
-*To revert:* set `TUNE.LANE_SNAP_DRAG` to `false` in `js/game.js`. That single line
+**Lane lock on an upward flick (v0.5.2).** A one-handed thumb arcs sideways as it
+flicks up. Measured with a synthetic arc rising 96 px while drifting 130 px sideways,
+the launcher used to travel **two lanes** during the flick, so the fruit left from a
+lane the player never chose. The lane now freezes once the gesture reads as upward —
+at least `TUNE.LANE_LOCK_DY` (14 px) of rise, and more vertical than horizontal by
+`TUNE.LANE_LOCK_RATIO` — so a deliberate sideways drag still steers normally and only
+a genuine flick locks. Bringing the finger back down releases the lock, so a
+half-started flick can be re-aimed without lifting off.
+
+*To revert the lock:* set `TUNE.LANE_LOCK_ON_FLICK` to `false`, or
+`OT.debug.laneLock(false)` at runtime.
+
+*To revert snapping:* set `TUNE.LANE_SNAP_DRAG` to `false` in `js/game.js`. That single line
 is the whole change. To compare the two feels on a real phone without rebuilding,
 run `OT.debug.laneSnap(false)` in the console (`OT.debug.laneSnap()` reads it back).
 The headless suite checks both modes and reports which is the default, so reverting

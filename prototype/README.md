@@ -29,13 +29,28 @@ Drag-and-flick, one continuous gesture (design doc section 12):
 
 | Input | Action |
 |---|---|
-| Touch down in the launcher zone (bottom band) and drag sideways | Launcher follows the finger; snaps to the nearest lane centre on release |
+| Touch down in the launcher zone (bottom band) and drag sideways | Launcher **snaps to the nearest lane centre for the whole drag**, so what you see is exactly the lane that will fire (`TUNE.LANE_SNAP_DRAG`, on since v0.5.1) |
 | Flick upward in the same motion (upward velocity > 500 px/s over the last 100 ms, or > 40 px upward travel) | Launches the held fruit into the lane the launcher is over |
 | Release without a flick | Just repositions the launcher |
 | Pause button (HUD) | Freezes the game clock, dims the scene, RESUME to continue |
 
 Desktop convenience (build-plan intent, not in the design doc): **←/→** move
 lanes, **Space** or **↑** launch.
+
+**Lane snapping (v0.5.1).** Before this, the launcher followed the finger
+continuously and only settled onto a lane when you let go, so mid-drag it sat
+between lanes and the shot could land one lane off what you thought you were
+aiming at — up to 36 px (about half a cell) from any lane centre. It now sits on a
+lane centre for the entire drag. A dead zone of `TUNE.LANE_SNAP_HYST` (0.15 of a
+cell) around the lane you already hold means a thumb resting near a boundary cannot
+flicker the launcher between two lanes, and the launch fires the lane you were
+shown rather than re-deriving one from the finger position.
+
+*To revert:* set `TUNE.LANE_SNAP_DRAG` to `false` in `js/game.js`. That single line
+is the whole change. To compare the two feels on a real phone without rebuilding,
+run `OT.debug.laneSnap(false)` in the console (`OT.debug.laneSnap()` reads it back).
+The headless suite checks both modes and reports which is the default, so reverting
+does not turn the suite red.
 
 ## Gameplay rules (as designed — see `ARCHITECTURE.md` for the exact model)
 

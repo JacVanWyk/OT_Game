@@ -8,6 +8,82 @@ evidence) and listing the changed files. Design source of truth:
 
 ---
 
+## 2026-09-04 — v0.5.1 — the launcher snaps to a lane for the whole drag (one constant reverts it)
+
+**STATUS: VERIFIED + DEPLOYED.** Jac, after playing on a phone: *"ensure that when
+on mobile, the wipe controls make the player snap to the channel. I find it a bit
+inaccurate at the moment. Make this easily reversible if we need to revert."*
+
+**What was actually wrong.** The launcher followed the finger continuously and only
+settled onto a lane centre when you let go. Measured with a synthetic finger swept
+across the whole track: mid-drag the launcher sat **up to 36 px** from any lane
+centre, which is close to half a cell (76 px). The aim hint highlighted the lane it
+would fire into, but the launcher itself was visibly between two lanes, so the shot
+could land one lane off what the player thought they were aiming at. That is the
+imprecision, and it is measurable rather than a matter of taste.
+
+**What changed.** With `TUNE.LANE_SNAP_DRAG` on, the launcher sits **on a lane
+centre for the entire drag** — measured max distance from a centre is now **0** —
+so what you see is exactly the lane that will fire. Three details that matter:
+
+- **A hysteresis dead zone**, `TUNE.LANE_SNAP_HYST` = 0.15 of a cell. The lane only
+  changes once the finger is that far *past* the midpoint, so a thumb resting near a
+  boundary cannot flicker the launcher between two lanes. Verified by walking a
+  synthetic finger across a boundary and back: 1 px past the midpoint does not
+  change lane, well past does, and coming back to 1 px past *keeps* the new lane.
+- **The launch fires the lane that was shown**, taken from the drag's own lane
+  rather than re-derived from the finger position at release, so the shot can never
+  disagree with the aim hint.
+- **Every lane stays reachable** — all 5 appear across the sweep, none skipped.
+
+**Reversibility, as asked.** It is one line:
+
+```js
+LANE_SNAP_DRAG: false,   // js/game.js, TUNE block
+```
+
+Nothing else depends on it; the old free-follow path is still there, taken when the
+flag is off. For comparing the two feels on a real phone **without a rebuild**,
+`OT.debug.laneSnap(false)` flips it at runtime and `OT.debug.laneSnap()` reads it
+back. The constant carries a comment saying all of this at the point someone would
+look.
+
+**A test-design decision worth recording.** The first version of the headless check
+asserted the shipped default was `true`. Running the revert drill showed two things:
+it passed anyway (the probe flips the flag itself, so it was testing the mechanism,
+not the default), and had it worked it would have made the documented one-line
+revert turn the suite red — punishing exactly the action Jac asked to keep easy. It
+now asserts **both modes behave as specified** and *reports* which is the default in
+its evidence, so a revert stays green and stays visible. The probe also restores the
+flag it borrowed rather than leaving the game in a changed state.
+
+**Verified:**
+
+- `node tests/headless_smoke.mjs` → **18 passed** (was 17). The new check sweeps a
+  synthetic finger across the track with snapping on and off, walks a lane boundary
+  both ways, and confirms the fired lane equals the shown lane.
+- **Revert drill run for real:** a scratch copy with `LANE_SNAP_DRAG: false`
+  re-runs at 18 passed / 0 failed with the evidence line reading
+  `"defaultSnap":false`.
+- `node tests/board_test.js` → 55/55 unchanged (no board logic touched).
+- Deployed: one changed file (`js/game.js`), read-back verified, all 22 payload
+  files sha256-equal both ways, hosted page still 302s to login, deployed
+  `GAME_VERSION` 0.5.1 and `LANE_SNAP_DRAG: true`.
+
+**Not verified:** how it *feels* under a real thumb — that is Jac's call, and the
+runtime toggle exists so he can compare both without waiting on a build. The
+hysteresis value (0.15 of a cell) is a first sensible default rather than a measured
+optimum; if the lane changes too eagerly or too reluctantly, that is the number to
+move.
+
+**Changed files:** `prototype/js/game.js` (`GAME_VERSION` 0.5.1),
+`prototype/tests/headless_smoke.mjs`, `prototype/dist/OrchardToss.html`,
+`prototype/README.md`, `README.md`, `CLAUDE.md`, `talk_to_other_claude.md`, this
+file; deployed copy in
+`C:\PROD_DB\infra_router\router-server\hosted_apps\orchard-toss\`.
+
+---
+
 ## 2026-09-04 — v0.5.0 — Sprout's first real art (growth stage 3, four moods); stages 0–2 left procedural on purpose and guarded
 
 **STATUS: VERIFIED + DEPLOYED.** Ben's design Claude dropped the first *character*

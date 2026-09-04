@@ -24,7 +24,7 @@
   window.OT = window.OT || {};
   var OT = window.OT;
 
-  var GAME_VERSION = '0.5.0';
+  var GAME_VERSION = '0.5.1';
 
   // ---------------------------------------------------------------- tunables
   var TUNE = {
@@ -39,6 +39,21 @@
     LAUNCH_ZONE_Y: 700,         // pointerdown below this starts a drag
     LAUNCHER_W: 84,             // cradle width (>= 60 px touch target)
     LAUNCHER_SNAP: 18,          // easing rate toward the lane centre (1/s)
+    // Lane snapping while dragging (Jac, 2026-09-04: "make the player snap to the
+    // channel, it's a bit inaccurate at the moment"). With this ON the launcher sits
+    // ON a lane centre for the whole drag, so what you see is exactly the lane that
+    // will fire; with it OFF the launcher follows the finger continuously and only
+    // settles to a lane on release, which is what felt imprecise on a phone.
+    // TO REVERT: set LANE_SNAP_DRAG to false - that is the whole change, nothing else
+    // depends on it. It can also be flipped at runtime without a rebuild via
+    // OT.debug.laneSnap(false) / OT.debug.laneSnap(true), which is the quickest way to
+    // A/B the two feels on a real phone.
+    LANE_SNAP_DRAG: true,
+    // Dead zone around the lane the finger already owns, as a fraction of a cell: the
+    // lane only changes once the finger is this far PAST the midpoint, so a thumb
+    // resting near a boundary cannot flicker the launcher between two lanes. 0 = snap
+    // at the exact midpoint (flickery), 0.5 = never change lane.
+    LANE_SNAP_HYST: 0.15,
     // flight / impact
     RETURN_SPEED_MUL: 1.3,      // mismatch return speed vs FLIGHT_SPEED
     BOUNCE_S: 0.10,             // squash at a wall deflection
@@ -139,6 +154,14 @@
   function easeOut(t) { t = clamp(t, 0, 1); return 1 - (1 - t) * (1 - t); }
   function easeIn(t) { t = clamp(t, 0, 1); return t * t; }
   function laneOf(x) { return clamp(Math.round((x - LANE0_X) / CELL), 0, COLS - 1); }
+  // Lane under a dragging finger, with hysteresis around the lane it already owns.
+  // `cur` is the lane the drag currently holds (null on the first sample).
+  function dragLane(x, cur) {
+    var f = (clamp(x, LANE0_X, LANE_MAX_X) - LANE0_X) / CELL;
+    if (cur === null || cur === undefined) return clamp(Math.round(f), 0, COLS - 1);
+    if (Math.abs(f - cur) > 0.5 + TUNE.LANE_SNAP_HYST) return clamp(Math.round(f), 0, COLS - 1);
+    return cur;
+  }
   function fmtTime(s) {
     if (s < 0) s = 0;
     var whole = Math.ceil(s);
@@ -433,6 +456,7 @@
 
   // presentation
   var launcherX = cellX(2), launcherTargetX = cellX(2);
+  var lastLaunchCol = null;   // column of the most recent launch (tests: the shot must match the shown lane)
   var drag = null;               // {id, startY, samples:[{t,y}], x, y}
   var anim = null;               // post-flight presentation (pops / effects / compaction)
   var dispCells = null;          // pre-launch grid snapshot while a flight/pop is shown
@@ -598,6 +622,7 @@
       f.twin.isTwin = true;
     }
     game.flight = f;
+    lastLaunchCol = col;
     launcherTargetX = cellX(col);
     return true;
   }
@@ -1061,15 +1086,25 @@
     if (drag) return;   // one finger owns the launcher
     var onLauncher = Math.abs(p.x - launcherX) <= TUNE.LAUNCHER_W / 2 + 10 && Math.abs(p.y - LAUNCH_Y) <= 60;
     if (p.y > TUNE.LAUNCH_ZONE_Y || onLauncher) {
-      drag = { id: id, startY: p.y, x: p.x, y: p.y, samples: [{ t: nowMs(), y: p.y }] };
-      launcherX = launcherTargetX = clamp(p.x, LANE0_X, LANE_MAX_X);
+      drag = { id: id, startY: p.y, x: p.x, y: p.y, samples: [{ t: nowMs(), y: p.y }], lane: null };
+      if (TUNE.LANE_SNAP_DRAG) {
+        drag.lane = dragLane(p.x, null);
+        launcherX = launcherTargetX = cellX(drag.lane);
+      } else {
+        launcherX = launcherTargetX = clamp(p.x, LANE0_X, LANE_MAX_X);
+      }
     }
   }
   function pointerMove(id, cx, cy) {
     if (!drag || drag.id !== id) return;
     var p = toLogical(cx, cy);
     drag.x = p.x; drag.y = p.y;
-    launcherX = launcherTargetX = clamp(p.x, LANE0_X, LANE_MAX_X);
+    if (TUNE.LANE_SNAP_DRAG) {
+      drag.lane = dragLane(p.x, drag.lane);
+      launcherX = launcherTargetX = cellX(drag.lane);
+    } else {
+      launcherX = launcherTargetX = clamp(p.x, LANE0_X, LANE_MAX_X);
+    }
     var t = nowMs();
     drag.samples.push({ t: t, y: p.y });
     // keep a little more than the velocity window
@@ -1080,7 +1115,8 @@
     var d = drag;
     drag = null;
     var t = nowMs();
-    var lane = laneOf(launcherX);
+    // fire the lane the launcher was SHOWN in, so the shot always matches the aim hint
+    var lane = (TUNE.LANE_SNAP_DRAG && d.lane !== null && d.lane !== undefined) ? d.lane : laneOf(launcherX);
     launcherTargetX = cellX(lane);
     // upward velocity over the last FLICK_WINDOW_MS (logical px/s, up = +)
     var i, s0 = d.samples[0];
@@ -1779,6 +1815,13 @@
     },
     save: function () { return save; },
     launcherX: function () { return launcherX; },
+    // A/B the lane-snap feel on a real device without a rebuild; no argument = read it
+    laneSnap: function (v) {
+      if (typeof v === 'boolean') { TUNE.LANE_SNAP_DRAG = v; if (drag) drag.lane = v ? dragLane(drag.x, null) : null; }
+      return TUNE.LANE_SNAP_DRAG;
+    },
+    dragLane: function () { return drag ? drag.lane : null; },
+    lastLaunchCol: function () { return lastLaunchCol; },
     anim: function () { return anim; },
     render: function () { render(); return true; },  // force a frame now (pixel probes in tests)
     hudBoxes: hudBoxes,                              // row-1 HUD rects (overlap test)

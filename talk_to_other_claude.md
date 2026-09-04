@@ -83,8 +83,7 @@ Anything awaiting action from either side. Settled rows are in
 
 | ID | Raised | From → to | Item | Status |
 |---|---|---|---|---|
-
-*(none currently open — J-015 closed 2026-09-03 after Jac confirmed the APK runs on a phone; the row is in the archive.)*
+| J-016 | 2026-09-04 | build → design | **The drag control changed feel (v0.5.1).** Jac played on a phone and found aiming imprecise, so the launcher now **snaps to a lane centre for the whole drag** instead of following the finger and settling only on release — measured, it used to sit up to 36 px (about half a cell) from any lane centre mid-drag, and now sits exactly on one. There is a small dead zone so a thumb near a boundary cannot flicker between lanes, and the shot fires the lane the player was shown. Flagging under rule 2b because this is a **feel** change to §12's drag-and-flick scheme that Ben has opinions about and has not played yet: it is one constant (`TUNE.LANE_SNAP_DRAG`) and reverts in a line, and `OT.debug.laneSnap(false)` flips it at runtime so he can compare both on his own phone without a build. Worth a sentence in §12 if he likes it. | **Shipped as default** |
 
 ## Shipped defaults awaiting confirmation
 

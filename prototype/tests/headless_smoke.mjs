@@ -309,6 +309,58 @@ const EVAL_ART = `(() => {
   return out;
 })()`;
 
+// Lane snapping while dragging (TUNE.LANE_SNAP_DRAG). Sweeps a synthetic finger across
+// the whole launcher track with the flag ON and OFF, measuring how far the launcher ever
+// sits from the nearest lane centre; then walks it back and forth across one lane
+// boundary to prove the hysteresis dead zone stops a resting thumb flickering between
+// lanes; then checks the lane actually launched is the lane the player was shown.
+const EVAL_LANE = `(() => {
+  OT.game.start();
+  // Read the SHIPPED default before the sweep flips it, and restore it at the end -
+  // this probe must not leave the game in a state later checks would inherit.
+  const defaultSnap = OT.debug.laneSnap();
+  const C = OT.CONFIG, CELL = C.CELL, X0 = C.BOARD_X + CELL/2;
+  const centres = []; for (let i=0;i<C.COLS;i++) centres.push(X0 + i*CELL);
+  const off = (x) => Math.min.apply(null, centres.map(c => Math.abs(x - c)));
+  function sweep(snap) {
+    OT.debug.laneSnap(snap);
+    const out = [];
+    OT.debug.pointer('down', X0, C.LAUNCH_Y);
+    for (let x = X0; x <= X0 + (C.COLS-1)*CELL; x += 4) {
+      OT.debug.pointer('move', x, C.LAUNCH_Y);
+      out.push({ lane: OT.debug.dragLane(), off: off(OT.debug.launcherX()) });
+    }
+    OT.debug.pointer('up', 0, 0);
+    return out;
+  }
+  const on = sweep(true), offS = sweep(false);
+  OT.debug.laneSnap(true);
+  const lanes = []; on.forEach(s => { if (lanes.indexOf(s.lane) < 0) lanes.push(s.lane); });
+  // hysteresis around the lane0/lane1 boundary
+  OT.debug.pointer('down', X0, C.LAUNCH_Y);
+  const bx = X0 + CELL*0.5;
+  OT.debug.pointer('move', bx - 1, C.LAUNCH_Y); const atLeft = OT.debug.dragLane();
+  OT.debug.pointer('move', bx + 1, C.LAUNCH_Y); const justPast = OT.debug.dragLane();
+  OT.debug.pointer('move', X0 + CELL*0.9, C.LAUNCH_Y); const wellPast = OT.debug.dragLane();
+  OT.debug.pointer('move', bx + 1, C.LAUNCH_Y); const backJustPast = OT.debug.dragLane();
+  OT.debug.pointer('up', 0, 0);
+  // the lane launched must be the lane shown: drag to lane 3, flick up, read the result
+  const before = OT.game.remaining;
+  OT.debug.pointer('down', X0, C.LAUNCH_Y);
+  OT.debug.pointer('move', X0 + CELL*3, C.LAUNCH_Y);
+  const shownLane = OT.debug.dragLane();
+  OT.debug.pointer('move', X0 + CELL*3, C.LAUNCH_Y - 60);   // upward flick displacement
+  OT.debug.pointer('up', 0, 0);
+  const firedLane = OT.debug.lastLaunchCol();
+  OT.debug.laneSnap(defaultSnap);
+  return { maxOffOn: Math.max.apply(null, on.map(s => s.off)),
+           maxOffOff: Math.max.apply(null, offS.map(s => s.off)),
+           laneCount: lanes.length, lanes: lanes,
+           hyst: { atLeft, justPast, wellPast, backJustPast },
+           shownLane: shownLane, firedLane: firedLane,
+           defaultSnap: defaultSnap, restoredTo: OT.debug.laneSnap() };
+})()`;
+
 // ─────────────────────────────────────────────────────────────── main
 let server = null;
 let port = null;
@@ -373,6 +425,25 @@ try {
   check("Ben's decision (MSG-05): assets/Coconut.png is NOT wired in — 'coconut' has no manifest entry, so coconuts never render as a matchable fruit", () => {
     const pass = art.status === 0 && aj.coconutInManifest === false && (aj.manifestKeys || []).indexOf('coconut') === -1;
     return { pass, evidence: { harnessExit: art.status, coconutInManifest: aj.coconutInManifest, manifestKeys: aj.manifestKeys } };
+  });
+
+  check('lane snap (Jac 2026-09-04): with snapping ON a drag keeps the launcher exactly on a lane centre, every lane is reachable, the boundary does not flicker, and the shot matches the shown lane; with it OFF the launcher follows the finger (control). Reports the shipped default rather than gating on it, so the documented revert stays green', () => {
+    const r = harness(base + 'index.html', { wait: READY_BOTH, evalExpr: EVAL_LANE });
+    const j = r.json || {};
+    const snapped = j.maxOffOn === 0;                       // on a centre for the whole drag
+    const controlDiffers = j.maxOffOff > 20;                // flag off: follows the finger, ~half a cell off
+    const allLanes = j.laneCount === 5;                     // no lane unreachable
+    const noFlicker = j.hyst && j.hyst.atLeft === 0 && j.hyst.justPast === 0
+                      && j.hyst.wellPast === 1 && j.hyst.backJustPast === 1;
+    const firedShown = j.firedLane === j.shownLane;         // the shot matches what the player saw
+    // Deliberately NOT asserting which mode is the shipped default. Jac asked for this
+    // to be easily reversible, and a suite that goes red on the documented one-line
+    // revert would make reverting a chore. The check proves BOTH modes behave as
+    // specified and reports the default in its evidence, so a revert stays green and
+    // stays visible.
+    const pass = r.status === 0 && snapped && controlDiffers && allLanes && noFlicker && firedShown
+                 && j.restoredTo === j.defaultSnap && r.pageErrors.length === 0;
+    return { pass, evidence: { harnessExit: r.status, ...j, pageErrors: r.pageErrors.slice(0, 3) } };
   });
 
   check('title -> playing via OT.game.start()', () => {

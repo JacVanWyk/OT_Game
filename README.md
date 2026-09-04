@@ -7,7 +7,7 @@ line and fires that fruit's power-up. Ten fruits across four seasonal zones (52 
 time-limit loss, hearts, stars, and Sprout the apprentice as host. Ben owns the design
 (`OrchardToss.md`); Jac owns the prototype and its build/deploy pipeline.
 
-## Current state — prototype v0.5.0 (2026-09-04)
+## Current state — prototype v0.5.1 (2026-09-04)
 
 - Full-spec POC: all 10 fruits and power-ups, all 4 zones with generated obstacles from
   Summer on, drag-and-flick controls, timer/hearts/stars, orchard meta-progression.
@@ -20,6 +20,8 @@ time-limit loss, hearts, stars, and Sprout the apprentice as host. Ben owns the 
   and packaged the game as an Android APK (5.5 MB, portrait, fully offline) behind the same login.
 - v0.5.0 added Ben's first character art: Sprout at growth **stage 3**, all four moods. Stages 0–2
   deliberately keep the procedural Sprout until Ben supplies them, so what is unfinished still looks it.
+- v0.5.1 makes the launcher snap to a lane for the whole drag, so aiming on a phone is exact.
+  One constant reverts it (`TUNE.LANE_SNAP_DRAG`).
 - Verified headless (55 board checks, 14 browser checks) and deployed login-gated at
   `https://tools-app.net/hosted/orchard-toss/`.
 
